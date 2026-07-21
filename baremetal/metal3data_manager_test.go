@@ -267,7 +267,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("No Metal3Machine", testCaseCreateSecrets{
 			m3d: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Template: testMetal3ObjectReference(metal3DataTemplateName),
 					Claim:    testMetal3ObjectReference(metal3DataClaimName),
@@ -284,7 +284,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("No Secret needed", testCaseCreateSecrets{
 			m3d: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Template: testMetal3ObjectReference(metal3DataTemplateName),
 					Claim:    testMetal3ObjectReference(metal3DataClaimName),
@@ -307,7 +307,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("Machine without datatemplate", testCaseCreateSecrets{
 			m3d: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Template: testMetal3ObjectReference(metal3DataTemplateName),
 					Claim:    testMetal3ObjectReference(metal3DataClaimName),
@@ -327,7 +327,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("secrets exist", testCaseCreateSecrets{
 			m3d: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Template: testMetal3ObjectReference(metal3DataTemplateName),
 					Claim:    testMetal3ObjectReference(metal3DataClaimName),
@@ -388,7 +388,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("secrets do not exist", testCaseCreateSecrets{
 			m3d: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Template: testMetal3ObjectReference(metal3DataTemplateName),
 					Claim:    testMetal3ObjectReference(metal3DataClaimName),
@@ -457,7 +457,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("No Machine OwnerRef on M3M", testCaseCreateSecrets{
 			m3d: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Template: testMetal3ObjectReference(metal3DataTemplateName),
 					Claim:    testMetal3ObjectReference(metal3DataClaimName),
@@ -504,7 +504,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("secrets do not exist", testCaseCreateSecrets{
 			m3d: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Template: testMetal3ObjectReference(metal3DataTemplateName),
 					Claim:    testMetal3ObjectReference(metal3DataClaimName),
@@ -4671,7 +4671,7 @@ var _ = Describe("Metal3Data manager", func() {
 		},
 		Entry("Object does not exist", testCaseGetM3Machine{
 			Data: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Claim: testMetal3ObjectReference(metal3DataClaimName),
 				},
@@ -4696,7 +4696,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("Dataclaim Spec ownerref unset", testCaseGetM3Machine{
 			Data: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Claim: testMetal3ObjectReference(metal3DataClaimName),
 				},
@@ -4709,7 +4709,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("M3Machine not found", testCaseGetM3Machine{
 			Data: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Claim: testMetal3ObjectReference(metal3DataClaimName),
 				},
@@ -4731,7 +4731,7 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 			Data: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Claim: testMetal3ObjectReference(metal3DataClaimName),
 				},
@@ -4756,7 +4756,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, m3dtuid),
 			},
 			Data: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Claim: testMetal3ObjectReference(metal3DataClaimName),
 				},
@@ -4785,7 +4785,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, m3dtuid),
 			},
 			Data: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Claim: testMetal3ObjectReference(metal3DataClaimName),
 				},
@@ -4814,7 +4814,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, m3dtuid),
 			},
 			Data: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
 					Claim: testMetal3ObjectReference(metal3DataClaimName),
 				},
