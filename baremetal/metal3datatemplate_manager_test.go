@@ -604,22 +604,18 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				if tc.expectRequeue || tc.expectError {
 					continue
 				}
-				var claimOwner, machineOwner *metav1.OwnerReference
+				var claimOwner *metav1.OwnerReference
 				for i := range address.OwnerReferences {
 					ref := &address.OwnerReferences[i]
 					Expect(ref.Kind).NotTo(Equal("Metal3DataTemplate"))
-					switch ref.Kind {
-					case metal3DataClaimKind:
+					if ref.Kind == metal3DataClaimKind {
 						claimOwner = ref
-					case metal3MachineKind:
-						machineOwner = ref
 					}
 				}
-				Expect(address.OwnerReferences).To(HaveLen(2))
+				Expect(address.OwnerReferences).To(HaveLen(1))
 				Expect(claimOwner).NotTo(BeNil())
 				Expect(claimOwner.Controller).To(Equal(ptr.To(true)))
 				Expect(claimOwner.Name).To(Equal(tc.dataClaim.Name))
-				Expect(machineOwner).NotTo(BeNil())
 			}
 			Expect(tc.dataClaim.Finalizers).To(HaveLen(1))
 
