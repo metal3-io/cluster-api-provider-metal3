@@ -29,7 +29,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -242,22 +241,14 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 		}
 	}
 
-	m3mUID := types.UID("")
-	m3mName := ""
-	for _, ownerRef := range dataClaim.OwnerReferences {
-		aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
-		if err != nil {
-			return indexes, err
-		}
-		if ownerRef.Kind == metal3MachineKind &&
-			aGV.Group == infrav1.GroupVersion.Group {
-			m3mUID = ownerRef.UID
-			m3mName = ownerRef.Name
-			break
-		}
+	// Ensure the claim is controlled by a Metal3Machine before creating Metal3Data.
+	ownerRef := metav1.GetControllerOf(dataClaim)
+	if ownerRef == nil || ownerRef.Kind != metal3MachineKind || ownerRef.Name == "" {
+		return indexes, errors.New("Metal3DataClaim missing Metal3Machine controller owner reference")
 	}
-	if m3mName == "" {
-		return indexes, errors.New("metal3Machine not found in owner references")
+	refGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+	if err != nil || refGV.Group != infrav1.GroupVersion.Group {
+		return indexes, errors.New("Metal3DataClaim controller owner reference has unexpected API group")
 	}
 
 	// Get a new index for this machine
@@ -315,12 +306,6 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 					Kind:       metal3DataClaimKind,
 					Name:       dataClaim.Name,
 					UID:        dataClaim.UID,
-				},
-				{
-					APIVersion: infrav1.GroupVersion.String(),
-					Kind:       metal3MachineKind,
-					Name:       m3mName,
-					UID:        m3mUID,
 				},
 			},
 		},
@@ -440,6 +425,23 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 		}
 	}
 
+	// A Fallback to locate the Metal3Data by its stable spec.claim.name link if index and rendered-data references are stale 
+	if !m3DataFound {
+		found, m3d, err := m.findMetal3DataByClaimName(ctx, dataClaim.Name)
+		if err != nil {
+
+			dataClaim.Status.ErrorMessage = "Failed to list Metal3Data to locate object by claim name"
+			m.Log.Error(err, "Failed to list Metal3Data by claim name", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldMetal3DataTemplate, m.DataTemplate.Name)
+			return indexes, WithTransientError(err, requeueAfter)
+		}
+		if found {
+			tmpM3Data = m3d
+			dataName = m3d.Name
+			m3DataFound = true
+			m.Log.Info("Located Metal3Data via spec.claim.name fallback", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldMetal3Data, dataName)
+		}
+	}
+
 	if m3DataFound {
 		// Remove the finalizer
 		m.Log.V(VerbosityLevelTrace).Info("Attempting to remove finalizer from associated Metal3Data", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldMetal3DataTemplate, m.DataTemplate.Name, LogFieldMetal3Data, dataName)
@@ -458,10 +460,7 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 		}
 		m.Log.Info("Deleted Metal3Data", LogFieldMetal3Data, tmpM3Data.Name)
 	} else {
-		errMsg := "failed to retrieve Metal3Data object because it was not found or for other unknown reason"
-		persistentErrMsg += errMsg
-		dataClaim.Status.ErrorMessage = persistentErrMsg
-		m.Log.Error(errors.New(errMsg), "error added to Metal3DataClaim status", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldMetal3DataTemplate, m.DataTemplate.Name, LogFieldMetal3Data, dataName)
+		m.Log.V(VerbosityLevelDebug).Info("No Metal3Data found for claim, nothing to delete", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldMetal3DataTemplate, m.DataTemplate.Name, "detail", persistentErrMsg)
 	}
 
 	dataClaim.Status.RenderedData = nil
@@ -490,4 +489,26 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 	m.Log.Info("Deleted Metal3DataClaim", LogFieldMetal3DataClaim, dataClaim.Name)
 	m.updateStatusTimestamp()
 	return indexes, nil
+}
+
+// findMetal3DataByClaimName locates the Metal3Data owned by the given claim by
+// matching Metal3Data.Spec.Claim.Name against the claim name. This is used as a
+// fallback when references are stale.
+func (m *DataTemplateManager) findMetal3DataByClaimName(ctx context.Context, claimName string) (bool, *infrav1.Metal3Data, error) {
+	dataObjects := infrav1.Metal3DataList{}
+	opts := &client.ListOptions{Namespace: m.DataTemplate.Namespace}
+	if err := m.client.List(ctx, &dataObjects, opts); err != nil {
+		return false, nil, err
+	}
+	for i := range dataObjects.Items {
+		dataObject := &dataObjects.Items[i]
+		if dataObject.Spec.Template == nil || dataObject.Spec.Template.Name != m.DataTemplate.Name {
+			continue
+		}
+		if dataObject.Spec.Claim == nil || dataObject.Spec.Claim.Name != claimName {
+			continue
+		}
+		return true, dataObject, nil
+	}
+	return false, nil, nil
 }

@@ -426,13 +426,8 @@ func (h *ExtensionHandlers) getMachineIP(ctx context.Context, machine *clusterv1
 
 	var m3Data *infrav1.Metal3Data
 	for i, m3d := range m3DataList.Items {
-		for _, owner := range m3d.OwnerReferences {
-			if owner.Name == metal3Machine.Name {
-				m3Data = &m3DataList.Items[i]
-				break
-			}
-		}
-		if m3Data != nil {
+		if m3d.Spec.Claim != nil && m3d.Spec.Claim.Name == metal3Machine.Name {
+			m3Data = &m3DataList.Items[i]
 			break
 		}
 	}
