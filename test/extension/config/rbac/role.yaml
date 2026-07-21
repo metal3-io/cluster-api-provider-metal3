@@ -19,6 +19,7 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - metal3dataclaims
   - metal3datas
   - metal3machines
   verbs:

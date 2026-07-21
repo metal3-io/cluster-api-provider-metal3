@@ -594,18 +594,6 @@ func GenerateIPPoolPreallocations(ctx context.Context, ippool ipamv1.IPPool, poo
 	return newAllocations, nil
 }
 
-// Metal3DataToMachineName finds the relevant owner reference in Metal3Data
-// and returns the name of corresponding Metal3Machine.
-func Metal3DataToMachineName(m3data infrav1.Metal3Data) (string, error) {
-	ownerReferences := m3data.GetOwnerReferences()
-	for _, reference := range ownerReferences {
-		if reference.Kind == "Metal3Machine" {
-			return reference.Name, nil
-		}
-	}
-	return "", errors.New("metal3Data missing a \"Metal3Machine\" kind owner reference")
-}
-
 // FilterMetal3DatasByName returns a filtered list of m3data objects with specific name.
 func FilterMetal3DatasByName(m3datas []infrav1.Metal3Data, name string) (result []infrav1.Metal3Data) {
 	Logf("m3datas: %v", m3datas)
@@ -705,10 +693,8 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 		return "", fmt.Errorf("coudln't list Metal3Data objects: %w", err)
 	}
 	for i, m3d := range m3DataList.Items {
-		for _, owner := range m3d.OwnerReferences {
-			if owner.Name == m3Machine.Name {
-				m3Data = &m3DataList.Items[i]
-			}
+		if m3d.Spec.Claim != nil && m3d.Spec.Claim.Name == m3Machine.Name {
+			m3Data = &m3DataList.Items[i]
 		}
 	}
 	if m3Data.Name == "" {
