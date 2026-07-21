@@ -4,6 +4,7 @@
 # - control-plane kubeadm
 # - metal3
 
+managementClusterName: capm3-e2e
 images:
 # Use local dev images built from the source tree;
 - name: quay.io/metal3-io/cluster-api-provider-metal3:latest
@@ -107,6 +108,15 @@ providers:
 - name: metal3
   type: IPAMProvider
   versions:
+  - name: v1.14.99
+    value: "${PWD}/test/e2e/data/ipamprovider-metal3/overlays/main/"
+    contract: v1beta1
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/ipam-metal3/main/metadata.yaml"
+      targetName: "metadata.yaml"
   - name: v1.13.99
     value: "${PWD}/test/e2e/data/ipamprovider-metal3/overlays/release-1.13/"
     contract: v1beta1
@@ -231,7 +241,7 @@ variables:
   SCALE_SPEC_CONCURRENCY: 10
   IRONIC_NAMESPACE: "baremetal-operator-system"
   NAMEPREFIX: "baremetal-operator"
-  IRONIC_DATA_DIR: "${DEV_ENV_WORKING_DIR}/ironic"
+  IRONIC_DATA_DIR: "${IRONIC_DATA_DIR}"
   BMOPATH: "${M3PATH}/baremetal-operator"
   IRONIC_TLS_SETUP: "true"
   IRONIC_BASIC_AUTH: "true"
@@ -258,6 +268,8 @@ variables:
   SERVICE_CIDR: "10.96.0.0/12"
   POD_CIDR: "192.168.0.0/18"
   BARE_METAL_PROVISIONER_CIDR: "24"
+  BARE_METAL_PROVISIONER_INTERFACE: "ironicendpoint"
+  CLUSTER_BARE_METAL_PROVISIONER_IP: "172.22.0.2"
   CLUSTER_APIENDPOINT_HOST: "192.168.111.249"
   CLUSTER_APIENDPOINT_PORT: "6443"
   EXTERNAL_SUBNET_V4_PREFIX: "24"
@@ -288,7 +300,7 @@ variables:
 intervals:
   default/wait-controllers: [ "10m", "10s" ]
   default/wait-cluster: [ "20m", "30s" ] # The second time to check the availability of the cluster should happen late, so kcp object has time to be created
-  default/wait-control-plane: [ "30m", "10s" ]
+  default/wait-control-plane: [ "120m", "10s" ]
   #  Giving a bit more time during scale tests.
   scale/wait-cluster: [ "60m", "10s" ]
   scale/wait-control-plane: [ "50m", "10s" ]

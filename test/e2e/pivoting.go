@@ -7,37 +7,35 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	docker "github.com/moby/moby/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	framework "sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	bmoPath                      = "BMOPATH"
-	ironicTLSSetup               = "IRONIC_TLS_SETUP"
-	ironicBasicAuth              = "IRONIC_BASIC_AUTH"
-	ironicKeepalived             = "IRONIC_KEEPALIVED"
-	ironicMariadb                = "IRONIC_USE_MARIADB"
-	Kind                         = "kind"
-	NamePrefix                   = "NAMEPREFIX"
-	restartContainerCertUpdate   = "RESTART_CONTAINER_CERTIFICATE_UPDATED"
-	ironicNamespace              = "IRONIC_NAMESPACE"
-	clusterLogCollectionBasePath = "/tmp/target_cluster_logs"
-	Metal3ipamProviderName       = "metal3"
-	IRSOControllerNameSpace      = "ironic-standalone-operator-system"
-	IRSOControllerManagerName    = "ironic-standalone-operator-controller-manager"
+	bmoPath                    = "BMOPATH"
+	ironicTLSSetup             = "IRONIC_TLS_SETUP"
+	ironicBasicAuth            = "IRONIC_BASIC_AUTH"
+	ironicKeepalived           = "IRONIC_KEEPALIVED"
+	ironicMariadb              = "IRONIC_USE_MARIADB"
+	Kind                       = "kind"
+	NamePrefix                 = "NAMEPREFIX"
+	restartContainerCertUpdate = "RESTART_CONTAINER_CERTIFICATE_UPDATED"
+	ironicNamespace            = "IRONIC_NAMESPACE"
+	IRSOControllerNameSpace    = "ironic-standalone-operator-system"
+	IRSOControllerManagerName  = "ironic-standalone-operator-controller-manager"
 )
 
 type PivotingInput struct {
@@ -65,29 +63,9 @@ func Pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	ListNodes(ctx, input.TargetCluster.GetClient())
 
 	By("Fetch logs from target cluster before pivot")
-	err := FetchClusterLogs(input.TargetCluster, filepath.Join(clusterLogCollectionBasePath, "beforePivot"))
+	err := FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, input.TargetCluster.GetName(), "beforePivot"))
 	if err != nil {
 		Logf("Error: %v", err)
-	}
-
-	ironicContainers := []string{
-		"ironic",
-		"ironic-endpoint-keepalived",
-		"ironic-log-watch",
-		"dnsmasq",
-	}
-	generalContainers := []string{
-		"httpd-infra",
-		"registry",
-		"sushy-tools",
-		"vbmc",
-	}
-
-	By("Fetch container logs")
-	bootstrapCluster := os.Getenv("BOOTSTRAP_CLUSTER")
-	fetchContainerLogs(&generalContainers, input.ArtifactFolder, input.E2EConfig.MustGetVariable("CONTAINER_RUNTIME"))
-	if bootstrapCluster == Kind {
-		fetchContainerLogs(&ironicContainers, input.ArtifactFolder, input.E2EConfig.MustGetVariable("CONTAINER_RUNTIME"))
 	}
 
 	By("Fetch manifest for bootstrap cluster before pivot")
@@ -108,33 +86,38 @@ func Pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	Logf("%s\n", stdoutStderr)
 	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
 
-	By("Remove Ironic containers from the source cluster")
-	ironicDeploymentType := IronicDeploymentTypeIrSO
-	if bootstrapCluster == Kind {
-		ironicDeploymentType = IronicDeploymentTypeLocal
-	} else if GetBoolVariable(input.E2EConfig, "USE_IRSO") {
-		ironicDeploymentType = IronicDeploymentTypeIrSO
-	}
+	By("Remove Ironic from the source cluster")
 
 	removeIronic(ctx, func() RemoveIronicInput {
 		return RemoveIronicInput{
-			ClusterProxy:      input.BootstrapClusterProxy,
-			DeploymentType:    ironicDeploymentType,
-			Namespace:         input.E2EConfig.MustGetVariable(ironicNamespace),
-			E2EConfig:         input.E2EConfig,
-			IsDevEnvUninstall: true,
+			ClusterProxy: input.BootstrapClusterProxy,
+			E2EConfig:    input.E2EConfig,
 		}
 	})
 
 	By("Initialize Provider component in target cluster")
+	capiRelease := os.Getenv("CAPIRELEASE")
+	if capiRelease == "" {
+		// Resolve the latest stable CAPI release for the minor version from CAPI_RELEASE_PREFIX.
+		// e.g. CAPI_RELEASE_PREFIX="v1.13." -> minorVersion="1.13" -> capiRelease="v1.13.2"
+		releasePrefix := os.Getenv("CAPI_RELEASE_PREFIX")
+		Expect(releasePrefix).ToNot(BeEmpty(), "CAPI_RELEASE_PREFIX must be set when CAPIRELEASE is not")
+		minorVersion := strings.TrimSuffix(strings.TrimPrefix(releasePrefix, "v"), ".")
+		capiRelease, err = capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
+		Expect(err).ToNot(HaveOccurred(), "Failed to get stable CAPI release for minor version %s", minorVersion)
+		if !strings.HasPrefix(capiRelease, "v") {
+			capiRelease = "v" + capiRelease
+		}
+		log.Printf("Resolved CAPIRELEASE from goproxy: %s", capiRelease)
+	}
 	clusterctl.Init(ctx, clusterctl.InitInput{
 		KubeconfigPath:          input.TargetCluster.GetKubeconfigPath(),
-		ClusterctlConfigPath:    input.E2EConfig.MustGetVariable("CONFIG_FILE_PATH"),
-		CoreProvider:            config.ClusterAPIProviderName + ":" + os.Getenv("CAPIRELEASE"),
-		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + os.Getenv("CAPIRELEASE")},
-		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + os.Getenv("CAPIRELEASE")},
+		ClusterctlConfigPath:    input.ClusterctlConfigPath,
+		CoreProvider:            config.ClusterAPIProviderName + ":" + capiRelease,
+		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + capiRelease},
+		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + capiRelease},
 		InfrastructureProviders: []string{config.Metal3ProviderName + ":" + os.Getenv("CAPM3RELEASE")},
-		IPAMProviders:           []string{Metal3ipamProviderName + ":" + os.Getenv("IPAMRELEASE")},
+		IPAMProviders:           []string{config.Metal3IPAMProviderName + ":" + os.Getenv("IPAMRELEASE")},
 		LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivoting"),
 	})
 
@@ -243,55 +226,24 @@ func Pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	By("PIVOTING TESTS PASSED!")
 }
 
-type IronicDeploymentType string
-
-const (
-	IronicDeploymentTypeLocal IronicDeploymentType = "local"
-	IronicDeploymentTypeIrSO  IronicDeploymentType = "irso"
-)
-
 type RemoveIronicInput struct {
-	ClusterProxy      framework.ClusterProxy
-	DeploymentType    IronicDeploymentType
-	Namespace         string
-	E2EConfig         *clusterctl.E2EConfig
-	IsDevEnvUninstall bool
+	ClusterProxy framework.ClusterProxy
+	E2EConfig    *clusterctl.E2EConfig
 }
 
 func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 	input := inputGetter()
-	if input.DeploymentType == IronicDeploymentTypeIrSO {
-		By("Remove IRSO and Ironic resources")
-		irsoKustomization := input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST")
-		ironicKustomization := input.E2EConfig.MustGetVariable("IRSO_IRONIC_PR_TEST")
-		err := UninstallIRSOAndIronicResources(ctx, UninstallIRSOAndIronicResourcesInput{
-			E2EConfig:             input.E2EConfig,
-			ClusterProxy:          input.ClusterProxy,
-			IronicNamespace:       input.E2EConfig.MustGetVariable(ironicNamespace),
-			IrsoOperatorKustomize: irsoKustomization,
-			IronicKustomization:   ironicKustomization,
-			IsDevEnvUninstall:     input.IsDevEnvUninstall,
-		})
-		Expect(err).NotTo(HaveOccurred())
-	} else {
-		By("Remove Ironic containers from kind bootstrap cluster")
-		ironicContainerList := []string{
-			"ironic",
-			"dnsmasq",
-			"ironic-endpoint-keepalived",
-			"ironic-log-watch",
-		}
-		dockerClient, err := docker.NewClientWithOpts()
-		Expect(err).ToNot(HaveOccurred(), "Unable to get docker client")
-		removeOptions := docker.ContainerRemoveOptions{}
-		stopTimeout := 60
-		for _, container := range ironicContainerList {
-			_, err = dockerClient.ContainerStop(ctx, container, docker.ContainerStopOptions{Timeout: &stopTimeout})
-			Expect(err).ToNot(HaveOccurred(), "Unable to stop the container %s: %v", container, err)
-			_, err = dockerClient.ContainerRemove(ctx, container, removeOptions)
-			Expect(err).ToNot(HaveOccurred(), "Unable to delete the container %s: %v", container, err)
-		}
-	}
+	By("Remove IRSO and Ironic resources")
+	irsoKustomization := input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST")
+	ironicKustomization := input.E2EConfig.MustGetVariable("IRSO_IRONIC_PR_TEST")
+	err := UninstallIRSOAndIronicResources(ctx, UninstallIRSOAndIronicResourcesInput{
+		E2EConfig:             input.E2EConfig,
+		ClusterProxy:          input.ClusterProxy,
+		IronicNamespace:       input.E2EConfig.MustGetVariable(ironicNamespace),
+		IrsoOperatorKustomize: irsoKustomization,
+		IronicKustomization:   ironicKustomization,
+	})
+	Expect(err).NotTo(HaveOccurred())
 }
 
 type RemoveDeploymentInput struct {
@@ -353,59 +305,42 @@ func RePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
 
 	By("Fetch logs from target cluster after pivot")
-	err := FetchClusterLogs(input.TargetCluster, filepath.Join(clusterLogCollectionBasePath, "afterPivot"))
+	err := FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, input.TargetCluster.GetName(), "afterPivot"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
 
 	By("Fetch manifest for workload cluster after pivot")
-	workloadClusterProxy := framework.NewClusterProxy("workload-cluster-after-pivot", os.Getenv("KUBECONFIG"), runtime.NewScheme())
-	err = FetchManifests(workloadClusterProxy, "/tmp/manifests/")
+	err = FetchManifests(input.TargetCluster, "/tmp/manifests/")
 	if err != nil {
 		Logf("Error fetching manifests for workload cluster after pivot: %v", err)
 	}
-	os.Unsetenv("KUBECONFIG_WORKLOAD")
 
 	By("Add labels to BMO CRDs in the target cluster")
 	labelBMOCRDs(ctx, input.TargetCluster)
 	By("Add Labels to hardwareData CRDs in the target cluster")
 	labelHDCRDs(ctx, input.TargetCluster)
 
-	By("Remove Ironic CR in the target cluster")
-	ironicKustomization := input.E2EConfig.MustGetVariable("IRSO_IRONIC_PR_TEST")
-	err = BuildAndRemoveKustomization(ctx, ironicKustomization, input.TargetCluster)
-	Expect(err).NotTo(HaveOccurred())
+	By("Remove Ironic from the target cluster")
+	removeIronic(ctx, func() RemoveIronicInput {
+		return RemoveIronicInput{
+			ClusterProxy: input.TargetCluster,
+			E2EConfig:    input.E2EConfig,
+		}
+	})
 
-	By("Remove IRSO in the target cluster")
-	irsoKustomization := input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST")
-	err = BuildAndRemoveKustomization(ctx, irsoKustomization, input.TargetCluster)
+	By("Repivoting: Install IRSO in the bootstrap cluster")
+	irsoDeployLogFolder := filepath.Join(input.ArtifactFolder, input.TargetCluster.GetName(), "ironic-deploy-logs-repivoting")
+	err = InstallIRSO(ctx, InstallIRSOInput{
+		E2EConfig:             input.E2EConfig,
+		ClusterProxy:          input.BootstrapClusterProxy,
+		IronicNamespace:       input.E2EConfig.MustGetVariable(ironicNamespace),
+		ClusterName:           input.BootstrapClusterProxy.GetName(),
+		IrsoOperatorKustomize: input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST"),
+		IronicKustomize:       input.E2EConfig.MustGetVariable("IRSO_IRONIC_PR_TEST"),
+		LogPath:               irsoDeployLogFolder,
+	})
 	Expect(err).NotTo(HaveOccurred())
-
-	By("Reinstate Ironic containers and BMH")
-	bootstrapCluster := os.Getenv("BOOTSTRAP_CLUSTER")
-	if bootstrapCluster == Kind {
-		bmoPath := input.E2EConfig.MustGetVariable("BMOPATH")
-		ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
-		//#nosec G204:gosec
-		cmd := exec.CommandContext(ctx, "sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
-		var stdoutStderr []byte
-		stdoutStderr, err = cmd.CombinedOutput()
-		Logf("Output: %s", stdoutStderr)
-		Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
-	} else {
-		By("Repivoting: Install IRSO in the bootstrap cluster")
-		irsoDeployLogFolder := filepath.Join(input.ArtifactFolder, input.TargetCluster.GetName(), "ironic-deploy-logs-repivoting")
-		err = InstallIRSO(ctx, InstallIRSOInput{
-			E2EConfig:             input.E2EConfig,
-			ClusterProxy:          input.BootstrapClusterProxy,
-			IronicNamespace:       input.E2EConfig.MustGetVariable(ironicNamespace),
-			ClusterName:           input.BootstrapClusterProxy.GetName(),
-			IrsoOperatorKustomize: input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST"),
-			IronicKustomize:       input.E2EConfig.MustGetVariable("IRSO_IRONIC_PR_TEST"),
-			LogPath:               irsoDeployLogFolder,
-		})
-		Expect(err).NotTo(HaveOccurred())
-	}
 
 	By("Reinstate BMO in bootstrap cluster")
 	bmoKustomization := input.E2EConfig.MustGetVariable("BMO_RELEASE_PR_TEST")
@@ -485,34 +420,6 @@ func RePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	if err != nil {
 		Logf("Error fetching manifests for bootstrap cluster before pivot: %v", err)
 	}
-	os.Unsetenv("KUBECONFIG_BOOTSTRAP")
 
 	By("RE-PIVOTING TEST PASSED!")
-}
-
-func createDirIfNotExist(dirPath string) {
-	err := os.MkdirAll(dirPath, 0750)
-	if err != nil && os.IsNotExist(err) {
-		log.Fatal(err)
-	}
-}
-
-// fetchContainerLogs uses the `containerCommand` to get the logs of all `containerNames` and put them in the `folder`.
-func fetchContainerLogs(containerNames *[]string, folder string, containerCommand string) {
-	By("Create directories and storing container logs")
-	for _, name := range *containerNames {
-		logDir := filepath.Join(folder, containerCommand, name)
-		By(fmt.Sprintf("Create log directory for container %s at %s", name, logDir))
-		createDirIfNotExist(logDir)
-		By("Fetch logs for container " + name)
-		cmd := exec.CommandContext(context.Background(), "sudo", containerCommand, "logs", name) // #nosec G204:gosec
-		out, err := cmd.Output()
-		if err != nil {
-			writeErr := os.WriteFile(filepath.Join(logDir, "stderr.log"), []byte(err.Error()), 0400)
-			Expect(writeErr).ToNot(HaveOccurred())
-			log.Fatal(err)
-		}
-		writeErr := os.WriteFile(filepath.Join(logDir, "stdout.log"), out, 0400)
-		Expect(writeErr).ToNot(HaveOccurred())
-	}
 }

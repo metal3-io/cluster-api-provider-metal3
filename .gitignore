@@ -77,3 +77,6 @@ junit.e2e_suite.*.xml
 
 # ai stuff
 .claude
+
+# Build output (ci-e2e.sh vbmctl binary, generated configs)
+_out/

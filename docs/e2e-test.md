@@ -4,6 +4,9 @@ This doc gives short instructions how to run e2e tests. For the developing e2e
 tests, please refer to
 [Developing E2E tests](https://cluster-api.sigs.k8s.io/developer/core/e2e).
 
+For an explanation of how the e2e test environment wires up networking, see
+[E2E test networking](e2e-networking.md).
+
 ## Prerequisites
 
 1. Make sure that `make` is available
@@ -32,6 +35,29 @@ tests, please refer to
 
    ```sh
    sudo groupadd docker && sudo usermod -aG docker $USER && newgrp docker
+   ```
+
+1. Make sure `libvirt` is installed, running, and accessible without sudo.
+
+   The tests provision virtual bare metal hosts through `libvirt`, so the
+   `libvirtd` service must be running and your user must be able to reach the
+   libvirt socket. Ensure the service is enabled:
+
+   ```sh
+   sudo systemctl enable --now libvirtd
+   ```
+
+   Then add your user to the `libvirt` group (use `libvirtd` on older
+   distributions) and start a new login session so the change takes effect:
+
+   ```sh
+   sudo usermod -aG libvirt $USER && newgrp libvirt
+   ```
+
+   You can verify access with:
+
+   ```sh
+   virsh -c qemu:///system list
    ```
 
 ## Running
