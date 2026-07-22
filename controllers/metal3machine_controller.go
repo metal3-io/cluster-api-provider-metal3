@@ -159,6 +159,12 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if err != nil {
 		setErrorM3Machine(capm3Machine, "", "")
 		machineLog.Info("Machine is missing cluster label or cluster does not exist")
+		conditions.Set(capm3Machine, metav1.Condition{
+			Type:    infrav1.AssociateBareMetalHostCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.WaitingForClusterInfrastructureReadyReason,
+			Message: "Machine is missing cluster label or cluster does not exist",
+		})
 		return ctrl.Result{}, nil
 	}
 
@@ -386,9 +392,9 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		if err != nil {
 			log.V(baremetal.VerbosityLevelDebug).Info("Failed to update provisioned machine",
 				baremetal.LogFieldError, err.Error())
-			errType := capierrors.UpdateMachineError
 			return checkMachineError(machineMgr, err,
-				"Failed to update the Metal3Machine", errType)
+				infrav1.AssociateMetal3MachineMetaDataCondition, infrav1.UpdateMachineErrorReason,
+				"Failed to update the Metal3Machine")
 		}
 		log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: provisioned machine updated successfully")
 		return ctrl.Result{}, nil
@@ -407,8 +413,6 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{}, nil
 	}
 
-	errType := capierrors.CreateMachineError
-
 	// Check if the metal3machine was associated with a baremetalhost
 	hasAnnotation := machineMgr.HasAnnotation()
 	log.V(baremetal.VerbosityLevelDebug).Info("Checking BMH association",
@@ -423,9 +427,9 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 			log.V(baremetal.VerbosityLevelDebug).Info("Association failed",
 				baremetal.LogFieldError, err.Error())
 			machineMgr.SetV1Beta1ConditionToFalse(infrav1.AssociateBMHV1Beta1Condition, infrav1.AssociateBMHFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
-			machineMgr.SetCondition(infrav1.AssociateBareMetalHostCondition, metav1.ConditionFalse, infrav1.AssociateBareMetalHostFailedReason, err.Error())
 			return checkMachineError(machineMgr, err,
-				"failed to associate the Metal3Machine to a BareMetalHost", errType)
+				infrav1.AssociateBareMetalHostCondition, infrav1.AssociateBareMetalHostFailedReason,
+				"failed to associate the Metal3Machine to a BareMetalHost")
 		}
 
 		// Check again if the annotation is set, if not return error as association failed
@@ -455,9 +459,9 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		log.V(baremetal.VerbosityLevelDebug).Info("Metadata association failed",
 			baremetal.LogFieldError, err.Error())
 		machineMgr.SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.AssociateM3MetaDataFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
-		machineMgr.SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition, metav1.ConditionFalse, infrav1.AssociateMetal3MachineMetaDataFailedReason, err.Error())
 		return checkMachineError(machineMgr, err,
-			"Failed to get the Metal3Metadata", errType)
+			infrav1.AssociateMetal3MachineMetaDataCondition, infrav1.AssociateMetal3MachineMetaDataFailedReason,
+			"Failed to get the Metal3Metadata")
 	}
 	machineMgr.SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition, metav1.ConditionTrue, infrav1.AssociateMetal3MachineMetaDataSuccessReason, "")
 
@@ -467,7 +471,8 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		log.V(baremetal.VerbosityLevelDebug).Info("Failed to update BareMetalHost",
 			baremetal.LogFieldError, err.Error())
 		return checkMachineError(machineMgr, err,
-			"failed to update BareMetalHost", errType)
+			infrav1.AssociateMetal3MachineMetaDataCondition, infrav1.CreateMachineErrorReason,
+			"failed to update BareMetalHost")
 	}
 
 	log.V(baremetal.VerbosityLevelTrace).Info("Checking if BMH is provisioned")
@@ -495,7 +500,9 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		if err != nil {
 			log.V(baremetal.VerbosityLevelDebug).Info("Failed to set ProviderID from cloud provider",
 				baremetal.LogFieldError, err.Error())
-			return checkMachineError(machineMgr, err, "failed to set ProviderID on Metal3Machine based on Cloud Provider Node ProviderID", errType)
+			return checkMachineError(machineMgr, err,
+				infrav1.AssociateMetal3MachineMetaDataCondition, infrav1.CreateMachineErrorReason,
+				"failed to set ProviderID on Metal3Machine based on Cloud Provider Node ProviderID")
 		}
 		return ctrl.Result{}, nil
 	}
@@ -508,7 +515,9 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	if err != nil {
 		log.V(baremetal.VerbosityLevelDebug).Info("Failed to set ProviderID from node label",
 			baremetal.LogFieldError, err.Error())
-		return checkMachineError(machineMgr, err, "failed to set ProviderID on Metal3Machine based on Node label", errType)
+		return checkMachineError(machineMgr, err,
+			infrav1.AssociateMetal3MachineMetaDataCondition, infrav1.CreateMachineErrorReason,
+			"failed to set ProviderID on Metal3Machine based on Node label")
 	}
 
 	log.V(baremetal.VerbosityLevelDebug).Info("SetProviderIDFromNodeLabel result",
@@ -538,18 +547,19 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 			log.V(baremetal.VerbosityLevelDebug).Info("Failed to set default ProviderID",
 				baremetal.LogFieldError, err.Error())
 			return checkMachineError(machineMgr, err,
-				"Failed to set default ProviderID the Metal3Machine", errType)
+				infrav1.AssociateMetal3MachineMetaDataCondition, infrav1.CreateMachineErrorReason,
+				"Failed to set default ProviderID the Metal3Machine")
 		}
 		machineMgr.SetReadyTrue()
 
-		errType = capierrors.UpdateMachineError
 		log.V(baremetal.VerbosityLevelTrace).Info("Updating machine after setting default ProviderID")
 		err = machineMgr.Update(ctx)
 		if err != nil {
 			log.V(baremetal.VerbosityLevelDebug).Info("Failed to update Metal3Machine",
 				baremetal.LogFieldError, err.Error())
 			return checkMachineError(machineMgr, err,
-				"Failed to update the Metal3Machine", errType)
+				infrav1.AssociateMetal3MachineMetaDataCondition, infrav1.UpdateMachineErrorReason,
+				"Failed to update the Metal3Machine")
 		}
 	}
 
@@ -558,18 +568,19 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	if err != nil {
 		log.V(baremetal.VerbosityLevelDebug).Info("Failed to set node ProviderID by hostname",
 			baremetal.LogFieldError, err.Error())
-		errType = capierrors.UpdateMachineError
-		return checkMachineError(machineMgr, err, "unable to find Node by hostname, it may not be ready yet", errType)
+		return checkMachineError(machineMgr, err,
+			infrav1.AssociateMetal3MachineMetaDataCondition, infrav1.UpdateMachineErrorReason,
+			"unable to find Node by hostname, it may not be ready yet")
 	}
 
-	errType = capierrors.UpdateMachineError
 	log.V(baremetal.VerbosityLevelTrace).Info("Final machine update")
 	err = machineMgr.Update(ctx)
 	if err != nil {
 		log.V(baremetal.VerbosityLevelDebug).Info("Final update failed",
 			baremetal.LogFieldError, err.Error())
 		return checkMachineError(machineMgr, err,
-			"Failed to update the Metal3Machine", errType)
+			infrav1.AssociateMetal3MachineMetaDataCondition, infrav1.UpdateMachineErrorReason,
+			"Failed to update the Metal3Machine")
 	}
 
 	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: completed successfully")
@@ -588,18 +599,16 @@ func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
 	log.V(baremetal.VerbosityLevelDebug).Info("Deletion conditions set",
 		baremetal.LogFieldCondition, infrav1.AssociateMetal3MachineMetaDataCondition)
 
-	errType := capierrors.DeleteMachineError
-
 	// dissociate metadata if any
 	log.V(baremetal.VerbosityLevelTrace).Info("Dissociating M3Metadata from machine")
 	if err := machineMgr.DissociateM3Metadata(ctx); err != nil {
 		log.V(baremetal.VerbosityLevelDebug).Info("Failed to dissociate M3Metadata",
 			baremetal.LogFieldError, err.Error())
 		machineMgr.SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DisassociateM3MetaDataFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
-		machineMgr.SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition, metav1.ConditionFalse, infrav1.DisassociateM3MetaDataFailedReason, err.Error())
 
 		return checkMachineError(machineMgr, err,
-			"failed to dissociate Metadata", errType)
+			infrav1.AssociateMetal3MachineMetaDataCondition, infrav1.DisassociateM3MetaDataFailedReason,
+			"failed to dissociate Metadata")
 	}
 	log.V(baremetal.VerbosityLevelDebug).Info("M3Metadata dissociated successfully")
 
@@ -609,10 +618,10 @@ func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
 		log.V(baremetal.VerbosityLevelDebug).Info("Failed to delete Metal3Machine resources",
 			baremetal.LogFieldError, err.Error())
 		machineMgr.SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
-		machineMgr.SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition, metav1.ConditionFalse, infrav1.Metal3MachineDeletingFailedReason, err.Error())
 
 		return checkMachineError(machineMgr, err,
-			"failed to delete Metal3Machine", errType)
+			infrav1.AssociateMetal3MachineMetaDataCondition, infrav1.Metal3MachineDeletingFailedReason,
+			"failed to delete Metal3Machine")
 	}
 	log.V(baremetal.VerbosityLevelDebug).Info("Metal3Machine resources deleted successfully")
 
@@ -842,20 +851,42 @@ func setErrorM3Machine(m3m *infrav1.Metal3Machine, message string, reason capier
 }
 
 func checkMachineError(machineMgr baremetal.MachineManagerInterface, err error,
-	errMessage string, errType capierrors.MachineStatusError) (ctrl.Result, error) {
+	conditionType string, conditionReason string, conditionMessage string) (ctrl.Result, error) {
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
 
+	message := fmt.Sprintf("%s: %v", conditionMessage, err)
 	var reconcileError baremetal.ReconcileError
 	if errors.As(err, &reconcileError) {
 		if reconcileError.IsTransient() {
+			machineMgr.SetCondition(conditionType, metav1.ConditionFalse, conditionReason, message)
 			return reconcile.Result{Requeue: true, RequeueAfter: reconcileError.GetRequeueAfter()}, nil
 		}
 		if reconcileError.IsTerminal() {
-			machineMgr.SetError(errMessage, errType)
+			machineMgr.SetCondition(conditionType, metav1.ConditionFalse, conditionReason, message)
+			// Deprecated: Remove this block when SetError is removed.
+			machineMgr.SetError(message, conditionReasonToMachineStatusError(conditionReason))
 			return reconcile.Result{}, nil
 		}
 	}
-	return ctrl.Result{}, fmt.Errorf("%s: %w", errMessage, err)
+	machineMgr.SetCondition(conditionType, metav1.ConditionFalse, conditionReason, message)
+	return ctrl.Result{}, fmt.Errorf("%s: %w", conditionMessage, err)
+}
+
+// conditionReasonToMachineStatusError maps v1beta2 condition reasons to the deprecated
+// capierrors.MachineStatusError values for backward compatibility with SetError.
+//
+// Deprecated: Remove this function when SetError is removed.
+func conditionReasonToMachineStatusError(reason string) capierrors.MachineStatusError {
+	switch reason {
+	case infrav1.UpdateMachineErrorReason:
+		return capierrors.UpdateMachineError
+	case infrav1.DeleteMachineErrorReason, infrav1.DisassociateM3MetaDataFailedReason, infrav1.Metal3MachineDeletingFailedReason:
+		return capierrors.DeleteMachineError
+	case infrav1.InvalidConfigurationMachineReason:
+		return capierrors.InvalidConfigurationMachineError
+	default:
+		return capierrors.CreateMachineError
+	}
 }

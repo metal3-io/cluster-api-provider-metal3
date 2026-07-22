@@ -375,6 +375,13 @@ var _ = Describe("Reconcile metal3machine", func() {
 				ErrorReasonExpected: true,
 				ErrorReason:         "",
 				RequeueExpected:     false,
+				ConditionsExpected: []metav1.Condition{
+					{
+						Type:   infrav1.AssociateBareMetalHostCondition,
+						Status: metav1.ConditionFalse,
+						Reason: infrav1.WaitingForClusterInfrastructureReadyReason,
+					},
+				},
 			},
 		),
 		//Given: Machine, Metal3Machine, Cluster. No Metal3Cluster. Cluster Infra not ready
