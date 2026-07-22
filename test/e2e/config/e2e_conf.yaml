@@ -214,14 +214,14 @@ providers:
 variables:
   CNI: "/tmp/cni.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
-  KUBERNETES_VERSION: "${KUBERNETES_VERSION:-v1.36.0}"
+  KUBERNETES_VERSION: "${KUBERNETES_VERSION:-v1.36.2}"
   KUBERNETES_VERSION_MINOR: "${KUBERNETES_VERSION%.*}"
-  KUBERNETES_VERSION_UPGRADE_FROM: "${KUBERNETES_VERSION_UPGRADE_FROM:-v1.35.0}"
+  KUBERNETES_VERSION_UPGRADE_FROM: "${KUBERNETES_VERSION_UPGRADE_FROM:-v1.35.6}"
   # KUBERNETES_VERSION_PATCH_TO is used only in node reuse test, we do this
   # upgrade to make rollout happen, we are not testing k8s upgrade here, so
   # what version of k8s we are using for this upgrade is not important, as long
   # as it is a patch upgrade and it triggers the rollout.
-  KUBERNETES_VERSION_PATCH_TO: "v1.35.4"
+  KUBERNETES_VERSION_PATCH_TO: "v1.35.6"
   CONTROL_PLANE_MACHINE_COUNT: 3
   WORKER_MACHINE_COUNT: 1
   NUM_NODES: 4
