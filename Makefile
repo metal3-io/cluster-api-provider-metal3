@@ -732,8 +732,11 @@ test-extension-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the runtime exte
 	cp metadata.yaml $(TEST_EXTENSION_MANIFESTS_DIR)/metadata.yaml
 
 .PHONY: release-notes
-release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
-	cd hack/tools && $(GO) run release/notes.go  --releaseTag=$(RELEASE_TAG) > $(realpath $(RELEASE_NOTES_DIR))/$(RELEASE_TAG).md
+release-notes: $(RELEASE_NOTES_DIR)
+	@echo "Generating release notes for $(RELEASE_TAG)..."
+	@cd hack/tools && $(GO) run release/notes.go --releaseTag="$(RELEASE_TAG)" \
+	--githubToken="$(GITHUB_TOKEN)" > $(realpath $(RELEASE_NOTES_DIR))/$(RELEASE_TAG).md
+	@echo "Release notes written to $(realpath $(RELEASE_NOTES_DIR))/$(RELEASE_TAG).md"
 
 .PHONY: release
 release:
