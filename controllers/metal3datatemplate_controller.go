@@ -26,7 +26,6 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -65,8 +64,6 @@ type Metal3DataTemplateReconciler struct {
 // +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims/status,verbs=get;watch
 // +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddresses,verbs=get;list;watch
 // +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddresses/status,verbs=get
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters/status,verbs=get
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
@@ -91,8 +88,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 	log.V(baremetal.VerbosityLevelDebug).Info("Metal3DataTemplate fetched successfully",
-		"generation", metal3DataTemplate.Generation,
-		"clusterName", metal3DataTemplate.Spec.ClusterName)
+		"generation", metal3DataTemplate.Generation)
 
 	log.V(baremetal.VerbosityLevelTrace).Info("Creating patch helper")
 	helper, err := patch.NewHelper(metal3DataTemplate, r.Client)
@@ -109,22 +105,12 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}()
 
-	cluster := &clusterv1.Cluster{}
-	key := client.ObjectKey{
-		Name:      metal3DataTemplate.Spec.ClusterName,
-		Namespace: metal3DataTemplate.Namespace,
-	}
-
-	// Fetch the Cluster. Ignore an error if the deletion timestamp is set
-	log.V(baremetal.VerbosityLevelTrace).Info("Fetching Cluster",
-		baremetal.LogFieldCluster, metal3DataTemplate.Spec.ClusterName)
-	err = r.Client.Get(ctx, key, cluster)
-	if metal3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
-		if err != nil {
-			log.V(baremetal.VerbosityLevelDebug).Info("Error fetching cluster, may not exist yet")
-			log.Info("Error fetching cluster. It might not exist yet, Requeuing")
-			return ctrl.Result{}, nil
-		}
+	// A Metal3DataTemplate is not bound to a single Cluster; multiple Clusters
+	// may reference the same template. Honor a pause requested directly on the
+	// object via the pause annotation instead of deriving an owning Cluster.
+	if annotations.HasPaused(metal3DataTemplate) {
+		log.Info("Metal3DataTemplate is currently paused. Remove pause annotation to continue reconciliation.")
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
 	// Create a helper for managing the Metal3DataTemplate object.
@@ -134,23 +120,6 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, fmt.Errorf("failed to create helper for managing the Metal3DataTemplate: %w", err)
 	}
 	log.V(baremetal.VerbosityLevelDebug).Info("DataTemplateManager created successfully")
-
-	if metal3DataTemplate.Spec.ClusterName != "" && cluster.Name != "" {
-		log = log.WithValues(baremetal.LogFieldCluster, cluster.Name)
-		log.V(baremetal.VerbosityLevelTrace).Info("Setting cluster owner reference")
-		if err := dataTemplateMgr.SetClusterOwnerRef(cluster); err != nil {
-			log.V(baremetal.VerbosityLevelDebug).Info("Failed to set cluster owner reference",
-				baremetal.LogFieldError, err.Error())
-			return ctrl.Result{}, err
-		}
-		// Return early if the Metal3DataTemplate or Cluster is paused.
-		log.V(baremetal.VerbosityLevelTrace).Info("Checking pause status")
-		if annotations.IsPaused(cluster, metal3DataTemplate) {
-			log.V(baremetal.VerbosityLevelDebug).Info("Reconciliation paused")
-			log.Info("reconciliation is paused for this object")
-			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
-		}
-	}
 
 	// Handle deletion of Metal3DataTemplate
 	if !metal3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {

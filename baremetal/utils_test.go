@@ -403,7 +403,6 @@ var _ = Describe("Metal3 manager utils", func() {
 
 	type testCaseFetchM3DataTemplate struct {
 		DataTemplate  *infrav1.Metal3DataTemplate
-		ClusterName   string
 		TemplateRef   *infrav1.Metal3ObjectRef
 		ExpectError   bool
 		ExpectEmpty   bool
@@ -418,7 +417,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			}
 
 			result, err := fetchM3DataTemplate(context.TODO(), tc.TemplateRef, k8sClient,
-				logr.Discard(), tc.ClusterName,
+				logr.Discard(),
 			)
 			if tc.ExpectError || tc.ExpectRequeue {
 				Expect(err).To(HaveOccurred())
@@ -456,28 +455,13 @@ var _ = Describe("Metal3 manager utils", func() {
 			},
 			ExpectError: true,
 		}),
-		Entry("Object with wrong cluster", testCaseFetchM3DataTemplate{
+		Entry("Object exists", testCaseFetchM3DataTemplate{
 			DataTemplate: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 				Spec: infrav1.Metal3DataTemplateSpec{
 					ClusterName: clusterName,
 				},
 			},
-			ClusterName: "def",
-			TemplateRef: &infrav1.Metal3ObjectRef{
-				Name:      metal3DataTemplateName,
-				Namespace: namespaceName,
-			},
-			ExpectError: true,
-		}),
-		Entry("Object with correct cluster", testCaseFetchM3DataTemplate{
-			DataTemplate: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
-				Spec: infrav1.Metal3DataTemplateSpec{
-					ClusterName: clusterName,
-				},
-			},
-			ClusterName: clusterName,
 			TemplateRef: &infrav1.Metal3ObjectRef{
 				Name:      metal3DataTemplateName,
 				Namespace: namespaceName,

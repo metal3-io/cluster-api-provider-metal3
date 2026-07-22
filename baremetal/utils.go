@@ -42,6 +42,8 @@ const (
 	metal3SecretType corev1.SecretType = "infrastructure.cluster.x-k8s.io/secret"
 	// metal3MachineKind is the Kind of the Metal3Machine.
 	metal3MachineKind = "Metal3Machine"
+	// metal3DataClaimKind is the Kind of the Metal3DataClaim.
+	metal3DataClaimKind = "Metal3DataClaim"
 
 	// Logging verbosity levels follow the Kubernetes logging conventions:
 	// - Level 0 (Info): Always logged - errors, warnings, important state changes
@@ -254,7 +256,6 @@ func checkSecretExists(ctx context.Context, cl client.Client, name string,
 // fetchM3DataTemplate returns the Metal3DataTemplate object.
 func fetchM3DataTemplate(ctx context.Context,
 	templateRef *infrav1.Metal3ObjectRef, cl client.Client, mLog logr.Logger,
-	clusterName string,
 ) (*infrav1.Metal3DataTemplate, error) {
 	// If the user did not specify a Metal3DataTemplate, just keep going.
 	if templateRef == nil {
@@ -278,11 +279,6 @@ func fetchM3DataTemplate(ctx context.Context,
 		}
 		err = fmt.Errorf("failed to get Metal3DataTemplate: %w", err)
 		return nil, err
-	}
-
-	// Verify that this Metal3DataTemplate belongs to the correct cluster.
-	if clusterName != metal3DataTemplate.Spec.ClusterName {
-		return nil, errors.New("metal3DataTemplate associated with another cluster")
 	}
 
 	return metal3DataTemplate, nil

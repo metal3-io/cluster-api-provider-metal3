@@ -41,7 +41,11 @@ var _ admission.Validator[*infrav1.Metal3DataTemplate] = &Metal3DataTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *Metal3DataTemplate) ValidateCreate(_ context.Context, obj *infrav1.Metal3DataTemplate) (admission.Warnings, error) {
-	return nil, webhook.validate(nil, obj)
+	var warnings admission.Warnings
+	if obj.Spec.ClusterName != "" {
+		warnings = append(warnings, "spec.clusterName is deprecated and will be removed in a future release. It is no longer used by the controllers.")
+	}
+	return warnings, webhook.validate(nil, obj)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
@@ -54,6 +58,11 @@ func (webhook *Metal3DataTemplate) ValidateUpdate(_ context.Context, oldM3dt, ne
 
 	if oldM3dt == nil {
 		return nil, apierrors.NewInternalError(errors.New("unable to convert existing object"))
+	}
+
+	var warnings admission.Warnings
+	if newM3dt.Spec.ClusterName != "" {
+		warnings = append(warnings, "spec.clusterName is deprecated and will be removed in a future release. It is no longer used by the controllers.")
 	}
 
 	if !reflect.DeepEqual(newM3dt.Spec.MetaData, oldM3dt.Spec.MetaData) {
@@ -77,9 +86,9 @@ func (webhook *Metal3DataTemplate) ValidateUpdate(_ context.Context, oldM3dt, ne
 	}
 
 	if len(allErrs) == 0 {
-		return nil, nil
+		return warnings, nil
 	}
-	return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("Metal3DataTemplate").GroupKind(), newM3dt.Name, allErrs)
+	return warnings, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("Metal3DataTemplate").GroupKind(), newM3dt.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.

@@ -396,3 +396,64 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestMetal3DataTemplateClusterNameDeprecationWarning(t *testing.T) {
+	g := NewWithT(t)
+	webhook := &Metal3DataTemplate{}
+
+	t.Run("should return warning when clusterName is set on create", func(_ *testing.T) {
+		dt := &infrav1.Metal3DataTemplate{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "foo",
+			},
+			Spec: infrav1.Metal3DataTemplateSpec{
+				ClusterName: "test-cluster",
+			},
+		}
+		warnings, err := webhook.ValidateCreate(ctx, dt)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(warnings).To(HaveLen(1))
+		g.Expect(warnings[0]).To(ContainSubstring("spec.clusterName is deprecated"))
+	})
+
+	t.Run("should not return warning when clusterName is empty on create", func(_ *testing.T) {
+		dt := &infrav1.Metal3DataTemplate{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "foo",
+			},
+			Spec: infrav1.Metal3DataTemplateSpec{},
+		}
+		warnings, err := webhook.ValidateCreate(ctx, dt)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(warnings).To(BeEmpty())
+	})
+
+	t.Run("should return warning when clusterName is set on update", func(_ *testing.T) {
+		oldDT := &infrav1.Metal3DataTemplate{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "foo",
+			},
+			Spec: infrav1.Metal3DataTemplateSpec{
+				ClusterName: "test-cluster",
+			},
+		}
+		newDT := oldDT.DeepCopy()
+		warnings, err := webhook.ValidateUpdate(ctx, oldDT, newDT)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(warnings).To(HaveLen(1))
+		g.Expect(warnings[0]).To(ContainSubstring("spec.clusterName is deprecated"))
+	})
+
+	t.Run("should not return warning when clusterName is empty on update", func(_ *testing.T) {
+		oldDT := &infrav1.Metal3DataTemplate{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "foo",
+			},
+			Spec: infrav1.Metal3DataTemplateSpec{},
+		}
+		newDT := oldDT.DeepCopy()
+		warnings, err := webhook.ValidateUpdate(ctx, oldDT, newDT)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(warnings).To(BeEmpty())
+	})
+}
