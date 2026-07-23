@@ -29,7 +29,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -272,22 +271,14 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 		}
 	}
 
-	m3mUID := types.UID("")
-	m3mName := ""
-	for _, ownerRef := range dataClaim.OwnerReferences {
-		aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
-		if err != nil {
-			return indexes, err
-		}
-		if ownerRef.Kind == metal3MachineKind &&
-			aGV.Group == infrav1.GroupVersion.Group {
-			m3mUID = ownerRef.UID
-			m3mName = ownerRef.Name
-			break
-		}
+	// Ensure the claim is controlled by a Metal3Machine before creating Metal3Data.
+	ownerRef := metav1.GetControllerOf(dataClaim)
+	if ownerRef == nil || ownerRef.Kind != metal3MachineKind || ownerRef.Name == "" {
+		return indexes, errors.New("Metal3DataClaim missing Metal3Machine controller owner reference")
 	}
-	if m3mName == "" {
-		return indexes, errors.New("metal3Machine not found in owner references")
+	refGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+	if err != nil || refGV.Group != infrav1.GroupVersion.Group {
+		return indexes, errors.New("Metal3DataClaim controller owner reference has unexpected API group")
 	}
 
 	// Get a new index for this machine
@@ -319,8 +310,8 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 
 	m.Log.Info("Index assigned", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldIndex, claimIndex)
 
-	// Create the Metal3Data object, with an Owner ref to the Metal3Machine
-	// (curOwnerRef) and to the Metal3DataTemplate. Also add a finalizer.
+	// Create the Metal3Data object, with an Owner ref to the Metal3DataTemplate
+	// and to the Metal3DataClaim. Also add a finalizer.
 	dataObject := &infrav1.Metal3Data{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Metal3Data",
@@ -344,12 +335,6 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 					Kind:       dataClaim.Kind,
 					Name:       dataClaim.Name,
 					UID:        dataClaim.UID,
-				},
-				{
-					APIVersion: dataClaim.APIVersion,
-					Kind:       metal3MachineKind,
-					Name:       m3mName,
-					UID:        m3mUID,
 				},
 			},
 		},

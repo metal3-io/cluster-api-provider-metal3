@@ -796,37 +796,26 @@ func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(_ context.Cont
 }
 
 // Metal3DataToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
-// Metal3Data and that Metal3Data references a Metal3Machine.
+// Metal3Data and that Metal3Data references a Metal3Machine via its claim.
+// The Metal3DataClaim always has the same name as the Metal3Machine that created it.
 func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(_ context.Context, obj client.Object) []ctrl.Request {
-	requests := []ctrl.Request{}
 	if m3d, ok := obj.(*infrav1.Metal3Data); ok {
-		for _, ownerRef := range m3d.OwnerReferences {
-			if ownerRef.Kind != metal3MachineKind {
-				continue
-			}
-			aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
-			if err != nil {
-				r.Log.Error(fmt.Errorf("failed to parse the group and version %v", ownerRef.APIVersion),
-					"failed to get Metal3Machine for BareMetalHost",
-				)
-				continue
-			}
-			if aGV.Group != infrav1.GroupVersion.Group {
-				continue
-			}
-			requests = append(requests, ctrl.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      ownerRef.Name,
-					Namespace: m3d.Namespace,
+		if m3d.Spec.Claim != nil && m3d.Spec.Claim.Name != "" {
+			return []ctrl.Request{
+				{
+					NamespacedName: types.NamespacedName{
+						Name:      m3d.Spec.Claim.Name,
+						Namespace: m3d.Namespace,
+					},
 				},
-			})
+			}
 		}
 	} else {
 		r.Log.Error(fmt.Errorf("expected a Metal3Data but got a %T", obj),
 			"failed to get Metal3Machine for Metal3Data",
 		)
 	}
-	return requests
+	return []ctrl.Request{}
 }
 
 // setErrorM3Machine sets the ErrorMessage and ErrorReason fields on the metal3machine.

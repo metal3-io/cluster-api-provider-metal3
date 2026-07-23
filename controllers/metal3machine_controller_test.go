@@ -670,47 +670,37 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseMetal3DataToMetal3Machines struct {
-		ownerRefs        []metav1.OwnerReference
+		claim            *infrav1.Metal3ObjectRef
 		expectedRequests []ctrl.Request
 	}
 
 	DescribeTable("test Metal3DataToMetal3Machines",
 		func(tc testCaseMetal3DataToMetal3Machines) {
-			ipClaim := &infrav1.Metal3Data{
+			m3d := &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace:       namespaceName,
-					OwnerReferences: tc.ownerRefs,
+					Namespace: namespaceName,
+				},
+				Spec: infrav1.Metal3DataSpec{
+					Claim: tc.claim,
 				},
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(ipClaim).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(m3d).Build()
 			r := Metal3MachineReconciler{
 				Client: fakeClient,
 			}
-			obj := client.Object(ipClaim)
+			obj := client.Object(m3d)
 			reqs := r.Metal3DataToMetal3Machines(context.Background(), obj)
 			Expect(reqs).To(Equal(tc.expectedRequests))
 		},
-		Entry("No OwnerRefs", testCaseMetal3DataToMetal3Machines{
+		Entry("No claim ref", testCaseMetal3DataToMetal3Machines{
 			expectedRequests: []ctrl.Request{},
 		}),
-		Entry("OwnerRefs", testCaseMetal3DataToMetal3Machines{
-			ownerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: infrav1.GroupVersion.String(),
-					Kind:       metal3MachineKind,
-					Name:       "abc",
-				},
-				{
-					APIVersion: infrav1.GroupVersion.String(),
-					Kind:       "Metal3DataClaim",
-					Name:       "bcd",
-				},
-				{
-					APIVersion: "foo.bar/v1",
-					Kind:       metal3MachineKind,
-					Name:       "cde",
-				},
-			},
+		Entry("Claim with empty name", testCaseMetal3DataToMetal3Machines{
+			claim:            &infrav1.Metal3ObjectRef{Name: ""},
+			expectedRequests: []ctrl.Request{},
+		}),
+		Entry("Claim with name", testCaseMetal3DataToMetal3Machines{
+			claim: &infrav1.Metal3ObjectRef{Name: "abc"},
 			expectedRequests: []ctrl.Request{
 				{
 					NamespacedName: types.NamespacedName{

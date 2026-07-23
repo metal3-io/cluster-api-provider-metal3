@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
@@ -236,6 +237,7 @@ func testObjectMetaWithOR(name string, m3mName string) metav1.ObjectMeta {
 				Kind:       metal3MachineKind,
 				APIVersion: infrav1.GroupVersion.String(),
 				UID:        m3muid,
+				Controller: ptr.To(true),
 			},
 		},
 	}
