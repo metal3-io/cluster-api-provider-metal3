@@ -2365,6 +2365,7 @@ var _ = Describe("Metal3Data manager", func() {
 		poolRef         infrav1.IPPoolReference
 		ipClaim         *capipamv1.IPAddressClaim
 		ipAddress       *capipamv1.IPAddress
+		ipPool          *ipamv1.IPPool
 		expectError     bool
 		expectRequeue   bool
 		expectedAddress AddressFromPool
@@ -2380,6 +2381,9 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			if tc.ipClaim != nil {
 				objects = append(objects, tc.ipClaim)
+			}
+			if tc.ipPool != nil {
+				objects = append(objects, tc.ipPool)
 			}
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
@@ -2484,10 +2488,12 @@ var _ = Describe("Metal3Data manager", func() {
 			poolName: testPoolName,
 			poolRef:  infrav1.IPPoolReference{Name: testPoolName},
 			expectedAddress: AddressFromPool{
-				Address:    ipamv1.IPAddressStr("192.168.0.10"),
-				Prefix:     ptr.To(int32(26)),
-				Gateway:    ipamv1.IPAddressStr("192.168.0.1"),
-				dnsServers: []ipamv1.IPAddressStr{},
+				Address: ipamv1.IPAddressStr("192.168.0.10"),
+				Prefix:  ptr.To(int32(26)),
+				Gateway: ipamv1.IPAddressStr("192.168.0.1"),
+				dnsServers: []ipamv1.IPAddressStr{
+					"8.8.8.8",
+				},
 			},
 			ipClaim: &capipamv1.IPAddressClaim{
 				ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
@@ -2503,6 +2509,13 @@ var _ = Describe("Metal3Data manager", func() {
 					Address: "192.168.0.10",
 					Prefix:  ptr.To(int32(26)),
 					Gateway: "192.168.0.1",
+				},
+			},
+			ipPool: &ipamv1.IPPool{
+				ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+				Spec: ipamv1.IPPoolSpec{
+					DNSServers: []ipamv1.IPAddressStr{"8.8.8.8"},
+					NamePrefix: "test",
 				},
 			},
 		}),
@@ -5791,4 +5804,215 @@ var _ = Describe("When using BMH name based pre-allocation", func() {
 		}),
 	)
 
+})
+
+var _ = Describe("Metal3Data manager DNS from IPPool", func() {
+	type testCaseFetchDNS struct {
+		poolRef          infrav1.IPPoolReference
+		allocatedAddress string
+		pool             *ipamv1.IPPool
+		expectedDNS      []ipamv1.IPAddressStr
+		expectError      bool
+	}
+
+	DescribeTable("Test fetchDNSServersFromIPPool",
+		func(tc testCaseFetchDNS) {
+			objects := []client.Object{}
+			if tc.pool != nil {
+				objects = append(objects, tc.pool)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			m3d := &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+			}
+			dataMgr, err := NewDataManager(fakeClient, m3d, logr.Discard())
+			Expect(err).NotTo(HaveOccurred())
+
+			dns, err := dataMgr.fetchDNSServersFromIPPool(context.TODO(), tc.poolRef, tc.allocatedAddress)
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			if tc.expectedDNS == nil {
+				Expect(dns).To(BeNil())
+			} else {
+				Expect(dns).To(Equal(tc.expectedDNS))
+			}
+		},
+		Entry("Metal3 IPPool found with DNS", testCaseFetchDNS{
+			poolRef:          infrav1.IPPoolReference{Name: testPoolName, APIGroup: "ipam.metal3.io", Kind: "IPPool"},
+			allocatedAddress: "192.168.0.50",
+			pool: &ipamv1.IPPool{
+				ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+				Spec: ipamv1.IPPoolSpec{
+					DNSServers: []ipamv1.IPAddressStr{"8.8.8.8"},
+					NamePrefix: "test",
+				},
+			},
+			expectedDNS: []ipamv1.IPAddressStr{"8.8.8.8"},
+		}),
+		Entry("Metal3 IPPool not found", testCaseFetchDNS{
+			poolRef:          infrav1.IPPoolReference{Name: "nonexistent", APIGroup: "ipam.metal3.io", Kind: "IPPool"},
+			allocatedAddress: "192.168.0.50",
+			expectError:      true,
+		}),
+		Entry("Non-Metal3 pool ref returns nil", testCaseFetchDNS{
+			poolRef:          infrav1.IPPoolReference{Name: testPoolName, APIGroup: "other.io", Kind: "OtherPool"},
+			allocatedAddress: "192.168.0.50",
+			expectedDNS:      nil,
+		}),
+		Entry("Pool-level DNS only", testCaseFetchDNS{
+			poolRef:          infrav1.IPPoolReference{Name: testPoolName, APIGroup: "ipam.metal3.io", Kind: "IPPool"},
+			allocatedAddress: "192.168.0.50",
+			pool: &ipamv1.IPPool{
+				ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+				Spec: ipamv1.IPPoolSpec{
+					DNSServers: []ipamv1.IPAddressStr{"8.8.8.8", "8.8.4.4"},
+					NamePrefix: "test",
+					Pools: []ipamv1.Pool{
+						{
+							Start:  (*ipamv1.IPAddressStr)(ptr.To("192.168.0.10")),
+							End:    (*ipamv1.IPAddressStr)(ptr.To("192.168.0.100")),
+							Subnet: (*ipamv1.IPSubnetStr)(ptr.To("192.168.0.0/24")),
+						},
+					},
+				},
+			},
+			expectedDNS: []ipamv1.IPAddressStr{"8.8.8.8", "8.8.4.4"},
+		}),
+		Entry("Per-subnet DNS override", testCaseFetchDNS{
+			poolRef:          infrav1.IPPoolReference{Name: testPoolName, APIGroup: "ipam.metal3.io", Kind: "IPPool"},
+			allocatedAddress: "192.168.0.50",
+			pool: &ipamv1.IPPool{
+				ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+				Spec: ipamv1.IPPoolSpec{
+					DNSServers: []ipamv1.IPAddressStr{"8.8.8.8"},
+					NamePrefix: "test",
+					Pools: []ipamv1.Pool{
+						{
+							Start:      (*ipamv1.IPAddressStr)(ptr.To("192.168.0.10")),
+							End:        (*ipamv1.IPAddressStr)(ptr.To("192.168.0.100")),
+							Subnet:     (*ipamv1.IPSubnetStr)(ptr.To("192.168.0.0/24")),
+							DNSServers: []ipamv1.IPAddressStr{"1.1.1.1", "1.0.0.1"},
+						},
+					},
+				},
+			},
+			expectedDNS: []ipamv1.IPAddressStr{"1.1.1.1", "1.0.0.1"},
+		}),
+		Entry("Address not in subnet falls back to pool-level", testCaseFetchDNS{
+			poolRef:          infrav1.IPPoolReference{Name: testPoolName, APIGroup: "ipam.metal3.io", Kind: "IPPool"},
+			allocatedAddress: "192.168.0.50",
+			pool: &ipamv1.IPPool{
+				ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+				Spec: ipamv1.IPPoolSpec{
+					DNSServers: []ipamv1.IPAddressStr{"8.8.8.8"},
+					NamePrefix: "test",
+					Pools: []ipamv1.Pool{
+						{
+							Start:      (*ipamv1.IPAddressStr)(ptr.To("10.0.0.10")),
+							End:        (*ipamv1.IPAddressStr)(ptr.To("10.0.0.100")),
+							Subnet:     (*ipamv1.IPSubnetStr)(ptr.To("10.0.0.0/24")),
+							DNSServers: []ipamv1.IPAddressStr{"1.1.1.1"},
+						},
+					},
+				},
+			},
+			expectedDNS: []ipamv1.IPAddressStr{"8.8.8.8"},
+		}),
+		Entry("Empty address falls back to pool-level DNS", testCaseFetchDNS{
+			poolRef:          infrav1.IPPoolReference{Name: testPoolName, APIGroup: "ipam.metal3.io", Kind: "IPPool"},
+			allocatedAddress: "",
+			pool: &ipamv1.IPPool{
+				ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+				Spec: ipamv1.IPPoolSpec{
+					DNSServers: []ipamv1.IPAddressStr{"8.8.8.8"},
+					NamePrefix: "test",
+				},
+			},
+			expectedDNS: []ipamv1.IPAddressStr{"8.8.8.8"},
+		}),
+		Entry("No DNS servers anywhere", testCaseFetchDNS{
+			poolRef:          infrav1.IPPoolReference{Name: testPoolName, APIGroup: "ipam.metal3.io", Kind: "IPPool"},
+			allocatedAddress: "192.168.0.50",
+			pool: &ipamv1.IPPool{
+				ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+				Spec: ipamv1.IPPoolSpec{
+					NamePrefix: "test",
+					Pools: []ipamv1.Pool{
+						{
+							Start:  (*ipamv1.IPAddressStr)(ptr.To("192.168.0.10")),
+							End:    (*ipamv1.IPAddressStr)(ptr.To("192.168.0.100")),
+							Subnet: (*ipamv1.IPSubnetStr)(ptr.To("192.168.0.0/24")),
+						},
+					},
+				},
+			},
+			expectedDNS: nil,
+		}),
+		Entry("Multiple subnets, address in second subnet", testCaseFetchDNS{
+			poolRef:          infrav1.IPPoolReference{Name: testPoolName, APIGroup: "ipam.metal3.io", Kind: "IPPool"},
+			allocatedAddress: "192.168.1.50",
+			pool: &ipamv1.IPPool{
+				ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+				Spec: ipamv1.IPPoolSpec{
+					DNSServers: []ipamv1.IPAddressStr{"8.8.8.8"},
+					NamePrefix: "test",
+					Pools: []ipamv1.Pool{
+						{
+							Start:      (*ipamv1.IPAddressStr)(ptr.To("10.0.0.10")),
+							End:        (*ipamv1.IPAddressStr)(ptr.To("10.0.0.100")),
+							Subnet:     (*ipamv1.IPSubnetStr)(ptr.To("10.0.0.0/24")),
+							DNSServers: []ipamv1.IPAddressStr{"1.1.1.1"},
+						},
+						{
+							Start:      (*ipamv1.IPAddressStr)(ptr.To("192.168.1.10")),
+							End:        (*ipamv1.IPAddressStr)(ptr.To("192.168.1.100")),
+							Subnet:     (*ipamv1.IPSubnetStr)(ptr.To("192.168.1.0/24")),
+							DNSServers: []ipamv1.IPAddressStr{"9.9.9.9"},
+						},
+					},
+				},
+			},
+			expectedDNS: []ipamv1.IPAddressStr{"9.9.9.9"},
+		}),
+		Entry("Subnet match by start/end range without subnet CIDR", testCaseFetchDNS{
+			poolRef:          infrav1.IPPoolReference{Name: testPoolName, APIGroup: "ipam.metal3.io", Kind: "IPPool"},
+			allocatedAddress: "192.168.0.50",
+			pool: &ipamv1.IPPool{
+				ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+				Spec: ipamv1.IPPoolSpec{
+					DNSServers: []ipamv1.IPAddressStr{"8.8.8.8"},
+					NamePrefix: "test",
+					Pools: []ipamv1.Pool{
+						{
+							Start:      (*ipamv1.IPAddressStr)(ptr.To("192.168.0.10")),
+							End:        (*ipamv1.IPAddressStr)(ptr.To("192.168.0.100")),
+							DNSServers: []ipamv1.IPAddressStr{"1.1.1.1"},
+						},
+					},
+				},
+			},
+			expectedDNS: []ipamv1.IPAddressStr{"1.1.1.1"},
+		}),
+		Entry("IPv6 per-subnet DNS", testCaseFetchDNS{
+			poolRef:          infrav1.IPPoolReference{Name: testPoolName, APIGroup: "ipam.metal3.io", Kind: "IPPool"},
+			allocatedAddress: "fd00::10",
+			pool: &ipamv1.IPPool{
+				ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+				Spec: ipamv1.IPPoolSpec{
+					DNSServers: []ipamv1.IPAddressStr{"2001:4860:4860::8888"},
+					NamePrefix: "test",
+					Pools: []ipamv1.Pool{
+						{
+							Subnet:     (*ipamv1.IPSubnetStr)(ptr.To("fd00::/64")),
+							DNSServers: []ipamv1.IPAddressStr{"fd00::53"},
+						},
+					},
+				},
+			},
+			expectedDNS: []ipamv1.IPAddressStr{"fd00::53"},
+		}),
+	)
 })
