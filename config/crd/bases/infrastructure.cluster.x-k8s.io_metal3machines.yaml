@@ -178,8 +178,9 @@ spec:
                 description: Image is the image to be provisioned.
                 properties:
                   checksum:
-                    description: Checksum is a md5sum, sha256sum or sha512sum value
-                      or a URL to retrieve one.
+                    description: |-
+                      Checksum is a md5sum, sha256sum or sha512sum value or a URL to retrieve one.
+                      Optional for live-iso and oci:// URLs; required otherwise.
                     type: string
                   checksumType:
                     description: |-
@@ -203,7 +204,6 @@ spec:
                     description: URL is a location of an image to deploy.
                     type: string
                 required:
-                - checksum
                 - url
                 type: object
               metaData:
@@ -709,7 +709,7 @@ spec:
                   checksum:
                     description: |-
                       checksum is a md5sum, sha256sum or sha512sum value or a URL to retrieve one.
-                      When diskFormat is live-iso, empty string is also a valid value.
+                      Optional for live-iso and oci:// URLs; required otherwise.
                     maxLength: 512
                     minLength: 0
                     type: string
@@ -738,7 +738,6 @@ spec:
                     minLength: 1
                     type: string
                 required:
-                - checksum
                 - url
                 type: object
               metaData:

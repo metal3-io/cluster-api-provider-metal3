@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 )
 
 func TestImageValidate(t *testing.T) {
@@ -96,6 +97,29 @@ func TestImageValidate(t *testing.T) {
 			},
 			ErrorExpected: false,
 			Name:          "Valid spec with live-iso diskFormat",
+		},
+		{
+			Image: Image{
+				URL: "oci://example.com/image:latest",
+			},
+			ErrorExpected: false,
+			Name:          "OCI image without checksum",
+		},
+		{
+			Image: Image{
+				URL:      "oci://example.com/image:latest",
+				Checksum: "sha256hash",
+			},
+			ErrorExpected: true,
+			Name:          "OCI image with checksum",
+		},
+		{
+			Image: Image{
+				URL:          "oci://example.com/image:latest",
+				ChecksumType: ptr.To("sha256"),
+			},
+			ErrorExpected: true,
+			Name:          "OCI image with checksumType",
 		},
 	}
 
