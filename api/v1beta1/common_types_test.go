@@ -97,6 +97,21 @@ func TestImageValidate(t *testing.T) {
 			ErrorExpected: false,
 			Name:          "Valid spec with live-iso diskFormat",
 		},
+		{
+			Image: Image{
+				URL: "oci://quay.io/example/rhcos:latest",
+			},
+			ErrorExpected: false,
+			Name:          "Valid OCI URL without checksum",
+		},
+		{
+			Image: Image{
+				URL:      "oci://quay.io/example/rhcos:latest",
+				Checksum: "f7600f7a274d974a236c4da5161265859c32da93a7c8de6a77d560378a1384ef",
+			},
+			ErrorExpected: false,
+			Name:          "OCI URL with non-empty checksum is accepted (BMO will reject)",
+		},
 	}
 
 	for _, tc := range cases {
