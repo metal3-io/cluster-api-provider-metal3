@@ -9,9 +9,9 @@ require (
 	k8s.io/api v0.36.2
 	k8s.io/apimachinery v0.36.2
 	k8s.io/client-go v0.36.2
-	sigs.k8s.io/cluster-api v1.14.0-beta.0
-	sigs.k8s.io/cluster-api/api v1.14.0-beta.0
-	sigs.k8s.io/cluster-api/test v1.14.0-beta.0
+	sigs.k8s.io/cluster-api v1.14.0-beta.1
+	sigs.k8s.io/cluster-api/api v1.14.0-beta.1
+	sigs.k8s.io/cluster-api/test v1.14.0-beta.1
 	sigs.k8s.io/controller-runtime v0.24.1
 )
 
@@ -33,7 +33,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
