@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -36,13 +35,11 @@ import (
 var _ = Describe("Reconcile metal3Cluster", func() {
 
 	type TestCaseReconcileBMC struct {
-		Objects             []client.Object
-		ErrorType           error
-		ErrorExpected       bool
-		RequeueExpected     bool
-		ErrorReasonExpected bool
-		ErrorReason         capierrors.ClusterStatusError
-		ConditionsExpected  []metav1.Condition
+		Objects            []client.Object
+		ErrorType          error
+		ErrorExpected      bool
+		RequeueExpected    bool
+		ConditionsExpected []metav1.Condition
 	}
 
 	DescribeTable("Reconcile tests metal3Cluster",
@@ -82,12 +79,6 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 			} else {
 				Expect(res.Requeue).To(BeFalse())
 			}
-			if tc.ErrorReasonExpected {
-				Expect(testclstr.Status.Deprecated).NotTo(BeNil())
-				Expect(testclstr.Status.Deprecated.V1Beta1).NotTo(BeNil())
-				Expect(testclstr.Status.Deprecated.V1Beta1.FailureReason).NotTo(BeNil())
-				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.Deprecated.V1Beta1.FailureReason))
-			}
 			for _, condExp := range tc.ConditionsExpected {
 				condGot := conditions.Get(testclstr, condExp.Type)
 				Expect(condGot).NotTo(BeNil())
@@ -113,10 +104,8 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				Objects: []client.Object{
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
 				},
-				ErrorExpected:       true,
-				ErrorReasonExpected: true,
-				ErrorReason:         capierrors.InvalidConfigurationClusterError,
-				RequeueExpected:     false,
+				ErrorExpected:   true,
+				RequeueExpected: false,
 			},
 		),
 		// Given cluster and metal3cluster with no owner reference
@@ -137,10 +126,15 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), nil, Metal3ClusterStatusWithPausedConditionFalse(), nil, false),
 					newCluster(clusterName, nil, nil),
 				},
-				ErrorExpected:       true,
-				RequeueExpected:     false,
-				ErrorReasonExpected: true,
-				ErrorReason:         capierrors.InvalidConfigurationClusterError,
+				ErrorExpected:   true,
+				RequeueExpected: false,
+				ConditionsExpected: []metav1.Condition{
+					{
+						Type:   infrav1.BaremetalInfrastructureReadyCondition,
+						Status: metav1.ConditionFalse,
+						Reason: infrav1.InvalidConfigurationReason,
+					},
+				},
 			},
 		),
 

@@ -44,6 +44,7 @@ const (
 	ControlPlaneEndpointFailedReason      = "ControlPlaneEndpointFailed"
 	FailedToGetOwnerClusterReason         = "FailedToGetOwnerCluster"
 	Metal3ClusterDeletingReason           = clusterv1.DeletingReason
+	InvalidConfigurationReason            = string(InvalidConfigurationClusterError)
 )
 
 // Metal3ClusterSpec defines the desired state of Metal3Cluster.

@@ -149,6 +149,8 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().NodeWithMatchingProviderIDExists(context.TODO(), nil).Return(false)
 		if tc.SetProviderIDFromNodeLabelFails {
 			m.EXPECT().SetProviderIDFromNodeLabel(context.TODO(), nil).Return(false, errors.New("failed"))
+			m.EXPECT().SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition,
+				metav1.ConditionFalse, infrav1.CreateMachineErrorReason, gomock.Any())
 		} else {
 			m.EXPECT().SetProviderIDFromNodeLabel(context.TODO(), nil).Return(true, nil)
 			m.EXPECT().GetMetal3Machine().Return(&infrav1.Metal3Machine{})

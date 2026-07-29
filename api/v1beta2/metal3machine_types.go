@@ -117,6 +117,19 @@ const (
 	// Metal3MachineDeletingFailedReason (Severity=Warning) documents a condition not in Status=True because the underlying object
 	// encountered problems during deletion. This is a warning because the reconciler will retry deletion.
 	Metal3MachineDeletingFailedReason = "DeletionFailed"
+
+	// CreateMachineErrorReason surfaces when an error occurs during machine creation.
+	CreateMachineErrorReason = string(CreateMachineError)
+
+	// UpdateMachineErrorReason surfaces when an error occurs during machine update.
+	UpdateMachineErrorReason = string(UpdateMachineError)
+
+	// DeleteMachineErrorReason surfaces when an error occurs during machine deletion.
+	DeleteMachineErrorReason = string(DeleteMachineError)
+
+	// InvalidConfigurationMachineReason is used to indicate that the Metal3Machine
+	// has an invalid configuration.
+	InvalidConfigurationMachineReason = string(InvalidConfigurationMachineError)
 )
 
 // Metal3MachineSpec defines the desired state of Metal3Machine.

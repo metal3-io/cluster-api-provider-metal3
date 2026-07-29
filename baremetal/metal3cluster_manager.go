@@ -99,6 +99,12 @@ func (s *ClusterManager) Create(_ context.Context) error {
 		s.Log.V(VerbosityLevelDebug).Info("Invalid Metal3Cluster configuration",
 			LogFieldError, err.Error())
 		s.setError("Invalid Metal3Cluster provided", capierrors.InvalidConfigurationClusterError)
+		conditions.Set(s.Metal3Cluster, metav1.Condition{
+			Type:    infrav1.BaremetalInfrastructureReadyCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.InvalidConfigurationReason,
+			Message: "Invalid Metal3Cluster provided: " + err.Error(),
+		})
 		return err
 	}
 	s.Log.V(VerbosityLevelDebug).Info("Metal3Cluster configuration is valid")
