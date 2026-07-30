@@ -6,7 +6,6 @@ set -eux
 IS_CONTAINER="${IS_CONTAINER:-false}"
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 K8S_VERSION="${K8S_VERSION:-master}"
-WORKDIR="${WORKDIR:-/workdir}"
 
 # --strict: Disallow additional properties not in schema.
 # --ignore-missing-schemas: Skip validation for resource
@@ -33,9 +32,9 @@ else
     "${CONTAINER_RUNTIME}" run --rm \
         --env IS_CONTAINER=TRUE \
         --env KUBECONFORM_PATH="/" \
-        --volume "${PWD}:${WORKDIR}:ro,z" \
+        --volume "${PWD}:/workdir:ro,z" \
         --entrypoint sh \
-        --workdir "${WORKDIR}" \
+        --workdir /workdir \
         ghcr.io/yannh/kubeconform:v0.6.7-alpine@sha256:824e0c248809e4b2da2a768b16b107cf17ada88a89ec6aa6050e566ba93ebbc6 \
-        "${WORKDIR}"/hack/manifestlint.sh "$@"
+        /workdir/hack/manifestlint.sh "$@"
 fi
