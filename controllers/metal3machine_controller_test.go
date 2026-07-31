@@ -232,7 +232,9 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("ReconcileNormal tests",
 			func(tc reconcileNormalTestCase) {
 				m := setReconcileNormalExpectations(gomockCtrl, tc)
-				res, err := bmReconcile.reconcileNormal(context.TODO(), m, logr.Discard())
+				capiMachine := newMachine(clusterName, machineName, metal3machineName, "")
+				capm3Machine := newMetal3Machine(metal3machineName, nil, nil, nil, false)
+				res, err := bmReconcile.reconcileNormal(context.TODO(), m, capiMachine, capm3Machine, logr.Discard())
 
 				if tc.ExpectError {
 					Expect(err).To(HaveOccurred())
@@ -719,6 +721,286 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
+		}),
+	)
+
+	// newPlacementM3M builds a Metal3Machine for the placement failure domain
+	// tests, optionally annotated with an associated host and/or the
+	// cloned-from template annotations.
+	newPlacementM3M := func(hostKey string, clonedFrom bool, spec *infrav1.Metal3MachineSpec) *infrav1.Metal3Machine {
+		annotations := map[string]string{}
+		if hostKey != "" {
+			annotations[baremetal.HostAnnotation] = hostKey
+		}
+		if clonedFrom {
+			annotations[clusterv1.TemplateClonedFromNameAnnotation] = "my-m3mt"
+			annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = infrav1.ClonedFromGroupKind
+		}
+		meta := &metav1.ObjectMeta{
+			Name:        metal3machineName,
+			Namespace:   namespaceName,
+			Annotations: annotations,
+		}
+		return newMetal3Machine(metal3machineName, meta, spec, nil, false)
+	}
+
+	newFDHost := func(name, fd string) *bmov1alpha1.BareMetalHost {
+		var labels map[string]string
+		if fd != "" {
+			labels = map[string]string{baremetal.FailureDomainLabelName: fd}
+		}
+		return newBareMetalHost(name, nil, nil, labels, false)
+	}
+
+	type testCaseActualFailureDomain struct {
+		M3Machine  *infrav1.Metal3Machine
+		Host       *bmov1alpha1.BareMetalHost
+		ExpectedFD string
+	}
+
+	DescribeTable("actualFailureDomain tests",
+		func(tc testCaseActualFailureDomain) {
+			objects := []client.Object{}
+			if tc.Host != nil {
+				objects = append(objects, tc.Host)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			r := &Metal3MachineReconciler{Client: fakeClient, Log: logr.Discard()}
+
+			fd, err := r.actualFailureDomain(context.Background(), tc.M3Machine)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fd).To(Equal(tc.ExpectedFD))
+		},
+		Entry("No BMH annotation returns empty", testCaseActualFailureDomain{
+			M3Machine:  newPlacementM3M("", false, nil),
+			ExpectedFD: "",
+		}),
+		Entry("Annotated BMH with FD label returns label value", testCaseActualFailureDomain{
+			M3Machine:  newPlacementM3M(namespaceName+"/bmh-0", false, nil),
+			Host:       newFDHost("bmh-0", "rack2"),
+			ExpectedFD: "rack2",
+		}),
+		Entry("Annotated BMH without FD label returns empty", testCaseActualFailureDomain{
+			M3Machine:  newPlacementM3M(namespaceName+"/bmh-0", false, nil),
+			Host:       newFDHost("bmh-0", ""),
+			ExpectedFD: "",
+		}),
+		Entry("Annotated but missing BMH returns empty", testCaseActualFailureDomain{
+			M3Machine:  newPlacementM3M(namespaceName+"/bmh-gone", false, nil),
+			ExpectedFD: "",
+		}),
+		Entry("Namespace prefix in annotation is ignored, own namespace is used", testCaseActualFailureDomain{
+			M3Machine:  newPlacementM3M("other-namespace/bmh-0", false, nil),
+			Host:       newFDHost("bmh-0", "rack2"),
+			ExpectedFD: "rack2",
+		}),
+	)
+
+	newM3TemplateWithFDMapping := func() *infrav1.Metal3MachineTemplate {
+		m3mt := newMetal3MachineTemplate("my-m3mt", namespaceName, map[string]string{})
+		m3mt.Spec.FailureDomainDataTemplates = []infrav1.FailureDomainDataTemplate{
+			{
+				FailureDomain: "rack1",
+				DataTemplate:  &infrav1.Metal3ObjectRef{Name: "m3dt-rack1"},
+			},
+			{
+				FailureDomain: "rack2",
+				DataTemplate:  &infrav1.Metal3ObjectRef{Name: "m3dt-rack2", Namespace: namespaceName},
+			},
+		}
+		return m3mt
+	}
+
+	defaultDataTemplate := &infrav1.Metal3ObjectRef{Name: "m3dt-default", Namespace: namespaceName}
+
+	type testCaseOverridePlacement struct {
+		M3Machine        *infrav1.Metal3Machine
+		M3Template       *infrav1.Metal3MachineTemplate
+		ActualFD         string
+		ExpectedTemplate *infrav1.Metal3ObjectRef
+	}
+
+	DescribeTable("overrideDataTemplateForPlacement tests",
+		func(tc testCaseOverridePlacement) {
+			objects := []client.Object{}
+			if tc.M3Template != nil {
+				objects = append(objects, tc.M3Template)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			r := &Metal3MachineReconciler{Client: fakeClient, Log: logr.Discard()}
+
+			err := r.overrideDataTemplateForPlacement(context.Background(), tc.M3Machine, tc.ActualFD, logr.Discard())
+			Expect(err).NotTo(HaveOccurred())
+
+			if tc.ExpectedTemplate == nil {
+				Expect(tc.M3Machine.Spec.DataTemplate).To(BeNil())
+			} else {
+				Expect(tc.M3Machine.Spec.DataTemplate).NotTo(BeNil())
+				Expect(*tc.M3Machine.Spec.DataTemplate).To(Equal(*tc.ExpectedTemplate))
+			}
+		},
+		Entry("Actual FD in mapping overrides dataTemplate, namespace defaulted", testCaseOverridePlacement{
+			M3Machine:        newPlacementM3M("", true, &infrav1.Metal3MachineSpec{DataTemplate: defaultDataTemplate.DeepCopy()}),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ActualFD:         "rack1",
+			ExpectedTemplate: &infrav1.Metal3ObjectRef{Name: "m3dt-rack1", Namespace: namespaceName},
+		}),
+		Entry("Actual FD in mapping overrides nil dataTemplate", testCaseOverridePlacement{
+			M3Machine:        newPlacementM3M("", true, &infrav1.Metal3MachineSpec{}),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ActualFD:         "rack2",
+			ExpectedTemplate: &infrav1.Metal3ObjectRef{Name: "m3dt-rack2", Namespace: namespaceName},
+		}),
+		Entry("Actual FD not in mapping keeps default", testCaseOverridePlacement{
+			M3Machine:        newPlacementM3M("", true, &infrav1.Metal3MachineSpec{DataTemplate: defaultDataTemplate.DeepCopy()}),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ActualFD:         "rack9",
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+		Entry("No cloned-from annotations keeps default", testCaseOverridePlacement{
+			M3Machine:        newPlacementM3M("", false, &infrav1.Metal3MachineSpec{DataTemplate: defaultDataTemplate.DeepCopy()}),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ActualFD:         "rack1",
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+		Entry("Missing template keeps default", testCaseOverridePlacement{
+			M3Machine:        newPlacementM3M("", true, &infrav1.Metal3MachineSpec{DataTemplate: defaultDataTemplate.DeepCopy()}),
+			M3Template:       nil,
+			ActualFD:         "rack1",
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+		Entry("Already rendered machine keeps default", testCaseOverridePlacement{
+			M3Machine: func() *infrav1.Metal3Machine {
+				m3m := newPlacementM3M("", true, &infrav1.Metal3MachineSpec{DataTemplate: defaultDataTemplate.DeepCopy()})
+				m3m.Status.RenderedData = &infrav1.Metal3ObjectRef{Name: "m3dt-default-0", Namespace: namespaceName}
+				return m3m
+			}(),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ActualFD:         "rack1",
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+	)
+
+	type testCaseReconcilePlacementFD struct {
+		HostFD            string
+		AssignedFD        string
+		M3MSpecFD         string
+		InitialStatusFD   string
+		ClaimExists       bool
+		ClaimTemplate     *infrav1.Metal3ObjectRef
+		ExpectMachineFD   string
+		ExpectM3MFD       string
+		ExpectM3MStatusFD string
+		ExpectDT          *infrav1.Metal3ObjectRef
+	}
+
+	DescribeTable("reconcilePlacementFailureDomain tests",
+		func(tc testCaseReconcilePlacementFD) {
+			capiMachine := newMachine(clusterName, machineName, metal3machineName, "")
+			capiMachine.Spec.FailureDomain = tc.AssignedFD
+			capm3Machine := newPlacementM3M(namespaceName+"/bmh-0", true, &infrav1.Metal3MachineSpec{
+				FailureDomain: tc.M3MSpecFD,
+				DataTemplate:  defaultDataTemplate.DeepCopy(),
+			})
+			capm3Machine.Status.FailureDomain = tc.InitialStatusFD
+
+			objects := []client.Object{
+				capiMachine,
+				newFDHost("bmh-0", tc.HostFD),
+				newM3TemplateWithFDMapping(),
+			}
+			if tc.ClaimExists {
+				claimTemplate := tc.ClaimTemplate
+				if claimTemplate == nil {
+					claimTemplate = defaultDataTemplate.DeepCopy()
+				}
+				objects = append(objects, &infrav1.Metal3DataClaim{
+					ObjectMeta: metav1.ObjectMeta{Name: metal3machineName, Namespace: namespaceName},
+					Spec:       infrav1.Metal3DataClaimSpec{Template: claimTemplate},
+				})
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			r := &Metal3MachineReconciler{Client: fakeClient, Log: logr.Discard()}
+
+			err := r.reconcilePlacementFailureDomain(context.Background(), capiMachine, capm3Machine, logr.Discard())
+			Expect(err).NotTo(HaveOccurred())
+
+			// The core Machine is never written by CAPM3.
+			updated := &clusterv1.Machine{}
+			Expect(fakeClient.Get(context.Background(),
+				types.NamespacedName{Namespace: namespaceName, Name: machineName}, updated)).To(Succeed())
+			Expect(updated.Spec.FailureDomain).To(Equal(tc.ExpectMachineFD))
+			Expect(capm3Machine.Spec.FailureDomain).To(Equal(tc.ExpectM3MFD))
+			Expect(capm3Machine.Status.FailureDomain).To(Equal(tc.ExpectM3MStatusFD))
+			Expect(capm3Machine.Spec.DataTemplate).NotTo(BeNil())
+			Expect(*capm3Machine.Spec.DataTemplate).To(Equal(*tc.ExpectDT))
+		},
+		Entry("Fallback reported on Metal3Machine and dataTemplate follows placement", testCaseReconcilePlacementFD{
+			HostFD:            "rack2",
+			AssignedFD:        "rack1",
+			M3MSpecFD:         "rack1",
+			ExpectMachineFD:   "rack1",
+			ExpectM3MFD:       "rack2",
+			ExpectM3MStatusFD: "rack2",
+			ExpectDT:          &infrav1.Metal3ObjectRef{Name: "m3dt-rack2", Namespace: namespaceName},
+		}),
+		Entry("Backfill: no assignment, placement reported", testCaseReconcilePlacementFD{
+			HostFD:            "rack2",
+			AssignedFD:        "",
+			M3MSpecFD:         "",
+			ExpectMachineFD:   "",
+			ExpectM3MFD:       "rack2",
+			ExpectM3MStatusFD: "rack2",
+			ExpectDT:          &infrav1.Metal3ObjectRef{Name: "m3dt-rack2", Namespace: namespaceName},
+		}),
+		Entry("Unlabeled host: assignment mirrored, no placement reporting", testCaseReconcilePlacementFD{
+			HostFD:            "",
+			AssignedFD:        "rack1",
+			M3MSpecFD:         "",
+			ExpectMachineFD:   "rack1",
+			ExpectM3MFD:       "rack1",
+			ExpectM3MStatusFD: "",
+			ExpectDT:          defaultDataTemplate,
+		}),
+		Entry("Unlabeled host: no-op when assignment already mirrored", testCaseReconcilePlacementFD{
+			HostFD:            "",
+			AssignedFD:        "rack1",
+			M3MSpecFD:         "rack1",
+			ExpectMachineFD:   "rack1",
+			ExpectM3MFD:       "rack1",
+			ExpectM3MStatusFD: "",
+			ExpectDT:          defaultDataTemplate,
+		}),
+		Entry("Existing DataClaim freezes dataTemplate but FD still reported", testCaseReconcilePlacementFD{
+			HostFD:            "rack2",
+			AssignedFD:        "rack1",
+			M3MSpecFD:         "rack1",
+			ClaimExists:       true,
+			ExpectMachineFD:   "rack1",
+			ExpectM3MFD:       "rack2",
+			ExpectM3MStatusFD: "rack2",
+			ExpectDT:          defaultDataTemplate,
+		}),
+		Entry("Existing DataClaim is the source of truth for the dataTemplate", testCaseReconcilePlacementFD{
+			HostFD:            "rack2",
+			AssignedFD:        "rack1",
+			M3MSpecFD:         "rack1",
+			ClaimExists:       true,
+			ClaimTemplate:     &infrav1.Metal3ObjectRef{Name: "m3dt-rack1", Namespace: namespaceName},
+			ExpectMachineFD:   "rack1",
+			ExpectM3MFD:       "rack2",
+			ExpectM3MStatusFD: "rack2",
+			ExpectDT:          &infrav1.Metal3ObjectRef{Name: "m3dt-rack1", Namespace: namespaceName},
+		}),
+		Entry("Label removed: status cleared, assignment mirror kept", testCaseReconcilePlacementFD{
+			HostFD:            "",
+			AssignedFD:        "rack1",
+			M3MSpecFD:         "rack1",
+			InitialStatusFD:   "rack2",
+			ExpectMachineFD:   "rack1",
+			ExpectM3MFD:       "rack1",
+			ExpectM3MStatusFD: "",
+			ExpectDT:          defaultDataTemplate,
 		}),
 	)
 })

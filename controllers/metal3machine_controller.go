@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
@@ -146,13 +147,6 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	machineLog = machineLog.WithValues(baremetal.LogFieldMachine, capiMachine.Name)
 	machineLog.V(baremetal.VerbosityLevelDebug).Info("Found owner Machine",
 		"machinePhase", capiMachine.Status.Phase)
-
-	// Set Failuredomain from machine to metal3Machine
-	if capm3Machine.Spec.FailureDomain != capiMachine.Spec.FailureDomain {
-		machineLog.V(baremetal.VerbosityLevelDebug).Info("Updating failure domain",
-			baremetal.LogFieldFailureDomain, capiMachine.Spec.FailureDomain)
-		capm3Machine.Spec.FailureDomain = capiMachine.Spec.FailureDomain
-	}
 
 	// Fetch the Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
@@ -305,7 +299,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Handle non-deleted machines
 	machineLog.V(baremetal.VerbosityLevelTrace).Info("Running normal reconciliation")
-	return r.reconcileNormal(ctx, machineMgr, machineLog)
+	return r.reconcileNormal(ctx, machineMgr, capiMachine, capm3Machine, machineLog)
 }
 
 func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Machine *infrav1.Metal3Machine, options ...patch.Option) error {
@@ -359,13 +353,161 @@ func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Ma
 	return patchHelper.Patch(ctx, metal3Machine, options...)
 }
 
+// actualFailureDomain returns the failure domain of the BareMetalHost this
+// Metal3Machine is associated with, derived from the host's failure-domain
+// label. It returns "" when the machine has no associated host, the host is
+// gone, or the host carries no failure-domain label — in all of those cases
+// the machine is outside the failure domain scheme and no FD behavior applies.
+func (r *Metal3MachineReconciler) actualFailureDomain(ctx context.Context,
+	capm3Machine *infrav1.Metal3Machine,
+) (string, error) {
+	hostKey, ok := capm3Machine.Annotations[baremetal.HostAnnotation]
+	if !ok || hostKey == "" {
+		return "", nil
+	}
+	// The namespace prefix is ignored; the Metal3Machine's own namespace is always used
+	// to prevent cross-namespace BareMetalHost references regardless of annotation content.
+	_, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse host annotation %q: %w", hostKey, err)
+	}
+	host := &bmov1alpha1.BareMetalHost{}
+	if err := r.Client.Get(ctx, types.NamespacedName{Namespace: capm3Machine.Namespace, Name: hostName}, host); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil
+		}
+		return "", fmt.Errorf("failed to get associated BareMetalHost %s: %w", hostKey, err)
+	}
+	return host.Labels[baremetal.FailureDomainLabelName], nil
+}
+
+// reconcilePlacementFailureDomain owns every write to the Metal3Machine
+// failure domain fields: when the associated BMH carries the failure-domain
+// label the placement is recorded in spec and status, otherwise the
+// assignment from the Machine is mirrored into spec for host selection. It
+// also applies the per-FD dataTemplate mapping and must therefore run before
+// the Metal3DataClaim is created. The core Machine is never written here;
+// CAPI's Machine controller surfaces the InfraMachine values onto it.
+func (r *Metal3MachineReconciler) reconcilePlacementFailureDomain(ctx context.Context,
+	capiMachine *clusterv1.Machine, capm3Machine *infrav1.Metal3Machine, log logr.Logger,
+) error {
+	actualFD, err := r.actualFailureDomain(ctx, capm3Machine)
+	if err != nil {
+		return err
+	}
+	if actualFD == "" {
+		// Hosts without the FD label are outside the FD scheme; the observed
+		// placement is unknown and status documents itself as empty in that
+		// case. Keep mirroring the assignment so pickHost can prefer it.
+		capm3Machine.Status.FailureDomain = ""
+		if capm3Machine.Spec.FailureDomain != capiMachine.Spec.FailureDomain {
+			log.V(baremetal.VerbosityLevelDebug).Info("Updating failure domain",
+				baremetal.LogFieldFailureDomain, capiMachine.Spec.FailureDomain)
+			capm3Machine.Spec.FailureDomain = capiMachine.Spec.FailureDomain
+		}
+		return nil
+	}
+	capm3Machine.Status.FailureDomain = actualFD
+	if capm3Machine.Spec.FailureDomain != actualFD {
+		log.Info("Recorded placement failure domain on Metal3Machine",
+			"assigned", capiMachine.Spec.FailureDomain, "actual", actualFD)
+		capm3Machine.Spec.FailureDomain = actualFD
+	}
+	return r.overrideDataTemplateForPlacement(ctx, capm3Machine, actualFD, log)
+}
+
+// overrideDataTemplateForPlacement replaces the Metal3Machine dataTemplate
+// with the reference the source Metal3MachineTemplate maps to the failure
+// domain the machine is actually placed in. Machines not cloned from a
+// template and failure domains absent from the mapping keep their current
+// dataTemplate.
+func (r *Metal3MachineReconciler) overrideDataTemplateForPlacement(ctx context.Context,
+	capm3Machine *infrav1.Metal3Machine, actualFD string, log logr.Logger,
+) error {
+	// Once the metadata has been rendered the Metal3DataClaim is immutable;
+	// overriding the dataTemplate at that point would only create a
+	// spec-vs-rendered mismatch, so leave the spec untouched.
+	if capm3Machine.Status.RenderedData != nil {
+		return nil
+	}
+	templateName := capm3Machine.Annotations[clusterv1.TemplateClonedFromNameAnnotation]
+	if templateName == "" ||
+		capm3Machine.Annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] != infrav1.ClonedFromGroupKind {
+		return nil
+	}
+	// The Metal3DataClaim (named after the machine) is created once and never
+	// updated; once it exists it is the source of truth for the dataTemplate.
+	// Converge the spec to it in case a previous reconcile created the claim
+	// but failed to persist the Metal3Machine.
+	dataClaim := &infrav1.Metal3DataClaim{}
+	claimKey := types.NamespacedName{Namespace: capm3Machine.Namespace, Name: capm3Machine.Name}
+	err := r.Client.Get(ctx, claimKey, dataClaim)
+	if err == nil {
+		if dataClaim.Spec.Template != nil &&
+			(capm3Machine.Spec.DataTemplate == nil || *capm3Machine.Spec.DataTemplate != *dataClaim.Spec.Template) {
+			log.Info("Converging dataTemplate to the existing Metal3DataClaim",
+				baremetal.LogFieldDataTemplate, dataClaim.Spec.Template.Name)
+			capm3Machine.Spec.DataTemplate = dataClaim.Spec.Template
+		}
+		return nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return fmt.Errorf("failed to check Metal3DataClaim %s: %w", claimKey, err)
+	}
+
+	m3mt := &infrav1.Metal3MachineTemplate{}
+	key := types.NamespacedName{Namespace: capm3Machine.Namespace, Name: templateName}
+	if err := r.Client.Get(ctx, key, m3mt); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.V(baremetal.VerbosityLevelDebug).Info("Source Metal3MachineTemplate not found, keeping dataTemplate",
+				baremetal.LogFieldMetal3MachineTemplate, templateName)
+			return nil
+		}
+		return fmt.Errorf("failed to get source Metal3MachineTemplate %s: %w", key, err)
+	}
+
+	for _, fdt := range m3mt.Spec.FailureDomainDataTemplates {
+		if fdt.FailureDomain != actualFD {
+			continue
+		}
+		// CRD validation (CEL) rejects empty names on write, but objects
+		// stored before that rule existed can still carry one — never
+		// propagate it.
+		if fdt.DataTemplate == nil || fdt.DataTemplate.Name == "" {
+			return nil
+		}
+		ref := *fdt.DataTemplate
+		if ref.Namespace == "" {
+			ref.Namespace = capm3Machine.Namespace
+		}
+		if capm3Machine.Spec.DataTemplate == nil || *capm3Machine.Spec.DataTemplate != ref {
+			log.Info("Overriding dataTemplate for placement failure domain",
+				baremetal.LogFieldFailureDomain, actualFD,
+				baremetal.LogFieldDataTemplate, ref.Name)
+			capm3Machine.Spec.DataTemplate = &ref
+		}
+		return nil
+	}
+	return nil
+}
+
 func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
-	machineMgr baremetal.MachineManagerInterface, log logr.Logger,
+	machineMgr baremetal.MachineManagerInterface,
+	capiMachine *clusterv1.Machine, capm3Machine *infrav1.Metal3Machine,
+	log logr.Logger,
 ) (ctrl.Result, error) {
 	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: starting")
 
 	// If the Metal3Machine doesn't have finalizer, add it.
 	machineMgr.SetFinalizer()
+
+	// Must run before the provisioned early-return: late BMH label
+	// registration has to keep converging for Running machines, and the
+	// dataTemplate mapping must be applied before the Metal3DataClaim is
+	// created further down.
+	if err := r.reconcilePlacementFailureDomain(ctx, capiMachine, capm3Machine, log); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	// if the machine is already provisioned, update and return
 	isProvisioned := machineMgr.IsProvisioned()
