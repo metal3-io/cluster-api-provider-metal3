@@ -29,7 +29,6 @@ const (
 	ironicTLSSetup               = "IRONIC_TLS_SETUP"
 	ironicBasicAuth              = "IRONIC_BASIC_AUTH"
 	ironicKeepalived             = "IRONIC_KEEPALIVED"
-	ironicMariadb                = "IRONIC_USE_MARIADB"
 	Kind                         = "kind"
 	NamePrefix                   = "NAMEPREFIX"
 	restartContainerCertUpdate   = "RESTART_CONTAINER_CERTIFICATE_UPDATED"

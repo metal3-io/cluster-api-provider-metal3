@@ -101,7 +101,6 @@ declare -a release_artefacts=(
 # quay images
 declare -a container_images=(
     "${ORG}/cluster-api-provider-metal3:v${VERSION}"
-    "${ORG}/mariadb:capm3-v${VERSION}"
 )
 
 # go mod bump checks - must match up to leading space before v
