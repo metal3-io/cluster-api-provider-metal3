@@ -18,11 +18,14 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	"github.com/metal3-io/cluster-api-provider-metal3/internal/metrics"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -42,7 +45,7 @@ import (
 )
 
 const (
-	dataControllerName = "Metal3Data-controller"
+	dataControllerName = metrics.ControllerMetal3Data
 )
 
 // Metal3DataReconciler reconciles a Metal3Data object.
@@ -61,10 +64,24 @@ type Metal3DataReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile handles Metal3Data events.
-func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rres ctrl.Result, rerr error) {
+	reconcileStart := time.Now()
 	metadataLog := r.Log.WithName(dataControllerName).WithValues(
 		baremetal.LogFieldData, req.NamespacedName,
 	)
+
+	// Track metrics for this reconciliation.
+	hasError := false
+	defer func() {
+		if rerr != nil {
+			hasError = true
+			var reconcileErr baremetal.ReconcileError
+			isTransient := errors.As(rerr, &reconcileErr) && reconcileErr.IsTransient()
+			metrics.RecordReconcileError(dataControllerName, req.Namespace, isTransient)
+		}
+		metrics.RecordMetal3DataReconcile(req.Namespace, reconcileStart, hasError)
+	}()
+
 	metadataLog.V(baremetal.VerbosityLevelTrace).Info("Reconcile: starting Metal3Data reconciliation")
 
 	// Fetch the Metal3Data instance.
