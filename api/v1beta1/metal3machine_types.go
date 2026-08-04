@@ -119,6 +119,7 @@ type Metal3MachineSpec struct {
 	// The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
 	// and removed in CAPM3 v1.14.
 	// +optional
+	// +kubebuilder:validation:MaxLength=512
 	ProviderID *string `json:"providerID,omitempty"`
 
 	// Image is the image to be provisioned.
@@ -164,6 +165,8 @@ type Metal3MachineSpec struct {
 	AutomatedCleaningMode *string `json:"automatedCleaningMode,omitempty"`
 
 	// FailureDomain is the failure domain unique identifier this Machine should be attached to, as defined in Cluster API.
+	// +optional
+	// +kubebuilder:validation:MaxLength=256
 	FailureDomain string `json:"failureDomain,omitempty"`
 }
 
