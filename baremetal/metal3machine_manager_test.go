@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/go-logr/logr"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -2279,13 +2278,16 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseDelete struct {
-		Host                            *bmov1alpha1.BareMetalHost
-		Secret                          *corev1.Secret
-		Machine                         *clusterv1.Machine
-		M3Machine                       *infrav1.Metal3Machine
-		BMCSecret                       *corev1.Secret
-		ExpectedConsumerRef             *corev1.ObjectReference
-		ExpectedResult                  error
+		Host                *bmov1alpha1.BareMetalHost
+		Secret              *corev1.Secret
+		Machine             *clusterv1.Machine
+		M3Machine           *infrav1.Metal3Machine
+		ControlPlane        *controlplanev1.KubeadmControlPlane
+		BMCSecret           *corev1.Secret
+		ExpectedConsumerRef *corev1.ObjectReference
+		ExpectError         bool
+		ExpectRequeue       bool
+		//		ExpectedResult                  error
 		ExpectSecretDeleted             bool
 		ExpectClusterLabelDeleted       bool
 		ExpectedPausedAnnotationDeleted bool
@@ -2298,6 +2300,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Metal3MachineTemplate           *infrav1.Metal3MachineTemplate
 		MachineSet                      *clusterv1.MachineSet
 		ExpectedNodeReuseValue          string
+		FailingResource                 *client.ObjectKey
 	}
 
 	DescribeTable("Test Delete function",
@@ -2318,10 +2321,18 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.MachineSet != nil {
 				objects = append(objects, tc.MachineSet)
 			}
-
+			if tc.ControlPlane != nil {
+				objects = append(objects, tc.ControlPlane)
+			}
 			Capm3FastTrack = tc.capm3fasttrack
 
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			scheme := setupSchemeMm()
+			Expect(controlplanev1.AddToScheme(scheme)).To(Succeed())
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+			if tc.FailingResource != nil {
+				fakeClient = &FailingClient{WithWatch: fakeClient, FailingResource: *tc.FailingResource}
+			}
 
 			machineMgr, err := NewMachineManager(fakeClient, tc.Cluster, nil, tc.Machine,
 				tc.M3Machine, logr.Discard(),
@@ -2330,12 +2341,15 @@ var _ = Describe("Metal3Machine manager", func() {
 
 			err = machineMgr.Delete(context.TODO())
 
-			if tc.ExpectedResult == nil {
-				Expect(err).NotTo(HaveOccurred())
+			if tc.ExpectError || tc.ExpectRequeue {
+				Expect(err).To(HaveOccurred())
+				if tc.ExpectRequeue {
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
+				} else {
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
+				}
 			} else {
-				var reconcileError ReconcileError
-				Expect(errors.As(err, &reconcileError)).To(BeTrue())
-				Expect(reconcileError.IsTransient()).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
 			}
 
 			if tc.Host != nil {
@@ -2461,7 +2475,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef:     consumerRef(),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			Secret:                  newSecret(),
 			ExpectedBMHOnlineStatus: false,
 		}),
@@ -2474,7 +2488,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef:     consumerRef(),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			Secret:                  newSecret(),
 			ExpectedBMHOnlineStatus: false,
 		}),
@@ -2498,7 +2512,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
-			ExpectedResult:      ReconcileError{nil, TransientErrorType, time.Second * 30},
+			ExpectRequeue:       true,
 			Secret:              newSecret(),
 		}),
 		Entry("Externally provisioned host should be powered down", testCaseDelete{
@@ -2510,8 +2524,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
-			ExpectedResult:      ReconcileError{nil, TransientErrorType, time.Second * 30},
-			Secret:              newSecret(),
+			ExpectRequeue:       true,
+			// ExpectedResult:      ReconcileError{nil, TransientErrorType, time.Second * 30},
+			Secret: newSecret(),
 		}),
 		Entry("Consumer ref should be removed from externally provisioned host",
 			testCaseDelete{
@@ -2683,7 +2698,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			ExpectedConsumerRef:     consumerRef(),
 			Secret:                  newSecret(),
 			capm3fasttrack:          "false",
@@ -2696,7 +2711,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			ExpectedConsumerRef:     consumerRef(),
 			Secret:                  newSecret(),
 			capm3fasttrack:          "true",
@@ -2709,7 +2724,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			ExpectedConsumerRef:     consumerRef(),
 			Secret:                  newSecret(),
 			capm3fasttrack:          "false",
@@ -2722,7 +2737,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "true",
 			Secret:                  newSecret(),
@@ -2735,7 +2750,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "",
 			Secret:                  newSecret(),
@@ -2748,7 +2763,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "",
 			Secret:                  newSecret(),
@@ -2761,7 +2776,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "",
 			Secret:                  newSecret(),
@@ -2774,7 +2789,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "",
 			Secret:                  newSecret(),
@@ -2787,7 +2802,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "true",
 			Secret:                  newSecret(),
@@ -2800,7 +2815,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          ReconcileError{},
+			ExpectRequeue:           true,
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "true",
 			Secret:                  newSecret(),
@@ -2921,7 +2936,226 @@ var _ = Describe("Metal3Machine manager", func() {
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
 		}),
+		Entry("NodeReuse enabled, machine is worker. Transient error on fetching machineSet is seen", testCaseDelete{
+			Host: newBareMetalHost(baremetalhostName,
+				&bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: consumerRef(),
+					Online:      false,
+				},
+				bmov1alpha1.StateNone,
+				&bmov1alpha1.BareMetalHostStatus{
+					Provisioning: bmov1alpha1.ProvisionStatus{
+						State: bmov1alpha1.StateNone,
+					},
+				}, false, "metadata", true, "", false),
+			Machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      machineName,
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Name:       "myMachineSet",
+							UID:        "123456789",
+							Kind:       "MachineSet",
+						},
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To(metal3machineName + "-user-data")},
+				},
+			},
+			MachineSet: &clusterv1.MachineSet{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineSet",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myMachineSet",
+					Namespace: namespaceName,
+					UID:       "123456789",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "MachineDeployment",
+							Name:       "test1",
+						},
+					},
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								Kind:     "Metal3MachineTemplate",
+								Name:     "abc",
+								APIGroup: infrav1.GroupVersion.Group,
+							},
+						},
+					},
+				},
+			},
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
+				&metav1.ObjectMeta{
+					Name:      metal3machineName,
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "MachineSet",
+							APIVersion: infrav1.GroupVersion.String(),
+							Name:       "test1",
+							UID:        "123456789",
+						},
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "test1-bwjsg",
+							UID:        "070f03fb-b0e1-4863-9d95-7fd681d8d257",
+						},
+					},
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: clusterName,
+					},
+					Annotations: map[string]string{
+						HostAnnotation:                           namespaceName + "/" + baremetalhostName,
+						"cluster.x-k8s.io/cloned-from-name":      "abc",
+						"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
+					},
+				}),
+			Cluster:             newCluster(clusterName),
+			Secret:              newSecret(),
+			ExpectSecretDeleted: false,
+			Metal3MachineTemplate: &infrav1.Metal3MachineTemplate{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3MachineTemplate",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "abc",
+					Namespace: namespaceName,
+				},
+				Spec: infrav1.Metal3MachineTemplateSpec{
+					Template: infrav1.Metal3MachineTemplateResource{
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: infrav1.CleaningModeDisabled,
+						},
+					},
+					NodeReuse: ptr.To(true),
+				}},
+			FailingResource:     &client.ObjectKey{Namespace: namespaceName, Name: "myMachineSet"},
+			ExpectedConsumerRef: consumerRef(),
+			ExpectError:         true,
+		}),
 		Entry("NodeReuse enabled, machine is controlplane, no error expected", testCaseDelete{
+			Host: newBareMetalHost(baremetalhostName,
+				&bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: consumerRef(),
+					Online:      false,
+				},
+				bmov1alpha1.StateNone,
+				&bmov1alpha1.BareMetalHostStatus{
+					Provisioning: bmov1alpha1.ProvisionStatus{
+						State: bmov1alpha1.StateNone,
+					},
+				}, false, "metadata", false, "", false),
+			Machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      machineName,
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta2",
+							Name:       "test1",
+							UID:        "123456789",
+							Kind:       "KubeadmControlPlane",
+						},
+					},
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To(metal3machineName + "-user-data")},
+				},
+			},
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
+				&metav1.ObjectMeta{
+					Name:      metal3machineName,
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "KubeadmControlPlane",
+							APIVersion: infrav1.GroupVersion.String(),
+							Name:       "test1",
+							UID:        "2a72b7d2-b5bd-4074-a1fe-7d417bdcd95b",
+						},
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "test1-bwjsg",
+							UID:        "070f03fb-b0e1-4863-9d95-7fd681d8d257",
+						},
+					},
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: clusterName,
+					},
+					Annotations: map[string]string{
+						HostAnnotation:                           namespaceName + "/" + baremetalhostName,
+						"cluster.x-k8s.io/cloned-from-name":      "abc",
+						"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
+					},
+				}),
+			Cluster:             newCluster(clusterName),
+			Secret:              newSecret(),
+			ExpectSecretDeleted: false,
+			NodeReuseEnabled:    true,
+			Metal3MachineTemplate: &infrav1.Metal3MachineTemplate{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3MachineTemplate",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "abc",
+					Namespace: namespaceName,
+				},
+				Spec: infrav1.Metal3MachineTemplateSpec{
+					Template: infrav1.Metal3MachineTemplateResource{
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: infrav1.CleaningModeDisabled,
+						},
+					},
+					NodeReuse: ptr.To(true),
+				}},
+			ControlPlane: &controlplanev1.KubeadmControlPlane{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: controlplanev1.GroupVersion.String(),
+					Kind:       "KubeadmControlPlane",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test1",
+					Namespace: namespaceName,
+				},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								Kind:     "Metal3MachineTemplate",
+								Name:     "abc",
+								APIGroup: infrav1.GroupVersion.Group,
+							},
+						},
+					},
+				}},
+			ExpectedNodeReuseValue: "cp-test1",
+			ExpectedConsumerRef: &corev1.ObjectReference{
+				Name:       "baremetal-testcluster",
+				Namespace:  namespaceName,
+				Kind:       "Cluster",
+				APIVersion: clusterv1.GroupVersion.String(),
+			},
+		}),
+		Entry("NodeReuse enabled, machine is controlplane, transient error", testCaseDelete{
 			Host: newBareMetalHost(baremetalhostName,
 				&bmov1alpha1.BareMetalHostSpec{
 					ConsumerRef: consumerRef(),
@@ -3001,6 +3235,29 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					NodeReuse: ptr.To(true),
 				}},
+			ControlPlane: &controlplanev1.KubeadmControlPlane{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: controlplanev1.GroupVersion.String(),
+					Kind:       "KubeadmControlPlane",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test1",
+					Namespace: namespaceName,
+				},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+						Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								Kind:     "Metal3MachineTemplate",
+								Name:     "abc",
+								APIGroup: infrav1.GroupVersion.Group,
+							},
+						},
+					},
+				}},
+			FailingResource:     &client.ObjectKey{Namespace: namespaceName, Name: "test1"},
+			ExpectedConsumerRef: consumerRef(),
+			ExpectError:         true,
 		}),
 	)
 
@@ -4554,6 +4811,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		expectedMD         bool
 		expectedMDName     string
 		expectError        bool
+		failingResource    *client.ObjectKey
 	}
 	DescribeTable("Test GetMachineDeploymentName",
 		func(tc testCaseGetMachineDeploymentName) {
@@ -4567,6 +4825,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				}
 			}
 			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			if tc.failingResource != nil {
+				fakeClient = &FailingClient{WithWatch: fakeClient, FailingResource: *tc.failingResource}
+			}
 			machineMgr, err := NewMachineSetManager(fakeClient, tc.Machine,
 				tc.MachineSetList, logr.Discard(),
 			)
@@ -4640,6 +4901,49 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectedMD:     true,
 			expectedMDName: "md-test1",
 		}),
+		Entry("Should return an error when a transient error occurs while fetching machineSet", testCaseGetMachineDeploymentName{
+			Machine: machineOwnedByMachineSet(),
+			MachineSetList: &clusterv1.MachineSetList{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineSetList",
+				},
+				ListMeta: metav1.ListMeta{},
+				Items: []clusterv1.MachineSet{
+					{
+						TypeMeta: metav1.TypeMeta{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "MachineSet",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "ms-test1",
+							OwnerReferences: []metav1.OwnerReference{
+								{
+									APIVersion: clusterv1.GroupVersion.String(),
+									Kind:       "MachineDeployment",
+									Name:       "test1",
+								},
+							},
+						},
+					},
+					{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "test2",
+						},
+					},
+					{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "test3",
+						},
+					},
+				},
+			},
+			failingResource: &client.ObjectKey{Name: "ms-test1"},
+			expectError:     true,
+		}),
+
 		Entry("Should not find the expected MachineDeployment name, MachineSet OwnerRef Kind is not correct", testCaseGetMachineDeploymentName{
 			Machine: machineOwnedByMachineSet(),
 			MachineSetList: &clusterv1.MachineSetList{
@@ -4781,7 +5085,11 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(tc.expectedMachineSet).To(BeNil())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Name).To(Equal(tc.expectedMachineSet.Name))
+				if tc.expectedMachineSet != nil {
+					Expect(result.Name).To(Equal(tc.expectedMachineSet.Name))
+				} else {
+					Expect(result).To(BeNil())
+				}
 			}
 		},
 		Entry("Should find the expected Machineset", testCaseGetMachineSet{
@@ -4821,13 +5129,13 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: testObjectMeta("ms-test1", "", ""),
 			},
 		}),
-		Entry("Should not find the Machineset and error when machine is nil", testCaseGetMachineSet{
+		Entry("Should not find the Machineset when machine is nil", testCaseGetMachineSet{
 			Machine:            nil,
 			expectedMachineSet: nil,
 			MachineSetList:     nil,
-			expectError:        true,
+			expectError:        false,
 		}),
-		Entry("Should not find the Machineset and error when machine is a controlplane", testCaseGetMachineSet{
+		Entry("Should not find the Machineset when machine is a controlplane", testCaseGetMachineSet{
 			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
@@ -4838,9 +5146,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			expectedMachineSet: nil,
 			MachineSetList:     nil,
-			expectError:        true,
+			expectError:        false,
 		}),
-		Entry("Should not find the Machineset and error when machine ownerRef is empty", testCaseGetMachineSet{
+		Entry("Should not find the Machineset when machine ownerRef is empty", testCaseGetMachineSet{
 			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
@@ -4849,7 +5157,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			expectedMachineSet: nil,
 			MachineSetList:     nil,
-			expectError:        true,
+			expectError:        false,
 		}),
 		Entry("Should not find the Machineset when machine ownerRef Kind is not correct", testCaseGetMachineSet{
 			Machine: &clusterv1.Machine{
@@ -4887,7 +5195,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 			expectedMachineSet: nil,
-			expectError:        true,
+			expectError:        false,
 		}),
 		Entry("Should not find the Machineset when machine ownerRef APIVersion is not correct", testCaseGetMachineSet{
 			Machine: &clusterv1.Machine{
@@ -4925,7 +5233,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 			expectedMachineSet: nil,
-			expectError:        true,
+			expectError:        false,
 		}),
 		Entry("Should not find the Machineset when UID is not correct", testCaseGetMachineSet{
 			Machine: &clusterv1.Machine{
@@ -4965,7 +5273,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 			expectedMachineSet: nil,
-			expectError:        true,
+			expectError:        false,
 		}),
 	)
 
@@ -5298,4 +5606,18 @@ func filterCondition(conditions []metav1.Condition, conditionType string) []meta
 		}
 	}
 	return filtered
+}
+
+type FailingClient struct {
+	client.WithWatch
+	FailingResource client.ObjectKey
+}
+
+var errTransient = errors.New("transient failure")
+
+func (fc *FailingClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	if key == fc.FailingResource {
+		return errTransient
+	}
+	return fc.WithWatch.Get(ctx, key, obj, opts...)
 }
