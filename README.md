@@ -52,8 +52,8 @@ need to be manually installed. Example flow of installing Metal3 provider:
 
 1. Install Cluster API core, bootstrap and control-plane providers. This will
    also install cert-manager if it is not already installed. To have more
-   verbose logs you can use the -v flag when running the clusterctl and set the
-   level of the logging verbose with a positive integer number, ie. -v5.
+   verbose logs, you can use the `-v` flag when running `clusterctl` and set the
+   verbosity level with a positive integer, e.g. `-v5`.
 
    ```shell
    clusterctl init --core cluster-api:v1.13.0 \
@@ -108,25 +108,25 @@ objects outside of the Cluster API chain or not part of CAPM3 will not be
 pivoted to a target cluster. An example of those objects is BareMetalHost, or
 user created ConfigMaps and Secrets which are reconciled by Baremetal Operator.
 To ensure that those objects are also pivoted as part of `clusterctl move`,
-`clusterctl.cluster.x-k8s.io` label needs to be set on the BareMetalHost CRD
-before pivoting. If there are other CRDs also need to be pivoted to the target
+the `clusterctl.cluster.x-k8s.io` label needs to be set on the BareMetalHost CRD
+before pivoting. If there are other CRDs that also need to be pivoted to the target
 cluster, the same label needs to be set on them.
 
-All the other objects owned by BareMetalHost, such as Secret and ConfigMap don't
+All the other objects owned by BareMetalHost, such as Secret and ConfigMap, don't
 require this label to be set, because they hold ownerReferences to
-BareMetalHost, and that is good enough for clusterctl to move all the hierarchy
-of BareMetalHost object.
+BareMetalHost, and that is good enough for clusterctl to move the entire hierarchy
+of the BareMetalHost object.
 
 CAPM3 also automatically sets the `clusterctl.cluster.x-k8s.io/block-move`
 annotation on a claimed BareMetalHost until its pause and status annotations
 are applied, to prevent it from being moved mid-reconcile. This annotation
-blocks the entire `clusterctl move` operation while present on any object,
-a BareMetalHost stuck in this state can stall the whole move, not just
+blocks the entire `clusterctl move` operation while present on any object.
+A BareMetalHost stuck in this state can stall the whole move, not just
 its own cluster.
 
 ## Development Environment
 
-There are multiple ways to setup a development environment:
+There are multiple ways to set up a development environment:
 
 - [Using Tilt](docs/dev-setup.md#tilt-development-environment)
 - [Other management cluster](docs/dev-setup.md#development-using-Kind-or-Minikube)
@@ -143,11 +143,11 @@ the deployment process.
 
 ## Architecture
 
-The architecture with the components involved can be found [in the docs](docs/architecture.md)
+The architecture with the components involved can be found [in the docs](docs/architecture.md).
 
 ## E2E test
 
-To trigger e2e test on a PR, use the following phrases:
+To trigger e2e tests on a PR, use the following phrases:
 
 ### Integration tests
 
@@ -275,7 +275,7 @@ Release-1.11 branch:
 
 #### Clusterctl upgrade tests
 
-CAPM3 tests upgrade from all supported release to the current one.
+CAPM3 tests upgrade from all supported releases to the current one.
 We run upgrade test on main branch from different releases:
 
 - **/test metal3-e2e-clusterctl-upgrade-test-main** runs e2e clusterctl
@@ -292,7 +292,7 @@ We run upgrade test on main branch from different releases:
 
 #### K8s upgrade tests
 
-CAPM3 tests upgrading kubernetes between last 3 releases.
+CAPM3 tests upgrading Kubernetes between the last 3 releases.
 The trigger takes the format:
 `/test metal3-e2e-<from-minor-k8s-v>-<to-minor-k8s-v>-upgrade-test-<branch>`
 
@@ -305,4 +305,4 @@ Note:
 
 - Triggers follow the pattern: `/test metal3-<image-os>-e2e-<test-type>-test-<branch>`
 
-More info about e2e tests can be found [in the docs](docs/e2e-test.md)
+More info about e2e tests can be found [in the docs](docs/e2e-test.md).
