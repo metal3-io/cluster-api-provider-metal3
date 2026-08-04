@@ -24,7 +24,6 @@ func CertRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	input := inputGetter()
 	clientSet := input.ClusterProxy.GetClientSet()
 	clusterClient := input.ClusterProxy.GetClient()
-	mariadbEnabled := GetBoolVariable(input.E2EConfig, ironicMariadb)
 	ironicNS := input.E2EConfig.MustGetVariable(ironicNamespace)
 	By("Check if Ironic is running")
 	WaitForIronicReady(ctx, WaitForIronicInput{
@@ -62,9 +61,6 @@ func CertRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	secretList := []string{
 		"ironic-cert",
 	}
-	if mariadbEnabled {
-		secretList = append(secretList, "mariadb-cert")
-	}
 	for _, secretName := range secretList {
 		secretErr := clientSet.CoreV1().Secrets(ironicNS).Delete(ctx, secretName, metav1.DeleteOptions{})
 		Expect(secretErr).ToNot(HaveOccurred(), "cannot delete this secret: %s", secretName)
@@ -79,10 +75,6 @@ func CertRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	Eventually(func(g Gomega) {
 		_, secretErr := clientSet.CoreV1().Secrets(ironicNS).Get(ctx, secretList[0], metav1.GetOptions{})
 		g.Expect(secretErr).ToNot(HaveOccurred())
-		if mariadbEnabled {
-			_, secretErr := clientSet.CoreV1().Secrets(ironicNS).Get(ctx, secretList[1], metav1.GetOptions{})
-			g.Expect(secretErr).ToNot(HaveOccurred())
-		}
 	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-pod-restart")...).Should(Succeed())
 
 	By("Check if Ironic is running after certificate rotation")
