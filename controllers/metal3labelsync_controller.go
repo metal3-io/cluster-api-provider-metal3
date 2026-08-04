@@ -293,6 +293,29 @@ func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host
 	return nil
 }
 
+// reservedLabelDomains lists the label key domains that are reserved by
+// Kubernetes. Labels under these domains (e.g. kubernetes.io/os,
+// node-role.kubernetes.io/...) must never be synced from a BareMetalHost to a
+// Node: they are interpreted by core Kubernetes and can affect pod scheduling
+// and other node behavior. This matches the label sync proposal, which excludes
+// the kubernetes.io and k8s.io domains from synchronization.
+var reservedLabelDomains = []string{
+	"kubernetes.io",
+	"k8s.io",
+}
+
+// isReservedLabelPrefix reports whether the given label prefix belongs to a
+// Kubernetes-reserved domain (kubernetes.io, k8s.io) or any of their
+// subdomains (e.g. node.kubernetes.io).
+func isReservedLabelPrefix(prefix string) bool {
+	for _, domain := range reservedLabelDomains {
+		if prefix == domain || strings.HasSuffix(prefix, "."+domain) {
+			return true
+		}
+	}
+	return false
+}
+
 func buildLabelSyncSet(prefixSet map[string]struct{}, labels map[string]string) map[string]string {
 	labelSyncSet := make(map[string]string)
 	for labelKey, labelVal := range labels {
@@ -301,6 +324,11 @@ func buildLabelSyncSet(prefixSet map[string]struct{}, labels map[string]string) 
 			continue
 		}
 		if _, ok := prefixSet[p]; !ok {
+			continue
+		}
+		// Never sync labels under Kubernetes-reserved domains, even if an
+		// admin explicitly added such a prefix to the sync annotation.
+		if isReservedLabelPrefix(p) {
 			continue
 		}
 		labelSyncSet[labelKey] = labelVal
