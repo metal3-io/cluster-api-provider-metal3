@@ -9,9 +9,9 @@ require (
 	k8s.io/api v0.36.3
 	k8s.io/apimachinery v0.36.3
 	k8s.io/client-go v0.36.3
-	sigs.k8s.io/cluster-api v1.14.0-beta.1
-	sigs.k8s.io/cluster-api/api v1.14.0-beta.1
-	sigs.k8s.io/cluster-api/test v1.14.0-beta.1
+	sigs.k8s.io/cluster-api v1.14.0-rc.0
+	sigs.k8s.io/cluster-api/api v1.14.0-rc.0
+	sigs.k8s.io/cluster-api/test v1.14.0-rc.0
 	sigs.k8s.io/controller-runtime v0.24.1
 )
 
@@ -69,9 +69,9 @@ require (
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.etcd.io/etcd/api/v3 v3.6.13 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.6.13 // indirect
-	go.etcd.io/etcd/client/v3 v3.6.13 // indirect
+	go.etcd.io/etcd/api/v3 v3.6.14 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.6.14 // indirect
+	go.etcd.io/etcd/client/v3 v3.6.14 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0 // indirect
@@ -104,7 +104,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.36.3 // indirect
 	k8s.io/apiserver v0.36.3 // indirect
-	k8s.io/cluster-bootstrap v0.36.2 // indirect
+	k8s.io/cluster-bootstrap v0.36.3 // indirect
 	k8s.io/component-base v0.36.3 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a // indirect
