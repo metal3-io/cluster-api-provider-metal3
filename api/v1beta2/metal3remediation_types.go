@@ -69,6 +69,9 @@ type RemediationStrategy struct {
 
 	// timeoutSeconds defines the timeout between remediation retries.
 	// The minimum allowed value is 100 seconds. The default is 600 seconds.
+	// Setting a very high value is discouraged: the controller waits this
+	// long between attempts, so a large timeout delays every retry and can
+	// effectively stall remediation for a very long time.
 	// +kubebuilder:validation:Minimum=100
 	// +kubebuilder:default=600
 	// +optional
