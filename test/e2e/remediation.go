@@ -263,7 +263,6 @@ func Remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	newM3DataTemplate.Spec.MetaData = m3dataTemplate.Spec.MetaData
 	newM3DataTemplate.Spec.NetworkData = m3dataTemplate.Spec.NetworkData
-	newM3DataTemplate.Spec.ClusterName = input.ClusterName
 
 	newM3DataTemplate.ObjectMeta.Name = newM3dataTemplateName
 	newM3DataTemplate.ObjectMeta.Namespace = m3dataTemplate.Namespace

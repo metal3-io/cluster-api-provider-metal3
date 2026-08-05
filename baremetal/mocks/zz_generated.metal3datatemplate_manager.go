@@ -32,7 +32,6 @@ import (
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
-	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // MockDataTemplateManagerInterface is a mock of DataTemplateManagerInterface interface.
@@ -57,20 +56,6 @@ func NewMockDataTemplateManagerInterface(ctrl *gomock.Controller) *MockDataTempl
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockDataTemplateManagerInterface) EXPECT() *MockDataTemplateManagerInterfaceMockRecorder {
 	return m.recorder
-}
-
-// SetClusterOwnerRef mocks base method.
-func (m *MockDataTemplateManagerInterface) SetClusterOwnerRef(arg0 *v1beta2.Cluster) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetClusterOwnerRef", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetClusterOwnerRef indicates an expected call of SetClusterOwnerRef.
-func (mr *MockDataTemplateManagerInterfaceMockRecorder) SetClusterOwnerRef(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClusterOwnerRef", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).SetClusterOwnerRef), arg0)
 }
 
 // SetFinalizer mocks base method.

@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -41,7 +40,6 @@ import (
 type DataTemplateManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
-	SetClusterOwnerRef(*clusterv1.Cluster) error
 	// UpdateDatas handles the Metal3DataClaims and creates or deletes Metal3Data accordingly.
 	// It returns if there are still Data object and undeleted DataClaims objects.
 	UpdateDatas(context.Context) (bool, bool, error)
@@ -78,34 +76,6 @@ func (m *DataTemplateManager) UnsetFinalizer() {
 	// Remove the finalizer.
 	m.Log.V(VerbosityLevelTrace).Info("Removing finalizer from Metal3DataTemplate")
 	controllerutil.RemoveFinalizer(m.DataTemplate, infrav1.DataTemplateFinalizer)
-}
-
-// SetClusterOwnerRef sets ownerRef.
-func (m *DataTemplateManager) SetClusterOwnerRef(cluster *clusterv1.Cluster) error {
-	m.Log.V(VerbosityLevelTrace).Info("Setting cluster owner reference on Metal3DataTemplate")
-	// Verify that the owner reference is there, if not add it and update object,
-	// if error requeue.
-	if cluster == nil {
-		return errors.New("missing cluster")
-	}
-	_, err := findOwnerRefFromList(m.DataTemplate.OwnerReferences,
-		cluster.TypeMeta, cluster.ObjectMeta)
-	if err != nil {
-		if ok := errors.As(err, &errNotFound); !ok {
-			return err
-		}
-		m.Log.V(VerbosityLevelDebug).Info("Adding cluster owner reference",
-			LogFieldMetal3DataTemplate, m.DataTemplate.Name,
-			LogFieldCluster, cluster.Name)
-		m.DataTemplate.OwnerReferences, err = setOwnerRefInList(
-			m.DataTemplate.OwnerReferences, false, cluster.TypeMeta,
-			cluster.ObjectMeta,
-		)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // RecreateStatus recreates the status if empty.
@@ -319,8 +289,15 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 
 	m.Log.Info("Index assigned", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldIndex, claimIndex)
 
-	// Create the Metal3Data object, with an Owner ref to the Metal3Machine
-	// (curOwnerRef) and to the Metal3DataTemplate. Also add a finalizer.
+	// Create the Metal3Data object with the Metal3DataClaim as its controlling
+	// owner and the Metal3Machine as an additional owner. The Metal3DataClaim is
+	// deliberately the controlling owner (instead of the Metal3DataTemplate) so
+	// that the Metal3Data participates in the Cluster garbage-collection chain
+	// (Cluster -> Machine -> Metal3Machine -> Metal3DataClaim -> Metal3Data).
+	// The Metal3DataTemplate is not referenced as an owner because it can be
+	// shared across clusters and outlives any single Cluster; keeping it as an
+	// owner would block garbage collection of the Metal3Data. Also add a
+	// finalizer.
 	dataObject := &infrav1.Metal3Data{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Metal3Data",
@@ -334,19 +311,13 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					Controller: ptr.To(true),
-					APIVersion: m.DataTemplate.APIVersion,
-					Kind:       m.DataTemplate.Kind,
-					Name:       m.DataTemplate.Name,
-					UID:        m.DataTemplate.UID,
-				},
-				{
-					APIVersion: dataClaim.APIVersion,
-					Kind:       dataClaim.Kind,
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       metal3DataClaimKind,
 					Name:       dataClaim.Name,
 					UID:        dataClaim.UID,
 				},
 				{
-					APIVersion: dataClaim.APIVersion,
+					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       metal3MachineKind,
 					Name:       m3mName,
 					UID:        m3mUID,

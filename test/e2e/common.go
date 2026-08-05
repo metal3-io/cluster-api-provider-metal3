@@ -175,31 +175,27 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 			ArtifactFolder:       filepath.Join(artifactFolder, "delete-cluster"),
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 
-		// Waiting for Metal3Datas, Metal3DataTemplates and Metal3DataClaims, as these may take longer time to delete
-		By("Checking leftover Metal3Datas, Metal3DataTemplates and Metal3DataClaims")
+		// Waiting for Metal3Datas and Metal3DataClaims, as these may take longer time to delete.
+		// Metal3DataTemplates are intentionally not checked: they are decoupled from the Cluster
+		// (they can be shared across clusters) and are therefore not garbage-collected on cluster deletion.
+		By("Checking leftover Metal3Datas and Metal3DataClaims")
 		Eventually(func(g Gomega) {
 			opts := &client.ListOptions{}
 			datas := infrav1.Metal3DataList{}
-			dataTemplates := infrav1.Metal3DataTemplateList{}
 			dataClaims := infrav1.Metal3DataClaimList{}
 			g.Expect(clusterClient.List(ctx, &datas, opts)).To(Succeed())
-			g.Expect(clusterClient.List(ctx, &dataTemplates, opts)).To(Succeed())
 			g.Expect(clusterClient.List(ctx, &dataClaims, opts)).To(Succeed())
 			for _, dataObject := range datas.Items {
 				By(fmt.Sprintf("Data named: %s is not delete", dataObject.Name))
-			}
-			for _, dataObject := range dataTemplates.Items {
-				By(fmt.Sprintf("Datatemplate named: %s is not deleted", dataObject.Name))
 			}
 			for _, dataObject := range dataClaims.Items {
 				By(fmt.Sprintf("Dataclaim named: %s is not deleted", dataObject.Name))
 			}
 			g.Expect(datas.Items).To(BeEmpty())
-			g.Expect(dataTemplates.Items).To(BeEmpty())
 			g.Expect(dataClaims.Items).To(BeEmpty())
-			Logf("Waiting for Metal3Datas, Metal3DataTemplates and Metal3DataClaims to be deleted")
+			Logf("Waiting for Metal3Datas and Metal3DataClaims to be deleted")
 		}, intervalsGetter(specName, "wait-delete-cluster")...).Should(Succeed())
-		Logf("Metal3Datas, Metal3DataTemplates and Metal3DataClaims are deleted")
+		Logf("Metal3Datas and Metal3DataClaims are deleted")
 	}
 }
 

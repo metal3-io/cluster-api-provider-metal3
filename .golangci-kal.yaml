@@ -185,6 +185,20 @@ linters:
       text: "optionalfields: field Metal3DataTemplate.Status has a valid zero value"
       linters:
       - kubeapilinter
+    # Metal3DataTemplate.Spec has a valid zero value but incomplete validation.
+    # It became optional after clusterName was deprecated and made optional;
+    # it is optional for the resource type.
+    - path: "api/v1beta2/metal3datatemplate_types.go"
+      text: "optionalfields: field Metal3DataTemplate.Spec has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3DataTemplateSpec.ClusterName is a deprecated field kept for backwards
+    # compatibility. It is optional with a valid zero value, but it must remain a
+    # non-pointer string to preserve conversion round-tripping with v1beta1.
+    - path: "api/v1beta2/metal3datatemplate_types.go"
+      text: "optionalfields: field Metal3DataTemplateSpec.ClusterName has a valid zero value"
+      linters:
+      - kubeapilinter
     # Metal3Machine.Spec and Metal3Machine.Status have valid zero values
     # but incomplete validation. These fields are optional for the resource type.
     - path: "api/v1beta2/metal3machine_types.go"
