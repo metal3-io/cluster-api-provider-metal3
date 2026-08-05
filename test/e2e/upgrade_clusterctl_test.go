@@ -40,7 +40,7 @@ var (
 // Ironic 33.0 -> 35.0.
 var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", Label("clusterctl-upgrade"), func() {
 	BeforeEach(func() {
-		k8sVersion = "v1.35.0"
+		k8sVersion = "v1.35.6"
 		validateGlobals(specName)
 		imageURL, imageChecksum := EnsureImage(k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
@@ -104,7 +104,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", 
 // Ironic 32.0 -> 35.0.
 var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", Label("clusterctl-upgrade"), func() {
 	BeforeEach(func() {
-		k8sVersion = "v1.34.1"
+		k8sVersion = "v1.34.9"
 		validateGlobals(specName)
 		imageURL, imageChecksum := EnsureImage(k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
