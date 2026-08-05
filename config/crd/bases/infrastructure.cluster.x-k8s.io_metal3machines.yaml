@@ -1005,6 +1005,15 @@ spec:
                         type: string
                     type: object
                 type: object
+              failureDomain:
+                description: |-
+                  failureDomain is the unique identifier of the failure domain where this
+                  Machine has been placed in, derived from the failure-domain label of the
+                  associated BareMetalHost. Empty when the machine has no associated host
+                  or the host carries no failure-domain label.
+                maxLength: 256
+                minLength: 1
+                type: string
               initialization:
                 description: |-
                   initialization provides observations of the Metal3Machine initialization process.
