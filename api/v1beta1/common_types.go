@@ -84,6 +84,8 @@ type CustomDeploy struct {
 	// Custom deploy method name.
 	// This name is specific to the deploy ramdisk used. If you don't have
 	// a custom deploy ramdisk, you shouldn't use CustomDeploy.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	Method string `json:"method"`
 }
 

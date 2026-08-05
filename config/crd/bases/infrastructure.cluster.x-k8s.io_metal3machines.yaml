@@ -85,6 +85,8 @@ spec:
                       Custom deploy method name.
                       This name is specific to the deploy ramdisk used. If you don't have
                       a custom deploy ramdisk, you shouldn't use CustomDeploy.
+                    maxLength: 512
+                    minLength: 1
                     type: string
                 required:
                 - method
@@ -138,6 +140,7 @@ spec:
               failureDomain:
                 description: FailureDomain is the failure domain unique identifier
                   this Machine should be attached to, as defined in Cluster API.
+                maxLength: 256
                 type: string
               hostSelector:
                 description: |-
@@ -242,6 +245,7 @@ spec:
                   (metal3://<namespace>/<bmh-name>/<m3m-name>).
                   The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
                   and removed in CAPM3 v1.14.
+                maxLength: 512
                 type: string
               userData:
                 description: |-
