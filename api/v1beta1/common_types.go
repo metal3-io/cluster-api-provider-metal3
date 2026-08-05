@@ -65,7 +65,9 @@ type Image struct {
 	URL string `json:"url"`
 
 	// Checksum is a md5sum, sha256sum or sha512sum value or a URL to retrieve one.
-	Checksum string `json:"checksum"`
+	// Optional for live-iso and oci:// URLs; required otherwise.
+	// +optional
+	Checksum string `json:"checksum,omitempty"`
 
 	// ChecksumType is the checksum algorithm for the image.
 	// e.g md5, sha256, sha512
@@ -87,6 +89,11 @@ type CustomDeploy struct {
 	Method string `json:"method"`
 }
 
+// IsOCI reports whether the image URL is an OCI reference.
+func (i *Image) IsOCI() bool {
+	return i != nil && strings.HasPrefix(strings.ToLower(i.URL), "oci://")
+}
+
 // Validate performs validation on [Image], returning a list of field errors using the provided base path.
 // It is intended to be used in the validation webhooks of resources containing [Image].
 func (i *Image) Validate(base field.Path) field.ErrorList {
@@ -105,8 +112,20 @@ func (i *Image) Validate(base field.Path) field.ErrorList {
 			errors = append(errors, field.Invalid(base.Child("URL"), i.URL, "not a valid URL"))
 		}
 	}
+	// Checksum is not required for OCI.
+	if i.IsOCI() {
+		if i.Checksum != "" {
+			errors = append(errors, field.Forbidden(base.Child("Checksum"), "must be empty for OCI images"))
+		}
+		if i.ChecksumType != nil && *i.ChecksumType != "" {
+			errors = append(errors, field.Forbidden(base.Child("ChecksumType"), "must be empty for OCI images"))
+		}
+		return errors
+	}
+
 	// Checksum is not required for live-iso.
-	if i.DiskFormat == nil || *i.DiskFormat != LiveISODiskFormat {
+	liveISO := i.DiskFormat != nil && *i.DiskFormat == LiveISODiskFormat
+	if !liveISO {
 		if i.Checksum == "" {
 			errors = append(errors, field.Required(base.Child("Checksum"), "cannot be empty"))
 		}

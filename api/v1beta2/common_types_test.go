@@ -98,6 +98,37 @@ func TestImageValidate(t *testing.T) {
 			ErrorExpected: false,
 			Name:          "Valid spec with live-iso diskFormat",
 		},
+		{
+			Image: Image{
+				URL: "oci://example.com/image:latest",
+			},
+			ErrorExpected: false,
+			Name:          "OCI image without checksum",
+		},
+		{
+			Image: Image{
+				URL:      "oci://example.com/image:latest",
+				Checksum: ptr.To(""),
+			},
+			ErrorExpected: false,
+			Name:          "OCI image with empty checksum",
+		},
+		{
+			Image: Image{
+				URL:      "oci://example.com/image:latest",
+				Checksum: ptr.To("sha256hash"),
+			},
+			ErrorExpected: true,
+			Name:          "OCI image with checksum",
+		},
+		{
+			Image: Image{
+				URL:          "oci://example.com/image:latest",
+				ChecksumType: "sha256",
+			},
+			ErrorExpected: true,
+			Name:          "OCI image with checksumType",
+		},
 	}
 
 	for _, tc := range cases {

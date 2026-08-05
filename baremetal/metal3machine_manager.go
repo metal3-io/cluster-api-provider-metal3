@@ -1229,15 +1229,11 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 			return fmt.Errorf("Metal3Machine %s has neither Image.URL nor CustomDeploy.Method configured", m.Metal3Machine.Name)
 		}
 
-		checksumType := ""
-		if m.Metal3Machine.Spec.Image.ChecksumType != "" {
-			checksumType = m.Metal3Machine.Spec.Image.ChecksumType
-		}
 		if imageConfigured {
 			host.Spec.Image = &bmov1alpha1.Image{
 				URL:          m.Metal3Machine.Spec.Image.URL,
 				Checksum:     ptr.Deref(m.Metal3Machine.Spec.Image.Checksum, ""),
-				ChecksumType: bmov1alpha1.ChecksumType(checksumType),
+				ChecksumType: bmov1alpha1.ChecksumType(m.Metal3Machine.Spec.Image.ChecksumType),
 				DiskFormat:   &m.Metal3Machine.Spec.Image.DiskFormat,
 			}
 		}
