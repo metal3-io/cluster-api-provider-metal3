@@ -68,7 +68,6 @@ ENVSUBST_BIN := envsubst
 ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
 SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST = $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN))
-SETUP_ENVTEST_VER := release-0.19
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 GINKGO_BIN := ginkgo
 GINKGO := $(TOOLS_BIN_DIR)/$(GINKGO_BIN)
@@ -78,6 +77,11 @@ GINKGO_PKG := github.com/onsi/ginkgo/v2/ginkgo
 get_go_version = $(shell $(GO) list -m $1 | awk '{print $$2}')
 ifneq ($(GO),)
 	GINKGO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)
+	# Pin setup-envtest to the controller-runtime version from go.mod rather than a
+	# mutable release branch. The tools/setup-envtest submodule is tagged in lockstep
+	# with controller-runtime, so this stays in sync and resolves to an immutable,
+	# checksum-verified semver tag.
+	SETUP_ENVTEST_VER := $(call get_go_version,sigs.k8s.io/controller-runtime)
 endif
 ENVTEST_K8S_VERSION := 1.36.x
 
