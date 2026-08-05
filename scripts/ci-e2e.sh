@@ -290,11 +290,32 @@ for overlay in "${BMO_OVERLAYS[@]}"; do
   fi
 done
 
+# While the management cluster is being torn down, CAPI's log collector keeps a
+# client-go informer watching it. The resulting "reflector.go ... failed to
+# list/watch *v1.Pod", "Unhandled Error" and BMO log-stream lines are benign
+# teardown noise that cannot be stopped from the test hooks (the informer runs
+# on the CAPI-owned suite context). Filter them out of the console log so they
+# don't drown the real output.
+# See https://github.com/metal3-io/cluster-api-provider-metal3/pull/3535
+E2E_LOG_FILTER='reflector\.go|Failed to watch \*v1\.Pod|failed to list \*v1\.Pod|watch of \*v1\.Pod ended|Unhandled Error|client connection lost|Error starting logs stream for pod'
+
+# Runs a make target and drops the benign teardown log lines, while preserving
+# the make target's real exit code (not grep's).
+run_e2e_make() {
+  local target="$1"
+  local status
+  set +e
+  make "${target}" 2>&1 | grep --line-buffered -vE "${E2E_LOG_FILTER}"
+  status=${PIPESTATUS[0]}
+  set -e
+  return "${status}"
+}
+
 # run e2e tests
 if [[ -n "${CLUSTER_TOPOLOGY:-}" ]]; then
   export CLUSTER_TOPOLOGY=true
-  make e2e-clusterclass-tests
+  run_e2e_make e2e-clusterclass-tests
 else
   export EXP_MACHINE_TAINT_PROPAGATION=true
-  make e2e-tests
+  run_e2e_make e2e-tests
 fi
