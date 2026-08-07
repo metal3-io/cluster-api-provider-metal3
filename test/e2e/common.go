@@ -45,6 +45,7 @@ import (
 	"k8s.io/utils/ptr"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	testexec "sigs.k8s.io/cluster-api/test/framework/exec"
@@ -687,6 +688,8 @@ func MachineToVMNamev1beta1(ctx context.Context, cli client.Client, m *clusterv1
 }
 
 // MachineToIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
+// It supports both the Metal3 IPClaim path (ipam.metal3.io) and the CAPI IPAddressClaim path
+// (ipam.cluster.x-k8s.io). It tries the CAPI path first then falls back to the Metal3 IPClaim/IPAddress chain.
 func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Machine, ippool ipamv1.IPPool) (string, error) {
 	m3Machine := &infrav1.Metal3Machine{}
 	namespace := m.GetObjectMeta().GetNamespace()
@@ -715,7 +718,23 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 		return "", errors.New("couldn't find a matching Metal3Data object")
 	}
 
-	// Metal3Data owns IPClaim, and IPClaim owns IPAddress.
+	// Try CAPI IPAddressClaim path first: Metal3Data owns IPAddressClaim, IPAM controller
+	// creates a CAPI IPAddress and sets the claim's Status.AddressRef.
+	ipAddressClaims := &capipamv1.IPAddressClaimList{}
+	err = cli.List(ctx, ipAddressClaims)
+	if err != nil {
+		return "", fmt.Errorf("couldn't list IPAddressClaim objects: %w", err)
+	}
+	var ipAddressClaim *capipamv1.IPAddressClaim
+	for i, claim := range ipAddressClaims.Items {
+		for _, owner := range claim.OwnerReferences {
+			if owner.Name == m3Data.Name && claim.Spec.PoolRef.Name == ippool.Name {
+				ipAddressClaim = &ipAddressClaims.Items[i]
+			}
+		}
+	}
+
+	// Fallback: Metal3 IPClaim path. Metal3Data owns IPClaim, and IPClaim owns IPAddress.
 	// Find the IPClaim owned by the Metal3Data for the target pool.
 	ipClaims := &ipamv1.IPClaimList{}
 	err = cli.List(ctx, ipClaims)
@@ -730,8 +749,8 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 			}
 		}
 	}
-	if ipClaim == nil {
-		return "", errors.New("couldn't find a matching IPClaim object")
+	if ipClaim == nil && ipAddressClaim == nil {
+		return "", errors.New("couldn't find a matching IPClaim or IPAddressClaim object")
 	}
 
 	// Find the IPAddress owned by the IPClaim.
