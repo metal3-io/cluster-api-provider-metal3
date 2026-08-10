@@ -164,7 +164,6 @@ rules:
   - watch
 - apiGroups:
   - ipam.cluster.x-k8s.io
-  - ipam.metal3.io
   resources:
   - ipaddresses
   verbs:
@@ -178,6 +177,15 @@ rules:
   - ipaddresses/status
   verbs:
   - get
+- apiGroups:
+  - ipam.metal3.io
+  resources:
+  - ipaddresses
+  - ippools
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - ipam.metal3.io
   resources:
