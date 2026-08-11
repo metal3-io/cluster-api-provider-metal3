@@ -172,6 +172,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		template          *infrav1.Metal3DataTemplate
 		dataClaims        []*infrav1.Metal3DataClaim
 		datas             []*infrav1.Metal3Data
+		clusters          []*clusterv1.Cluster
+		unrenderedClaims  map[string]bool
 		expectRequeue     bool
 		expectError       bool
 		expectedNbIndexes int
@@ -180,12 +182,15 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 	DescribeTable("Test UpdateDatas",
 		func(tc testCaseUpdateDatas) {
-			objects := make([]client.Object, 0, len(tc.datas)+len(tc.dataClaims))
+			objects := make([]client.Object, 0, len(tc.datas)+len(tc.dataClaims)+len(tc.clusters))
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
 			for _, claim := range tc.dataClaims {
 				objects = append(objects, claim)
+			}
+			for _, cluster := range tc.clusters {
+				objects = append(objects, cluster)
 			}
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).WithStatusSubresource(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template, logr.Discard())
@@ -217,6 +222,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			// being deleted
 			for _, claim := range dataClaimObjects.Items {
 				if claim.DeletionTimestamp == nil || claim.DeletionTimestamp.IsZero() {
+					if tc.unrenderedClaims[claim.Name] {
+						// Claims whose owning Cluster is paused (e.g. during
+						// clusterctl move) must be left untouched.
+						Expect(claim.Status.RenderedData).To(BeNil())
+						continue
+					}
 					Expect(claim.Status.RenderedData).NotTo(BeNil())
 				}
 			}
@@ -546,6 +557,47 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			},
 			expectedNbIndexes: 2,
+		}),
+		// A Metal3DataTemplate is not owned by any single Cluster, so it is not
+		// paused together with the Cluster during `clusterctl move`. An unrendered
+		// claim whose owning Cluster is paused must be left untouched: rendering it
+		// would create a Metal3Data whose index/claim mapping can conflict with the
+		// objects being moved, which the (immutable) Metal3Data webhook rejects.
+		Entry("Claim from paused cluster is skipped", testCaseUpdateDatas{
+			template: &infrav1.Metal3DataTemplate{
+				ObjectMeta: templateMeta,
+				Spec:       infrav1.Metal3DataTemplateSpec{},
+			},
+			clusters: []*clusterv1.Cluster{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "paused-cluster",
+						Namespace: namespaceName,
+					},
+					Spec: clusterv1.ClusterSpec{
+						Paused: ptr.To(true),
+					},
+				},
+			},
+			dataClaims: []*infrav1.Metal3DataClaim{
+				{
+					ObjectMeta: func() metav1.ObjectMeta {
+						om := testObjectMetaWithOR("paused-claim", metal3machineName)
+						om.Labels = map[string]string{clusterv1.ClusterNameLabel: "paused-cluster"}
+						return om
+					}(),
+					Spec: infrav1.Metal3DataClaimSpec{
+						Template: &infrav1.Metal3ObjectRef{
+							Name:      templateMeta.Name,
+							Namespace: namespaceName,
+						},
+					},
+				},
+			},
+			unrenderedClaims:  map[string]bool{"paused-claim": true},
+			expectRequeue:     true,
+			expectedIndexes:   []infrav1.IndexEntry{},
+			expectedNbIndexes: 0,
 		}),
 	)
 

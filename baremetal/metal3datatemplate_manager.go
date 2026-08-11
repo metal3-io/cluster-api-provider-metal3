@@ -31,6 +31,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -166,6 +168,7 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (bool, bool, erro
 	}
 
 	hasClaims := false
+	pausedClaimSkipped := false
 	// Iterate over the Metal3DataClaim objects to find all indexes and objects
 	for _, dataClaim := range dataClaimObjects.Items {
 		// If DataTemplate does not point to this object, discard
@@ -177,6 +180,20 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (bool, bool, erro
 			if dataClaim.Status.RenderedData != nil {
 				continue
 			}
+			// Skip Metal3Data creation while the claim's owning Cluster is paused,
+			// e.g. during `clusterctl move`. A Metal3DataTemplate is no longer owned
+			// by any single Cluster (it can be shared), so it is not paused together
+			// with the Cluster. Rendering data while the Cluster is paused would race
+			// with the move and can allocate an index/claim mapping that conflicts
+			// with the Metal3Data objects being moved, which the Metal3Data webhook
+			// then rejects because spec.index and spec.claim are immutable.
+			cluster, clusterErr := util.GetClusterFromMetadata(ctx, m.client, dataClaim.ObjectMeta)
+			if clusterErr == nil && cluster != nil && annotations.IsPaused(cluster, &dataClaim) {
+				m.Log.V(VerbosityLevelDebug).Info("Owning Cluster is paused, skipping Metal3Data creation for claim",
+					LogFieldMetal3DataClaim, dataClaim.Name, LogFieldMetal3DataTemplate, m.DataTemplate.Name)
+				pausedClaimSkipped = true
+				continue
+			}
 		}
 		m.Log.V(VerbosityLevelTrace).Info("Initiate updating data of claim", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldMetal3DataTemplate, m.DataTemplate.Name)
 		indexes, err = m.updateData(ctx, &dataClaim, indexes)
@@ -186,6 +203,12 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (bool, bool, erro
 		m.Log.V(VerbosityLevelDebug).Info("Success updating data of claim", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldMetal3DataTemplate, m.DataTemplate.Name)
 	}
 	m.updateStatusTimestamp()
+	// If we skipped any claim because its owning Cluster is paused (e.g. during
+	// `clusterctl move`), requeue so the claim gets rendered once the Cluster is
+	// unpaused. The controller does not otherwise get re-triggered on unpause.
+	if pausedClaimSkipped {
+		return hasData, hasClaims, WithTransientError(errors.New("waiting for paused Cluster to be unpaused before rendering Metal3Data"), requeueAfter)
+	}
 	return hasData, hasClaims, nil
 }
 
