@@ -1,0 +1,81 @@
+// -------------------------------------------------------------------------
+// Host-level Alloy config: collect logs from Docker containers running on the
+// host (outside Kubernetes) and push them to the same Loki endpoint.
+//
+// Runs as a standalone Docker container (see docker-compose.host-logs.yml),
+// NOT inside the kind cluster. It talks to the Docker Engine API via the
+// mounted /var/run/docker.sock.
+// -------------------------------------------------------------------------
+
+// Discover all containers known to the local Docker daemon.
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+}
+
+// Only keep containers matching the Metal3 infrastructure services
+// (same list as test/e2e/pivoting.go: ironicContainers + generalContainers).
+discovery.relabel "docker" {
+  targets = discovery.docker.containers.targets
+
+  // Extract the container name first (Docker prefixes with "/").
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  // Keep only the known Metal3 infrastructure containers. Drop everything else.
+  rule {
+    source_labels = ["container"]
+    regex         = "(ironic|ironic-endpoint-keepalived|ironic-log-watch|dnsmasq|httpd-infra|registry|sushy-tools|vbmc)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_id"]
+    target_label  = "container_id"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+}
+
+// Tail each discovered container's logs via the Docker API.
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker.output
+  forward_to = [loki.write.default.receiver]
+  labels     = {
+    collector = "host-docker",
+  }
+}
+
+// Push to the Loki endpoint (same target + auth as the in-cluster Alloy).
+loki.write "default" {
+  endpoint {
+    url = sys.env("LOKI_URL")
+
+    basic_auth {
+      username = sys.env("LOKI_USERNAME")
+      password = sys.env("LOKI_PASSWORD")
+    }
+  }
+  external_labels = {
+    cluster      = sys.env("ALLOY_CLUSTER_LABEL"),
+    build_number = sys.env("ALLOY_BUILD_NUMBER"),
+    job          = sys.env("ALLOY_JOB"),
+    pipeline_id  = sys.env("ALLOY_PIPELINE_ID"),
+    service_name = sys.env("ALLOY_SERVICE_NAME"),
+    source       = "artifact",
+  }
+}
