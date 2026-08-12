@@ -129,6 +129,15 @@ if [[ -z "${CAPM3_DOCKER_SG:-}" ]] && getent group docker &>/dev/null \
   exec sg docker -c "$(printf '%q ' "${BASH_SOURCE[0]}" "$@")"
 fi
 
+# Deploy Grafana Alloy for log shipping.
+# Populate the CI labels from Jenkins' built-in env vars when available; they
+# fall back to local/0 for manual runs outside CI.
+ALLOY_KUBE_CONTEXT="$(kubectl config current-context 2>/dev/null || echo "")"
+export ALLOY_KUBE_CONTEXT
+export ALLOY_JOB="metal3ci"
+export ALLOY_PIPELINE_ID="${JOB_NAME:-local}"
+export ALLOY_BUILD_NUMBER="${BUILD_NUMBER:-0}"
+"${REPO_ROOT}/hack/log-collection/deploy-alloy.sh" || echo "WARN: Alloy deployment failed; continuing without log shipping." >&2
 # If running in-place-upgrade tests, ensure extension namespace and ssh key secret exist
 if [[ "${GINKGO_FOCUS:-}" == "in-place-upgrade" ]]; then
   EXT_NS="test-extension-system"
