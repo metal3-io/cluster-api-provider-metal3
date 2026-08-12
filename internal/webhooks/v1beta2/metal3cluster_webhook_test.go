@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
+	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -182,6 +183,99 @@ func TestMetal3ClusterValidation(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				_, err := webhook.ValidateUpdate(ctx, tt.oldCluster, tt.newCluster)
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func clusterWithPrefixAnnotation(prefix string) *infrav1.Metal3Cluster {
+	return &infrav1.Metal3Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+			Annotations: map[string]string{
+				baremetal.PrefixAnnotationKey: prefix,
+			},
+		},
+		Spec: infrav1.Metal3ClusterSpec{
+			ControlPlaneEndpoint: infrav1.APIEndpoint{
+				Host: "abc.com",
+				Port: 443,
+			},
+		},
+	}
+}
+
+func TestMetal3ClusterPrefixAnnotationValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		prefix    string
+		expectErr bool
+	}{
+		{
+			name:      "valid prefix",
+			prefix:    "foo.metal3.io",
+			expectErr: false,
+		},
+		{
+			name:      "multiple valid prefixes",
+			prefix:    "foo.metal3.io, bar.example.com",
+			expectErr: false,
+		},
+		{
+			name:      "empty annotation",
+			prefix:    "",
+			expectErr: false,
+		},
+		{
+			name:      "kubernetes.io is reserved",
+			prefix:    "kubernetes.io",
+			expectErr: true,
+		},
+		{
+			name:      "k8s.io is reserved",
+			prefix:    "k8s.io",
+			expectErr: true,
+		},
+		{
+			name:      "subdomain of kubernetes.io is reserved",
+			prefix:    "node.kubernetes.io",
+			expectErr: true,
+		},
+		{
+			name:      "subdomain of k8s.io is reserved",
+			prefix:    "foo.k8s.io",
+			expectErr: true,
+		},
+		{
+			name:      "mix of valid and reserved rejects",
+			prefix:    "foo.metal3.io, kubernetes.io",
+			expectErr: true,
+		},
+		{
+			name:      "invalid DNS prefix",
+			prefix:    "@invalid",
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			webhook := &Metal3Cluster{}
+			cluster := clusterWithPrefixAnnotation(tt.prefix)
+
+			_, err := webhook.ValidateCreate(ctx, cluster)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+
+			_, err = webhook.ValidateUpdate(ctx, cluster, cluster)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
