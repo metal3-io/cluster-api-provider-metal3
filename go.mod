@@ -4,9 +4,9 @@ go 1.26.0
 
 require (
 	github.com/go-logr/logr v1.4.4
-	github.com/metal3-io/baremetal-operator/apis v0.14.0-beta.0
+	github.com/metal3-io/baremetal-operator/apis v0.14.0-rc.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.14.0-beta.0
+	github.com/metal3-io/ip-address-manager/api v1.14.0-rc.0
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
 	github.com/spf13/pflag v1.0.10
