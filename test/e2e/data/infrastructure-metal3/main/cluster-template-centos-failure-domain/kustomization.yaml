@@ -1,0 +1,6 @@
+resources:
+- ../bases/ippool
+- ../bases/centos-kubeadm-config
+
+patchesStrategicMerge:
+- failure-domain.yaml
