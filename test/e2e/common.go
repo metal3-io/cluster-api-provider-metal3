@@ -305,6 +305,27 @@ func AnnotateBmh(ctx context.Context, clusterClient client.Client, host bmov1alp
 	Expect(helper.Patch(ctx, bmh)).To(Succeed())
 }
 
+// UpdateBmhLabel sets (value non-nil) or removes (value nil) a label on the given BMH.
+func UpdateBmhLabel(ctx context.Context, clusterClient client.Client, host bmov1alpha1.BareMetalHost, key string, value *string) {
+	bmh := &bmov1alpha1.BareMetalHost{}
+	bmhKey := client.ObjectKey{Name: host.Name, Namespace: host.Namespace}
+	Expect(clusterClient.Get(ctx, bmhKey, bmh)).To(Succeed(), "Failed to get BareMetalHost %s", host.Name)
+	helper, err := patch.NewHelper(bmh, clusterClient)
+	Expect(err).NotTo(HaveOccurred())
+
+	if value == nil {
+		Logf("Removing label %s from BMH %s", key, bmh.Name)
+		delete(bmh.Labels, key)
+	} else {
+		Logf("Adding label %s=%s to BMH %s", key, *value, bmh.Name)
+		if bmh.Labels == nil {
+			bmh.Labels = make(map[string]string)
+		}
+		bmh.Labels[key] = *value
+	}
+	Expect(helper.Patch(ctx, bmh)).To(Succeed())
+}
+
 // DeleteNodeReuseLabelFromHost deletes nodeReuseLabelName from the host if it exists.
 func DeleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, host bmov1alpha1.BareMetalHost, nodeReuseLabelName string) {
 	helper, err := patch.NewHelper(&host, client)

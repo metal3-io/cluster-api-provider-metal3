@@ -53,6 +53,7 @@ Below are the tests that you can use with `GINKGO_FOCUS` and `GINKGO_SKIP`
    - healthcheck
    - remediation
    - pivoting
+   - failure-domain
 - k8s-upgrade
 - k8s-upgrade-n3
 - k8s-conformance
@@ -298,6 +299,43 @@ can update `ClusterConfiguration.FeatureGates` in-place; otherwise the leftover
 
 **Note:** Currently, the SSH-based upgrade implementation is only available
 for CentOS. The test runs exclusively with the CentOS flavor.
+
+### Failure domain test
+
+Failure domains are a control-plane feature: `KubeadmControlPlane` spreads
+control plane machines across the domains declared in
+`Metal3Cluster.spec.failureDomains`, and CAPM3's `pickHost` selects a
+`BareMetalHost` whose `infrastructure.cluster.x-k8s.io/failure-domain` label
+matches the machine's requested domain (`Metal3Machine.spec.failureDomain`).
+If no matching host is available, it falls back to any other available host.
+
+The test provisions a control-plane-only cluster (3 replicas, 0 workers) and,
+before provisioning, labels three available BMHs `fd-1`, `fd-2` and `fd-3`. Only
+`fd-1` and `fd-2` are declared; `fd-3` is the fallback target. With 3 replicas
+across 2 declared domains, one domain is requested twice, so the extra machine
+finds its domain full and must fall back onto `fd-3`.
+
+It then verifies:
+
+1. **Propagation** — the declared domains appear in `Metal3Cluster.status` and
+   `Cluster.status`, equal to exactly `{fd-1, fd-2}`.
+1. **Same-domain placement** — the machine on the `fd-1` host requested `fd-1`,
+   and the machine on the `fd-2` host requested `fd-2` (pairing the host's
+   `consumerRef` with the consuming `Metal3Machine.spec.failureDomain`).
+1. **Fallback placement** — the `fd-3` host is consumed by a machine that
+   requested a declared domain whose host was already taken.
+
+The fallback target must be deterministic, which requires exactly three
+selectable hosts. A spare available host could absorb the fallback machine
+instead of `fd-3`. The spec runs in the shared `features` bucket, where the
+environment provisions more than three BMHs, so it marks every extra host with
+the `capm3.metal3.io/unhealthy` annotation to take it out of CAPM3's host
+selection. That leaves `fd-3` as the only host the fallback machine can land on.
+The spec runs as part of `GINKGO_FOCUS=features` (which provisions the
+environment); its `failure-domain` label can be passed to `GINKGO_SKIP` to leave
+it out of a features run. On completion a `DeferCleanup` removes the labels and
+unhealthy annotation it added, so the remaining features specs see a clean,
+fully selectable host pool.
 
 ## Guidelines to follow when adding new E2E tests
 
