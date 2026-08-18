@@ -258,6 +258,9 @@ cluster-templates-main: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu-failure-domain > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-failure-domain.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-failure-domain > $(E2E_OUT_DIR)/main/cluster-template-centos-failure-domain.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-opensuse-leap-failure-domain > $(E2E_OUT_DIR)/main/cluster-template-opensuse-leap-failure-domain.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-k8s-upgrade > $(E2E_OUT_DIR)/main/cluster-template-centos-k8s-upgrade.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu-k8s-upgrade > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-k8s-upgrade.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-opensuse-leap-k8s-upgrade > $(E2E_OUT_DIR)/main/cluster-template-opensuse-leap-k8s-upgrade.yaml
 	touch $(E2E_OUT_DIR)/main/clusterclass.yaml
 
 .PHONY: cluster-templates-main-v1beta1
