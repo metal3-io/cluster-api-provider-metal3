@@ -74,11 +74,22 @@ case "${GINKGO_FOCUS:-}" in
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
   ;;
 
-  # Pivoting, k8s-upgrade and remediation vars and config
-  pivoting|k8s-upgrade|remediation)
+  # Pivoting and remediation vars and config
+  pivoting|remediation)
     export NUM_NODES="4"
     export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
+  ;;
+
+  # k8s-upgrade vars and config
+  # 3 control plane and 2 worker nodes. The upgrade test scales the workers down
+  # to 1 during the control plane upgrade and back up to 2 afterwards to validate
+  # kubeadm version skew handling (a new worker joining an already-upgraded
+  # control plane).
+  k8s-upgrade)
+    export NUM_NODES="5"
+    export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
+    export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"2"}
   ;;
 
   # k8s N+3 upgrade vars and config
