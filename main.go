@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// testing golanci-lint
+
 package main
 
 import (
