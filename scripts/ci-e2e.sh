@@ -18,9 +18,9 @@ if [[ "${CAPM3RELEASEBRANCH}" == release-* ]]; then
     export IPAMRELEASE="v${CAPM3_RELEASE_PREFIX}.99"
     export CAPI_RELEASE_PREFIX="v${CAPM3_RELEASE_PREFIX}."
 else
-    export CAPM3RELEASE="v1.14.99"
-    export IPAMRELEASE="v1.14.99"
-    export CAPI_RELEASE_PREFIX="v1.13."
+    export CAPM3RELEASE="v1.15.99"
+    export IPAMRELEASE="v1.15.99"
+    export CAPI_RELEASE_PREFIX="v1.14."
 fi
 
 # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
@@ -65,7 +65,7 @@ export DATE
 # If CAPI_NIGHTLY_BUILD is true, it means that the tests are run against the
 # nightly build of CAPI components which are built from CAPI's main branch.
 if [[ "${CAPI_NIGHTLY_BUILD:-false}" == "true" ]]; then
-  export CAPIRELEASE="v1.13.99"
+  export CAPIRELEASE="v1.15.99"
   echo 'export CAPI_NIGHTLY_BUILD="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
 fi
 

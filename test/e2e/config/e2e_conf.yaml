@@ -17,8 +17,17 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: "v1.14.99"
+  - name: "v1.15.99"
     value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/core-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.15/metadata.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/core-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -47,8 +56,17 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: "v1.14.99"
+  - name: "v1.15.99"
     value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/bootstrap-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.15/metadata.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/bootstrap-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -77,8 +95,17 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: "v1.14.99"
+  - name: "v1.15.99"
     value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.15/metadata.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/control-plane-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -107,6 +134,15 @@ providers:
 - name: metal3
   type: IPAMProvider
   versions:
+  - name: v1.14.99
+    value: "${PWD}/test/e2e/data/ipamprovider-metal3/overlays/release-1.14/"
+    contract: v1beta1
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/ipam-metal3/v1.14/metadata.yaml"
+      targetName: "metadata.yaml"
   - name: v1.13.99
     value: "${PWD}/test/e2e/data/ipamprovider-metal3/overlays/release-1.13/"
     contract: v1beta1
@@ -129,28 +165,6 @@ providers:
 - name: metal3
   type: InfrastructureProvider
   versions:
-  - name: "v1.13.99"
-    value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/release-1.13/"
-    contract: v1beta2
-    files:
-    - sourcePath: "../data/shared/infrastructure-metal3/v1.13/metadata.yaml"
-      targetName: "metadata.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-ubuntu.yaml"
-      targetName: "cluster-template-ubuntu.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-centos.yaml"
-      targetName: "cluster-template-centos.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-centos-fake.yaml"
-      targetName: "cluster-template-centos-fake.yaml"
-    - sourcePath: "../_out/v1.13/clusterclass-metal3.yaml"
-      targetName: "clusterclass-metal3.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-upgrade-workload.yaml"
-      targetName: "cluster-template-upgrade-workload.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-centos-md-remediation.yaml"
-      targetName: "cluster-template-centos-md-remediation.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-ubuntu-md-remediation.yaml"
-      targetName: "cluster-template-ubuntu-md-remediation.yaml"
-    - sourcePath: "../_out/v1.13/clusterclass.yaml"
-      targetName: "clusterclass-test-clusterclass.yaml"
   - name: "v1.12.99"
     value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/release-1.12/"
     contract: v1beta1
@@ -173,7 +187,51 @@ providers:
       targetName: "cluster-template-ubuntu-md-remediation.yaml"
     - sourcePath: "../_out/v1.12/clusterclass.yaml"
       targetName: "clusterclass-test-clusterclass.yaml"
+  - name: "v1.13.99"
+    value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/release-1.13/"
+    contract: v1beta2
+    files:
+    - sourcePath: "../data/shared/infrastructure-metal3/v1.13/metadata.yaml"
+      targetName: "metadata.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-ubuntu.yaml"
+      targetName: "cluster-template-ubuntu.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-centos.yaml"
+      targetName: "cluster-template-centos.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-centos-fake.yaml"
+      targetName: "cluster-template-centos-fake.yaml"
+    - sourcePath: "../_out/v1.13/clusterclass-metal3.yaml"
+      targetName: "clusterclass-metal3.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-upgrade-workload.yaml"
+      targetName: "cluster-template-upgrade-workload.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-centos-md-remediation.yaml"
+      targetName: "cluster-template-centos-md-remediation.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-ubuntu-md-remediation.yaml"
+      targetName: "cluster-template-ubuntu-md-remediation.yaml"
+    - sourcePath: "../_out/v1.13/clusterclass.yaml"
+      targetName: "clusterclass-test-clusterclass.yaml"
   - name: "v1.14.99"
+    value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/release-1.14/"
+    contract: v1beta2
+    files:
+    - sourcePath: "../data/shared/infrastructure-metal3/v1.14/metadata.yaml"
+      targetName: "metadata.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-ubuntu.yaml"
+      targetName: "cluster-template-ubuntu.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-centos.yaml"
+      targetName: "cluster-template-centos.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-centos-fake.yaml"
+      targetName: "cluster-template-centos-fake.yaml"
+    - sourcePath: "../_out/v1.14/clusterclass-metal3.yaml"
+      targetName: "clusterclass-metal3.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-upgrade-workload.yaml"
+      targetName: "cluster-template-upgrade-workload.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-centos-md-remediation.yaml"
+      targetName: "cluster-template-centos-md-remediation.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-ubuntu-md-remediation.yaml"
+      targetName: "cluster-template-ubuntu-md-remediation.yaml"
+    - sourcePath: "../_out/v1.14/clusterclass.yaml"
+      targetName: "clusterclass-test-clusterclass.yaml"
+  - name: "v1.15.99"
     value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/main/"
     contract: v1beta2
     files:
