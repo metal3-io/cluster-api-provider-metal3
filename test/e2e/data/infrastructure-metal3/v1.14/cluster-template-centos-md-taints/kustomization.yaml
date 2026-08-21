@@ -1,0 +1,7 @@
+resources:
+- ../bases/ippool
+- ../bases/centos-kubeadm-config
+
+patches:
+- path: md-taints.yaml
+- path: kcp-taints.yaml

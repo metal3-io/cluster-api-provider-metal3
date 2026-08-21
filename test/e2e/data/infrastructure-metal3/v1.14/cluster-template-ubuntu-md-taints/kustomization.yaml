@@ -1,0 +1,7 @@
+resources:
+- ../bases/ippool
+- ../bases/ubuntu-kubeadm-config
+
+patches:
+- path: md-taints.yaml
+- path: kcp-taints.yaml

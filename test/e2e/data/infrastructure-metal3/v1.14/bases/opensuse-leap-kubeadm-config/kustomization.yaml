@@ -1,0 +1,4 @@
+resources:
+- ../cluster
+patches:
+- path: opensuse-leap-kubeadm-config.yaml
