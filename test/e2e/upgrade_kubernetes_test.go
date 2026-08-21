@@ -49,7 +49,7 @@ var _ = Describe("Kubernetes version upgrade in target nodes", Label("k8s-upgrad
 				WorkerMachineCount:    int64(numberOfWorkers),
 				ClusterctlLogFolder:   clusterctlLogFolder,
 				ClusterctlConfigPath:  clusterctlConfigPath,
-				OSType:                osType + flavorSuffix(),
+				OSType:                osType + "-k8s-upgrade",
 				Namespace:             namespace,
 			}
 		})
@@ -112,6 +112,33 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	ListMetal3Machines(ctx, clusterClient, client.InNamespace(namespace))
 	ListMachines(ctx, clusterClient, client.InNamespace(namespace))
 	ListNodes(ctx, targetClusterClient)
+
+	// Scale the worker MachineDeployment down to 1 before starting the upgrade. This
+	// frees up a BareMetalHost that is later reused to bring up a new worker on the
+	// old image while the control plane is already on the new k8s version.
+	Byf("Scale down worker MachineDeployment from %d to 1", numberOfWorkers)
+	ScaleMachineDeployment(ctx, clusterClient, clusterName, namespace, 1)
+
+	By("Wait until only 1 worker machine remains running")
+	runningWorkerMachines := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
+		_, isControlPlane := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]
+		return running && !isControlPlane
+	}
+	WaitForNumMachines(ctx, runningWorkerMachines, WaitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  1,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
+
+	Byf("Wait until %d BMH(s) become available after scaling down the workers", numberOfWorkers-1)
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfWorkers - 1,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning"),
+	})
 
 	// Download node image
 	By("Download image")
@@ -177,6 +204,37 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 		}
 		time.Sleep(30 * time.Second)
 	}
+
+	// Scale the worker MachineDeployment back up while it still points to the old
+	// Metal3MachineTemplate (old image / old kubelet). The new worker must join the
+	// control plane that has already been upgraded to the new k8s version. This
+	// validates the kubeadm version skew handling introduced in CAPI (the
+	// contentFormat: Template feature) which fetches a matching kubeadm binary
+	// before "kubeadm join" runs. See issue #3549.
+	Byf("Scale worker MachineDeployment back up to %d to validate kubeadm version skew handling", numberOfWorkers)
+	ScaleMachineDeployment(ctx, clusterClient, clusterName, namespace, numberOfWorkers)
+
+	Byf("Wait until all %d BMH(s) become provisioned again", numberOfAllBmh)
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfAllBmh,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-provisioned"),
+	})
+
+	Byf("Wait until %d worker machines are running on the old %s k8s version (new worker joined the upgraded control plane)", numberOfWorkers, kubernetesVersion)
+	runningOldWorkerMachines := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
+		onOldVersion := machine.Spec.Version == kubernetesVersion
+		_, isControlPlane := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]
+		return running && onOldVersion && !isControlPlane
+	}
+	WaitForNumMachines(ctx, runningOldWorkerMachines, WaitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfWorkers,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
 
 	By("Get MachineDeployment")
 	machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
