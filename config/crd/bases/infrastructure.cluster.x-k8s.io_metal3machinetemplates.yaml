@@ -301,6 +301,59 @@ spec:
           spec:
             description: spec defines the desired state of Metal3MachineTemplate.
             properties:
+              failureDomainDataTemplates:
+                description: |-
+                  failureDomainDataTemplates maps failure domain names to Metal3DataTemplate
+                  references. The mapping is keyed by the failure-domain label of the
+                  BareMetalHost a Metal3Machine cloned from this template is actually
+                  placed on. When the label value is present in this list, the machine's
+                  dataTemplate is overridden with the referenced Metal3DataTemplate before
+                  its metadata is rendered. Machines placed on hosts without the label, or
+                  whose label value is not in this list, keep the default
+                  template.spec.dataTemplate.
+                items:
+                  description: |-
+                    FailureDomainDataTemplate maps a failure domain name to a Metal3DataTemplate
+                    reference.
+                  properties:
+                    dataTemplate:
+                      description: |-
+                        dataTemplate is a reference to the Metal3DataTemplate to use for
+                        Metal3Machines placed on a BareMetalHost in this failure domain.
+                      properties:
+                        name:
+                          description: name of the resource.
+                          maxLength: 253
+                          minLength: 1
+                          type: string
+                        namespace:
+                          description: namespace of the resource.
+                          maxLength: 253
+                          minLength: 1
+                          type: string
+                      type: object
+                      x-kubernetes-map-type: atomic
+                      x-kubernetes-validations:
+                      - message: dataTemplate name is required
+                        rule: has(self.name)
+                    failureDomain:
+                      description: |-
+                        failureDomain is the name of the failure domain, as declared in the
+                        Metal3Cluster spec.failureDomains. It is matched against the value of
+                        the infrastructure.cluster.x-k8s.io/failure-domain label on
+                        BareMetalHosts, so it is bounded by the label value length limit.
+                      maxLength: 63
+                      minLength: 1
+                      type: string
+                  required:
+                  - dataTemplate
+                  - failureDomain
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-map-keys:
+                - failureDomain
+                x-kubernetes-list-type: map
               nodeReuse:
                 default: false
                 description: |-
