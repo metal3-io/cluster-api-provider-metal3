@@ -136,6 +136,11 @@ source "${REPO_ROOT}/hack/ensure-kind.sh"
 # shellcheck source=./hack/ensure-kubectl.sh
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 
+# Deploy Grafana Alloy for log shipping
+ALLOY_KUBE_CONTEXT="$(kubectl config current-context 2>/dev/null || echo "")"
+export ALLOY_KUBE_CONTEXT
+"${REPO_ROOT}/hack/log-collection/deploy-alloy.sh"
+
 # If running in-place-upgrade tests, ensure extension namespace and ssh key secret exist
 if [[ "${GINKGO_FOCUS:-}" == "in-place-upgrade" ]]; then
   EXT_NS="test-extension-system"

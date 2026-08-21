@@ -1,0 +1,230 @@
+# Static Kubernetes manifests for Grafana Alloy log collection.
+# Deploys as a DaemonSet (one pod per node) that tails every pod's container
+# logs and pushes them to a Loki endpoint.
+#
+# Placeholders (replaced by deploy-alloy.sh at apply time):
+#   __LOKI_ADDR__            — Loki push API URL
+#   __LOKI_USERNAME__        — basic auth username
+#   __LOKI_PASSWORD__        — basic auth password
+#   __ALLOY_CLUSTER_LABEL__  — cluster label value
+#   __ALLOY_BUILD_NUMBER__   — CI build number
+#   __ALLOY_JOB__            — CI job name
+#   __ALLOY_PIPELINE_ID__    — CI pipeline ID
+#   __ALLOY_SERVICE_NAME__   — service name label
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: loki-credentials
+  namespace: monitoring
+type: Opaque
+stringData:
+  username: __LOKI_USERNAME__
+  password: __LOKI_PASSWORD__
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-config
+  namespace: monitoring
+data:
+  config.alloy: |
+    // -----------------------------------------------------------------
+    // Discover pods running on THIS node only (DaemonSet => avoid dupes).
+    // -----------------------------------------------------------------
+    discovery.kubernetes "pods" {
+      role = "pod"
+      selectors {
+        role  = "pod"
+        field = "spec.nodeName=" + sys.env("NODE_NAME")
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // Build labels and the on-disk log path for each container.
+    // -----------------------------------------------------------------
+    discovery.relabel "pod_logs" {
+      targets = discovery.kubernetes.pods.targets
+
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        target_label  = "namespace"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_name"]
+        target_label  = "pod"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_container_name"]
+        target_label  = "container"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_node_name"]
+        target_label  = "node"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+        target_label  = "app"
+      }
+      // Path on the node: /var/log/pods/<ns>_<pod>_<uid>/<container>/*.log
+      rule {
+        source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+        separator     = "/"
+        action        = "replace"
+        replacement   = "/var/log/pods/*$1/*.log"
+        target_label  = "__path__"
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // Expand __path__ globs into concrete log files.
+    // -----------------------------------------------------------------
+    local.file_match "pod_logs" {
+      path_targets = discovery.relabel.pod_logs.output
+    }
+
+    // -----------------------------------------------------------------
+    // Tail the discovered log files.
+    // -----------------------------------------------------------------
+    loki.source.file "pod_logs" {
+      targets    = local.file_match.pod_logs.targets
+      forward_to = [loki.process.pod_logs.receiver]
+    }
+
+    // -----------------------------------------------------------------
+    // kind uses containerd => logs are CRI format. Parse them.
+    // -----------------------------------------------------------------
+    loki.process "pod_logs" {
+      stage.cri {}
+      forward_to = [loki.write.default.receiver]
+    }
+
+    // -----------------------------------------------------------------
+    // Push to the Loki endpoint.
+    // -----------------------------------------------------------------
+    loki.write "default" {
+      endpoint {
+        url = sys.env("LOKI_ADDR")
+        basic_auth {
+          username = sys.env("LOKI_USERNAME")
+          password = sys.env("LOKI_PASSWORD")
+        }
+      }
+      external_labels = {
+        cluster      = sys.env("ALLOY_CLUSTER_LABEL"),
+        build_number = sys.env("ALLOY_BUILD_NUMBER"),
+        job          = sys.env("ALLOY_JOB"),
+        pipeline_id  = sys.env("ALLOY_PIPELINE_ID"),
+        service_name = sys.env("ALLOY_SERVICE_NAME"),
+        source       = "artifact",
+      }
+    }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alloy
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: alloy
+rules:
+- apiGroups: [""]
+  resources: ["pods", "namespaces", "nodes"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: alloy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: alloy
+subjects:
+- kind: ServiceAccount
+  name: alloy
+  namespace: monitoring
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: alloy
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alloy
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alloy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: alloy
+    spec:
+      serviceAccountName: alloy
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: alloy
+        image: grafana/alloy:v1.18.1
+        args:
+        - run
+        - --server.http.listen-addr=0.0.0.0:12345
+        - --storage.path=/tmp/alloy
+        - /etc/alloy/config.alloy
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: LOKI_ADDR
+          value: "__LOKI_ADDR__"
+        - name: LOKI_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: loki-credentials
+              key: username
+        - name: LOKI_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: loki-credentials
+              key: password
+        - name: ALLOY_CLUSTER_LABEL
+          value: "__ALLOY_CLUSTER_LABEL__"
+        - name: ALLOY_BUILD_NUMBER
+          value: "__ALLOY_BUILD_NUMBER__"
+        - name: ALLOY_JOB
+          value: "__ALLOY_JOB__"
+        - name: ALLOY_PIPELINE_ID
+          value: "__ALLOY_PIPELINE_ID__"
+        - name: ALLOY_SERVICE_NAME
+          value: "__ALLOY_SERVICE_NAME__"
+        ports:
+        - containerPort: 12345
+          name: http
+        volumeMounts:
+        - name: config
+          mountPath: /etc/alloy
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: alloy-config
+      - name: varlog
+        hostPath:
+          path: /var/log

@@ -1,0 +1,8 @@
+# Multi-node kind cluster: 1 control-plane + 2 workers
+# Note: cluster name is passed via `kind create cluster --name` in setup.sh.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+- role: worker

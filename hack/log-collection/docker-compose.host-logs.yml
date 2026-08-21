@@ -1,0 +1,32 @@
+# Host-level Alloy that collects logs from Docker containers running on this
+# machine (outside Kubernetes) and pushes them to Loki.
+#
+# Usage:
+#   export LOKI_ADDR=... LOKI_USERNAME=... LOKI_PASSWORD=...
+#   docker compose -f docker-compose.host-logs.yml up -d
+#
+# Alloy UI: http://localhost:12346
+services:
+  alloy-host-logs:
+    image: grafana/alloy:v1.18.1
+    container_name: alloy-host-logs
+    restart: unless-stopped
+    command:
+    - run
+    - --server.http.listen-addr=0.0.0.0:12345
+    - --storage.path=/var/lib/alloy/data
+    - /etc/alloy/config.alloy
+    environment:
+      LOKI_URL: ${LOKI_ADDR:-https://log.apps.staging.metal3.io/store/api/v1/push}
+      LOKI_USERNAME: ${LOKI_USERNAME:?set LOKI_USERNAME}
+      LOKI_PASSWORD: ${LOKI_PASSWORD:?set LOKI_PASSWORD}
+      ALLOY_CLUSTER_LABEL: ${ALLOY_CLUSTER_LABEL:-capm3}
+      ALLOY_BUILD_NUMBER: ${ALLOY_BUILD_NUMBER:-0}
+      ALLOY_JOB: ${ALLOY_JOB:-metal3ci}
+      ALLOY_PIPELINE_ID: ${ALLOY_PIPELINE_ID:-local}
+      ALLOY_SERVICE_NAME: ${ALLOY_SERVICE_NAME:-metal3ci}
+    ports:
+    - "12346:12345"   # Alloy UI (12345 is used by the kind port-forward)
+    volumes:
+    - ./alloy-docker-config.alloy:/etc/alloy/config.alloy:ro
+    - /var/run/docker.sock:/var/run/docker.sock:ro

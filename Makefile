@@ -780,6 +780,18 @@ delete-cluster: delete-workload-cluster  ## Deletes the example kind cluster "ca
 kind-reset: ## Destroys the "capm3" kind cluster.
 	kind delete cluster --name=capm3 || true
 
+.PHONY: log-collection-setup
+log-collection-setup: ## Create a 3-node kind cluster and deploy Grafana Alloy for log shipping
+	./hack/log-collection/setup.sh
+
+.PHONY: log-collection-verify
+log-collection-verify: ## Verify Alloy pods are running and pushing logs
+	./hack/log-collection/verify.sh
+
+.PHONY: log-collection-cleanup
+log-collection-cleanup: ## Delete the log-collection kind cluster
+	./hack/log-collection/cleanup.sh
+
 ## --------------------------------------
 ## Cleanup / Verification
 ## --------------------------------------
