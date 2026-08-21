@@ -5,8 +5,23 @@ set -euxo pipefail
 REPO_ROOT=$(realpath "$(dirname "$(realpath "${BASH_SOURCE[0]}")")"/..)
 cd "${REPO_ROOT}"
 export CAPM3PATH="${REPO_ROOT}"
-export WORKING_DIR=/opt/metal3-dev-env
-FORCE_REPO_UPDATE="${FORCE_REPO_UPDATE:-false}"
+
+# The e2e lab setup (hack/setup-bml.sh) needs write access to the libvirt socket
+# via the 'libvirt' group. Group membership changes (e.g. a prior run adding the
+# user to the group) do not apply to an already-running shell. If the user is a
+# member in the group database but the membership is not yet effective in this
+# process, re-exec the script under `sg` so the group becomes active without
+# requiring a logout/login. The CAPM3_LIBVIRT_SG guard prevents infinite re-exec.
+if [[ -z "${CAPM3_LIBVIRT_SG:-}" ]]; then
+  LIBVIRT_GROUP="libvirt"
+  getent group libvirt &>/dev/null || LIBVIRT_GROUP="libvirtd"
+  if getent group "${LIBVIRT_GROUP}" 2>/dev/null | awk -F: '{print $4}' | tr ',' '\n' | grep -qx "${USER}" \
+     && ! id -nG | tr ' ' '\n' | grep -qx "${LIBVIRT_GROUP}"; then
+    echo "Activating '${LIBVIRT_GROUP}' group membership for this session via sg (avoids logout/login)..."
+    export CAPM3_LIBVIRT_SG=1
+    exec sg "${LIBVIRT_GROUP}" -c "$(printf '%q ' "${BASH_SOURCE[0]}" "$@")"
+  fi
+fi
 
 export CAPM3RELEASEBRANCH="${CAPM3RELEASEBRANCH:-main}"
 export IPAMRELEASEBRANCH="${IPAMRELEASEBRANCH:-main}"
@@ -30,32 +45,8 @@ export CAPI_CONFIG_FOLDER="${CONFIG_FOLDER}/cluster-api"
 # shellcheck source=./scripts/environment.sh
 source "${REPO_ROOT}/scripts/environment.sh"
 
-# Clone dev-env repo
-sudo mkdir -p ${WORKING_DIR}
-sudo chown "${USER}":"${USER}" ${WORKING_DIR}
-M3_DEV_ENV_REPO="https://github.com/metal3-io/metal3-dev-env.git"
-M3_DEV_ENV_BRANCH=main
-M3_DEV_ENV_PATH="${M3_DEV_ENV_PATH:-${WORKING_DIR}/metal3-dev-env}"
-clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
-
-# Config devenv
-# SKIP_NODE_IMAGE_PREPULL is set to true to avoid dev-env downloading the node
-# image
-cat <<-EOF >"${M3_DEV_ENV_PATH}/config_${USER}.sh"
-export CAPI_VERSION="v1beta2"
-export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
-export NUM_NODES=${NUM_NODES:-"4"}
-export KUBERNETES_VERSION=${KUBERNETES_VERSION}
-export IMAGE_OS=${IMAGE_OS}
-export FORCE_REPO_UPDATE="false"
-export SKIP_NODE_IMAGE_PREPULL="true"
-export IPA_BASEURI=https://artifactory.nordix.org/artifactory/openstack-remote/ironic-python-agent/dib
-EOF
-
-# Set USE_IRSO only when IMAGE_OS is not ubuntu and not running scalability tests
-if [[ "${IMAGE_OS}" != "ubuntu" && "${GINKGO_FOCUS:-}" != "scalability" ]]; then
-  echo 'export USE_IRSO="true"' >> "${M3_DEV_ENV_PATH}/config_${USER}.sh"
-fi
+# Force docker as the container runtime
+export CONTAINER_RUNTIME="docker"
 
 # Always set DATE variable for nightly builds because it is needed to form
 # the URL for CAPI nightly build components in e2e_conf.yaml even if not used.
@@ -65,31 +56,21 @@ export DATE
 # If CAPI_NIGHTLY_BUILD is true, it means that the tests are run against the
 # nightly build of CAPI components which are built from CAPI's main branch.
 if [[ "${CAPI_NIGHTLY_BUILD:-false}" == "true" ]]; then
-  export CAPIRELEASE="v1.13.99"
-  echo 'export CAPI_NIGHTLY_BUILD="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+  export CAPIRELEASE="v1.14.99"
 fi
 
 mkdir -p "${CAPI_CONFIG_FOLDER}"
 
-case "${GINKGO_FOCUS:-}" in
-  clusterctl-upgrade|k8s-upgrade|k8s-upgrade-n3|basic|integration|remediation|k8s-conformance|capi-md-tests)
-    # if running basic, integration, k8s upgrade, k8s n+3 upgrade, clusterctl-upgrade, remediation, k8s conformance or capi-md tests, skip apply bmhs in dev-env
-    echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
-  ;;
+# Start fresh clusterctl.yaml each run
+: > "${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
 
+case "${GINKGO_FOCUS:-}" in
   features)
-    echo "ENABLE_BMH_NAME_BASED_PREALLOCATION: true" >"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
-    echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+    echo "ENABLE_BMH_NAME_BASED_PREALLOCATION: true" >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
   ;;
 
   scalability)
-    # if running a scalability tests, configure dev-env with fakeIPA
-    echo 'export NODES_PLATFORM="fake"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
-    echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
-    echo 'export USE_IRSO="false"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
-    sed -i "s/^export NUM_NODES=.*/export NUM_NODES=30/" "${M3_DEV_ENV_PATH}/config_${USER}.sh"
     echo 'CLUSTER_TOPOLOGY: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
-    echo 'export BOOTSTRAP_CLUSTER="minikube"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
     # Build FKAS image from source so that the scalability test uses the latest code
     FKAS_TAG=ci make docker-build-fkas
   ;;
@@ -99,7 +80,6 @@ case "${GINKGO_FOCUS:-}" in
     echo 'CLUSTER_TOPOLOGY: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
     echo 'EXP_RUNTIME_SDK: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
     echo 'EXP_IN_PLACE_UPDATES: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
-    echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
 esac
 
@@ -110,31 +90,27 @@ if [[ ${GINKGO_FOCUS:-} != "scalability" ]]; then
     export GINKGO_SKIP="${GINKGO_SKIP:-} scalability"
 fi
 
-# Run make devenv to boot the source cluster
-pushd "${M3_DEV_ENV_PATH}" || exit 1
-make
-popd || exit 1
+# Ensure required tools are available.
+# Install Go first if not already present
+export GO_VERSION="${GO_VERSION:-1.26.4}"
+# shellcheck source=./hack/install-go.sh
+source "${REPO_ROOT}/hack/install-go.sh"
+hash -r
 
-# Load the locally-built FKAS image into minikube for the scalability test.
-# We use podman on CentOS, so we cannot use 'minikube image load <name>' which
-# looks in the Docker daemon. Instead, export from podman to a tar and load that.
-if [[ "${GINKGO_FOCUS:-}" == "scalability" ]]; then
-  podman save quay.io/metal3-io/metal3-fkas:ci -o /tmp/fkas-ci.tar
-  minikube image load /tmp/fkas-ci.tar
-  rm -f /tmp/fkas-ci.tar
-fi
-
-# Binaries checked below should have been installed by metal3-dev-env make.
-# Verify they are available and have correct versions.
-PATH=$PATH:/usr/local/go/bin
-PATH=$PATH:$(go env GOPATH)/bin
-
+# Verify Go installation
 # shellcheck source=./hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
+PATH=$PATH:$(go env GOPATH)/bin
 # shellcheck source=./hack/ensure-kind.sh
 source "${REPO_ROOT}/hack/ensure-kind.sh"
 # shellcheck source=./hack/ensure-kubectl.sh
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
+# shellcheck source=./hack/ensure-docker.sh
+source "${REPO_ROOT}/hack/ensure-docker.sh"
+if [[ -S /var/run/docker.sock ]]; then
+  sudo chown "${USER}":"$(id -gn)" /var/run/docker.sock
+  sudo chmod 600 /var/run/docker.sock
+fi
 
 # If running in-place-upgrade tests, ensure extension namespace and ssh key secret exist
 if [[ "${GINKGO_FOCUS:-}" == "in-place-upgrade" ]]; then
@@ -145,28 +121,59 @@ if [[ "${GINKGO_FOCUS:-}" == "in-place-upgrade" ]]; then
   kubectl -n "${EXT_NS}" create secret generic ssh-key \
     --from-file=id_rsa="${HOME}/.ssh/id_rsa"
 fi
-# Ensure kustomize
-make kustomize
 
-# shellcheck disable=SC1091,SC1090
-source "${M3_DEV_ENV_PATH}/lib/images.sh"
-# shellcheck disable=SC1091,SC1090
-source "${M3_DEV_ENV_PATH}/lib/releases.sh"
-# shellcheck disable=SC1091,SC1090
-source "${M3_DEV_ENV_PATH}/lib/ironic_basic_auth.sh"
-# shellcheck disable=SC1091,SC1090
-source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
-# shellcheck disable=SC1091,SC1090
-source "${M3_DEV_ENV_PATH}/lib/common.sh"
-# shellcheck disable=SC1091,SC1090
-source "${M3_DEV_ENV_PATH}/lib/network.sh"
+# Ensure kustomize + envsubst (tooling used below)
+make kustomize envsubst
+export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
+
+## --- Ironic credentials and TLS setup ---
+## These were previously sourced from metal3-dev-env libs.
+## Now managed directly here.
+
+# Helper to generate a random UUID-like string for credentials.
+uuid_gen() {
+  cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c "import uuid; print(uuid.uuid4())"
+}
+
+export IRONIC_DATA_DIR="${IRONIC_DATA_DIR:-/opt/metal3/ironic}"
+export IRONIC_AUTH_DIR="${IRONIC_AUTH_DIR:-${IRONIC_DATA_DIR}/auth}"
+
+sudo mkdir -p "${IRONIC_DATA_DIR}"
+sudo chown -R "${USER}:$(id -gn)" "${IRONIC_DATA_DIR}"
+
+export IRONIC_NAMESPACE="${IRONIC_NAMESPACE:-baremetal-operator-system}"
+export IRONIC_BASIC_AUTH="${IRONIC_BASIC_AUTH:-true}"
+export IRONIC_TLS_SETUP="${IRONIC_TLS_SETUP:-true}"
+export IRONIC_KEEPALIVED="${IRONIC_KEEPALIVED:-true}"
+export IRONIC_USE_MARIADB="${IRONIC_USE_MARIADB:-false}"
+export REGISTRY="${REGISTRY:-172.22.0.1:5000}"
+if [[ "${CAPM3RELEASEBRANCH}" == "main" ]]; then
+  export BARE_METAL_OPERATOR_IMAGE="${BARE_METAL_OPERATOR_IMAGE:-quay.io/metal3-io/baremetal-operator:main}"
+  export IRONIC_IMAGE="${IRONIC_IMAGE:-quay.io/metal3-io/ironic:main}"
+  export IPA_DOWNLOADER_IMAGE="${IPA_DOWNLOADER_IMAGE:-registry.nordix.org/quay-io-proxy/metal3-io/ironic-ipa-downloader:latest}"
+  export IRONIC_KEEPALIVED_IMAGE="${IRONIC_KEEPALIVED_IMAGE:-registry.nordix.org/quay-io-proxy/metal3-io/keepalived:latest}"
+  export IPA_BRANCH="${IPA_BRANCH:-master}"
+  export IRSO_IRONIC_VERSION="${IRSO_IRONIC_VERSION:-latest}"
+else
+  # For future releases, set versions according to the compatibility matrix:
+  # https://book.metal3.io/version_support.html
+  :
+fi
+
+# Provisioning network vars (previously set by metal3-dev-env)
+export CLUSTER_PROVISIONING_IP="${CLUSTER_PROVISIONING_IP:-172.22.0.2}"
+export CLUSTER_BARE_METAL_PROVISIONER_IP="${CLUSTER_BARE_METAL_PROVISIONER_IP:-172.22.0.2}"
+export CLUSTER_DHCP_RANGE_START="${CLUSTER_DHCP_RANGE_START:-172.22.0.10}"
+export CLUSTER_DHCP_RANGE_END="${CLUSTER_DHCP_RANGE_END:-172.22.0.100}"
+export BARE_METAL_PROVISIONER_NETWORK="${BARE_METAL_PROVISIONER_NETWORK:-172.22.0.0/24}"
+export BARE_METAL_PROVISIONER_CIDR="${BARE_METAL_PROVISIONER_CIDR:-24}"
+export BARE_METAL_PROVISIONER_INTERFACE="${BARE_METAL_PROVISIONER_INTERFACE:-ironicendpoint}"
 
 update_kustomize_image() {
-  local image_name="$1"      # e.g., quay.io/metal3-io/ironic
-  local env_var_name="$2"    # e.g., IRONIC_IMAGE
-  local kustomize_dir="$3"   # e.g., ./overlays/dev
-
-  local full_image="${!env_var_name}"  # Resolve the env var value
+  local image_name="$1"
+  local env_var_name="$2"
+  local kustomize_dir="$3"
+  local full_image="${!env_var_name}"
 
   if [[ -z "${full_image}" ]]; then
     echo "Environment variable ${env_var_name} is not set."
@@ -184,7 +191,6 @@ update_kustomize_image() {
 
 yaml_envsubst() {
   local dir="$1"
-
   for file in "${dir}"/*.yaml; do
     if [[ -f "${file}" ]]; then
       local tmp_file
@@ -194,7 +200,6 @@ yaml_envsubst() {
   done
 }
 
-# Generate credentials
 BMO_OVERLAYS=(
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.12"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.13"
@@ -212,20 +217,16 @@ IRSO_OPERATOR_OVERLAYS=(
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/operator/overlays/release-0.9.0"
 )
 
-# Update BMO and Ironic images in kustomization.yaml files to use the same image that was used before pivot in the metal3-dev-env
+# Update BMO image in overlays
 case "${REPO_NAME:-}" in
   baremetal-operator)
-    # shellcheck disable=SC2034
     export BARE_METAL_OPERATOR_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
     ;;
-
   ironic-image)
-    # shellcheck disable=SC2034
     export IRONIC_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
     ;;
 esac
 
-export IRONIC_IMAGE="${IRONIC_IMAGE:-quay.io/metal3-io/ironic:main}"
 update_kustomize_image quay.io/metal3-io/baremetal-operator BARE_METAL_OPERATOR_IMAGE "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
 
 # Apply envsubst to kustomization.yaml files in BMO and Ironic overlays
@@ -243,24 +244,21 @@ for overlay in "${IRSO_OPERATOR_OVERLAYS[@]}"; do
   yaml_envsubst "${overlay}"
 done
 
-# Create usernames and passwords and other files related to ironic basic auth if they
-# are missing
+# Generate Ironic basic auth credentials
 if [[ "${IRONIC_BASIC_AUTH}" == "true" ]]; then
-  IRONIC_AUTH_DIR="${IRONIC_AUTH_DIR:-${IRONIC_DATA_DIR}/auth}"
   mkdir -p "${IRONIC_AUTH_DIR}"
 
-  # If usernames and passwords are unset, read them from file or generate them
   if [[ -z "${IRONIC_USERNAME:-}" ]]; then
     if [[ ! -f "${IRONIC_AUTH_DIR}/ironic-username" ]]; then
-      IRONIC_USERNAME="$(uuid-gen)"
+      IRONIC_USERNAME="$(uuid_gen)"
       echo "${IRONIC_USERNAME}" > "${IRONIC_AUTH_DIR}/ironic-username"
     else
       IRONIC_USERNAME="$(cat "${IRONIC_AUTH_DIR}/ironic-username")"
     fi
   fi
   if [[ -z "${IRONIC_PASSWORD:-}" ]]; then
-    if [ ! -f "${IRONIC_AUTH_DIR}/ironic-password" ]; then
-      IRONIC_PASSWORD="$(uuid-gen)"
+    if [[ ! -f "${IRONIC_AUTH_DIR}/ironic-password" ]]; then
+      IRONIC_PASSWORD="$(uuid_gen)"
       echo "${IRONIC_PASSWORD}" > "${IRONIC_AUTH_DIR}/ironic-password"
     else
       IRONIC_PASSWORD="$(cat "${IRONIC_AUTH_DIR}/ironic-password")"
@@ -269,28 +267,73 @@ if [[ "${IRONIC_BASIC_AUTH}" == "true" ]]; then
 
   export IRONIC_USERNAME
   export IRONIC_PASSWORD
-fi
 
-if [[ "${IRONIC_BASIC_AUTH}" == "true" ]]; then
   echo "${IRONIC_USERNAME}" > "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/basic-auth/ironic-username
   echo "${IRONIC_PASSWORD}" > "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/basic-auth/ironic-password
 fi
 
+# Generate TLS certificates for Ironic if TLS is enabled
 if [[ "${IRONIC_TLS_SETUP}" == "true" ]]; then
-cp "${IRONIC_KEY_FILE}" "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/tls/
-cp "${IRONIC_CERT_FILE}" "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/tls/
+  IRONIC_TLS_DIR="${IRONIC_DATA_DIR}/tls"
+  mkdir -p "${IRONIC_TLS_DIR}"
+
+  IRONIC_KEY_FILE="${IRONIC_KEY_FILE:-${IRONIC_TLS_DIR}/ironic-key.pem}"
+  IRONIC_CERT_FILE="${IRONIC_CERT_FILE:-${IRONIC_TLS_DIR}/ironic-cert.pem}"
+
+  if [[ ! -f "${IRONIC_CERT_FILE}" ]]; then
+    openssl req -x509 -newkey rsa:4096 \
+      -keyout "${IRONIC_KEY_FILE}" \
+      -out "${IRONIC_CERT_FILE}" \
+      -days 365 -nodes \
+      -subj "/CN=ironic" \
+      -addext "subjectAltName=IP:${PROVISIONING_IP:-172.22.0.1},IP:${EXTERNAL_SUBNET_V4_HOST:-192.168.111.1}"
+  fi
+
+  cp "${IRONIC_KEY_FILE}" "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/tls/
+  cp "${IRONIC_CERT_FILE}" "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/tls/
 fi
 
 for overlay in "${BMO_OVERLAYS[@]}"; do
-  echo "${IRONIC_USERNAME}" > "${overlay}/ironic-username"
-  echo "${IRONIC_PASSWORD}" > "${overlay}/ironic-password"
-  if [[ "${overlay}" =~ release-0\.[1-5]$ ]]; then
-    echo "${IRONIC_INSPECTOR_USERNAME}" > "${overlay}/ironic-inspector-username"
-    echo "${IRONIC_INSPECTOR_PASSWORD}" > "${overlay}/ironic-inspector-password"
+  if [[ "${IRONIC_BASIC_AUTH}" == "true" ]]; then
+    echo "${IRONIC_USERNAME}" > "${overlay}/ironic-username"
+    echo "${IRONIC_PASSWORD}" > "${overlay}/ironic-password"
   fi
 done
 
-# run e2e tests
+## --- Virtual bare metal lab setup via vbmctl ---
+## Creates the VMs, networks, BMC emulator and image server used by the tests.
+# shellcheck source=./hack/setup-bml.sh disable=SC1091
+source "${REPO_ROOT}/hack/setup-bml.sh"
+
+# Name of the kind management cluster created by the Go test framework.
+# Must match managementClusterName in test/e2e/config/e2e_conf.yaml.
+export MANAGEMENT_CLUSTER_NAME="${MANAGEMENT_CLUSTER_NAME:-capm3-e2e}"
+
+# Cleanup function
+cleanup() {
+  echo "Cleaning up virtual bare metal lab..."
+  "${VBMCTL}" -c "${VBMCTL_CONFIG}" delete bml || true
+
+  # The kind management cluster is created by the Go test framework. When a run
+  # is interrupted or fails before the framework's own teardown, the cluster is
+  # left behind and blocks the next run ("node(s) already exist for a cluster").
+  # Delete it here too, unless the caller asked to keep resources for debugging.
+  if [[ "${SKIP_CLEANUP:-false}" != "true" ]]; then
+    echo "Deleting kind management cluster '${MANAGEMENT_CLUSTER_NAME}'..."
+    kind delete cluster --name "${MANAGEMENT_CLUSTER_NAME}" || true
+  fi
+}
+trap cleanup EXIT
+
+# Delete any leftover kind management cluster from a previous interrupted run so
+# the framework can create a fresh one (makes the script idempotent/re-runnable).
+echo "Removing any pre-existing kind cluster '${MANAGEMENT_CLUSTER_NAME}'..."
+kind delete cluster --name "${MANAGEMENT_CLUSTER_NAME}" || true
+
+# Run e2e tests
+# The bootstrap cluster (kind) is created by the Go test framework
+# via CAPI's bootstrap package. VMs are already running from vbmctl above.
+export E2E_COPY_KUBECONFIG=true
 if [[ -n "${CLUSTER_TOPOLOGY:-}" ]]; then
   export CLUSTER_TOPOLOGY=true
   make e2e-clusterclass-tests
