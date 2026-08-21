@@ -10,6 +10,8 @@ FORCE_REPO_UPDATE="${FORCE_REPO_UPDATE:-false}"
 
 export CAPM3RELEASEBRANCH="${CAPM3RELEASEBRANCH:-main}"
 export IPAMRELEASEBRANCH="${IPAMRELEASEBRANCH:-main}"
+#export ENABLE_CAPI_IPADDRESS_CLAIMS="${ENABLE_CAPI_IPADDRESS_CLAIMS:-false}"
+export ENABLE_CAPI_IPADDRESS_CLAIMS=true
 
 # Extract release version from release-branch name
 if [[ "${CAPM3RELEASEBRANCH}" == release-* ]]; then
