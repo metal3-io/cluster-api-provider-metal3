@@ -341,6 +341,57 @@ When the Metal3Machine gets deleted, the CAPM3 controller will remove its
 ownerreference from the data template object. This will trigger the deletion of
 the generated Metal3Data object and the secrets generated for this machine.
 
+### Node address overrides
+
+The addresses in `Machine.status.addresses` are normally derived from the
+hardware details that Ironic discovered on the BareMetalHost during inspection:
+one `InternalIP` per NIC, plus `Hostname` and `InternalDNS` from the hostname.
+
+The IP addresses can be overridden through the `metaData` secret referenced in
+`Metal3Machine.status.metaData`. The following optional keys are recognized in
+the metadata:
+
+- **InternalIP** : used as the `InternalIP` address of the Machine
+- **ExternalIP** : used as the `ExternalIP` address of the Machine
+
+The keys are case-sensitive and only non-empty string values are used. If either
+key is set, the addresses from the BareMetalHost NICs are not used at all, so
+both keys must be set to get both address types. The `Hostname` and
+`InternalDNS` addresses always come from the BareMetalHost, also when the IP
+addresses are overridden.
+
+This is useful when the BareMetalHost hardware details are unavailable, or when
+the desired addresses differ from the NICs discovered by inspection, for example
+with overlay networks, VIPs or externally routable addresses.
+
+The overrides are best effort. They are ignored, and the addresses are derived
+from the BareMetalHost instead, if the secret does not exist yet, holds no
+`metaData`, cannot be parsed as a YAML mapping, or holds values of an unexpected
+type.
+
+Since the metadata is usually rendered by the Metal3Data controller, the
+addresses are typically set through the `metaData` field of a
+Metal3DataTemplate:
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: Metal3DataTemplate
+metadata:
+  name: nodepool-1
+  namespace: metal3
+spec:
+  metaData:
+    ipAddressesFromIPPool:
+    - key: InternalIP
+      name: provisioning-pool
+      apiGroup: ipam.metal3.io
+      kind: IPPool
+    - key: ExternalIP
+      name: external-pool
+      apiGroup: ipam.metal3.io
+      kind: IPPool
+```
+
 ### hostSelector Examples
 
 The `hostSelector field has two possible optional sub-fields:

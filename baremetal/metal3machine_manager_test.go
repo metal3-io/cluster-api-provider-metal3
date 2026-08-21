@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -3537,30 +3538,100 @@ var _ = Describe("Metal3Machine manager", func() {
 			Address: "mygreathost",
 		}
 
+		addr4 := clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalDNS,
+			Address: "mygreathost",
+		}
+
+		internalIP := func(address string) clusterv1.MachineAddress {
+			return clusterv1.MachineAddress{
+				Type:    clusterv1.MachineInternalIP,
+				Address: address,
+			}
+		}
+
+		externalIP := func(address string) clusterv1.MachineAddress {
+			return clusterv1.MachineAddress{
+				Type:    clusterv1.MachineExternalIP,
+				Address: address,
+			}
+		}
+
+		// helper to create a Metal3Machine referring to a metaData secret.
+		m3mWithMetaData := func(secretName, secretNamespace string) infrav1.Metal3Machine {
+			return infrav1.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3machineName,
+					Namespace: namespaceName,
+				},
+				Status: infrav1.Metal3MachineStatus{
+					MetaData: &corev1.SecretReference{
+						Name:      secretName,
+						Namespace: secretNamespace,
+					},
+				},
+			}
+		}
+
+		// helper to create a metaData secret in the Metal3Machine namespace with the
+		// given content.
+		metaDataSecret := func(name, metaData string) *corev1.Secret {
+			return &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespaceName,
+				},
+				Data: map[string][]byte{
+					"metaData": []byte(metaData),
+				},
+			}
+		}
+
+		// helper to create a metaData secret with the given key-value pairs.
+		metaDataSecretWith := func(name string, data map[string]string) *corev1.Secret {
+			metaDataBytes, err := yaml.Marshal(data)
+			Expect(err).NotTo(HaveOccurred())
+			return metaDataSecret(name, string(metaDataBytes))
+		}
+
 		type testCaseNodeAddress struct {
-			Machine               clusterv1.Machine
-			M3Machine             infrav1.Metal3Machine
-			Host                  *bmov1alpha1.BareMetalHost
-			ExpectedNodeAddresses []clusterv1.MachineAddress
+			Machine   clusterv1.Machine
+			M3Machine infrav1.Metal3Machine
+			Host      *bmov1alpha1.BareMetalHost
+			// TestObjects are created before nodeAddresses is called.
+			TestObjects []runtime.Object
+			// SecretGetError, when set, is returned for every secret read.
+			SecretGetError         error
+			ExpectedNodeAddresses  []clusterv1.MachineAddress
+			ExpectedErrorSubstring string
 		}
 
 		DescribeTable("Test NodeAddress",
 			func(tc testCaseNodeAddress) {
-				var nodeAddresses []clusterv1.MachineAddress
-
-				fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).Build()
-				machineMgr, err := NewMachineManager(fakeClient, nil, nil, &tc.Machine,
+				clientBuilder := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithRuntimeObjects(tc.TestObjects...)
+				if tc.SecretGetError != nil {
+					clientBuilder = clientBuilder.WithInterceptorFuncs(interceptor.Funcs{
+						Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+							if _, ok := obj.(*corev1.Secret); ok {
+								return tc.SecretGetError
+							}
+							return client.Get(ctx, key, obj, opts...)
+						},
+					})
+				}
+				machineMgr, err := NewMachineManager(clientBuilder.Build(), nil, nil, &tc.Machine,
 					&tc.M3Machine, logr.Discard(),
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				if tc.Host != nil {
-					nodeAddresses = machineMgr.nodeAddresses(tc.Host)
-					Expect(err).NotTo(HaveOccurred())
+				nodeAddresses, err := machineMgr.nodeAddresses(context.Background(), tc.Host)
+				if tc.ExpectedErrorSubstring != "" {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(tc.ExpectedErrorSubstring))
+					return
 				}
-				for i, address := range tc.ExpectedNodeAddresses {
-					Expect(nodeAddresses[i]).To(Equal(address))
-				}
+				Expect(err).NotTo(HaveOccurred())
+				Expect(nodeAddresses).To(Equal(tc.ExpectedNodeAddresses))
 			},
 			Entry("One NIC", testCaseNodeAddress{
 				Host: &bmov1alpha1.BareMetalHost{
@@ -3590,7 +3661,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr3},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr3, addr4},
 			}),
 			Entry("Empty Hostname", testCaseNodeAddress{
 				Host: &bmov1alpha1.BareMetalHost{
@@ -3604,7 +3675,277 @@ var _ = Describe("Metal3Machine manager", func() {
 			}),
 			Entry("No host at all, so this is a no-op", testCaseNodeAddress{
 				Host:                  nil,
-				ExpectedNodeAddresses: nil,
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{},
+			}),
+			Entry("Metadata override with InternalIP", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-internal", namespaceName),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-internal", map[string]string{
+					MetaDataInternalIPKey: "10.0.0.100",
+					"providerid":          "ns/bmh/m3m",
+				})},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{internalIP("10.0.0.100")},
+			}),
+			Entry("Metadata override with ExternalIP", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-external", namespaceName),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-external", map[string]string{
+					MetaDataExternalIPKey: "203.0.113.1",
+					"providerid":          "ns/bmh/m3m",
+				})},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{externalIP("203.0.113.1")},
+			}),
+			Entry("Metadata override with IPv6 InternalIP", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-internal-ipv6", namespaceName),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-internal-ipv6", map[string]string{
+					MetaDataInternalIPKey: "fd00::100",
+				})},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{internalIP("fd00::100")},
+			}),
+			Entry("Metadata override with IPv6 ExternalIP", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-external-ipv6", namespaceName),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-external-ipv6", map[string]string{
+					MetaDataExternalIPKey: "2001:db8::1",
+				})},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{externalIP("2001:db8::1")},
+			}),
+			Entry("Metadata override with both InternalIP and ExternalIP", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-both", namespaceName),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-both", map[string]string{
+					MetaDataInternalIPKey: "10.0.0.100",
+					MetaDataExternalIPKey: "203.0.113.1",
+					"providerid":          "ns/bmh/m3m",
+				})},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1, nic2},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{
+					internalIP("10.0.0.100"),
+					externalIP("203.0.113.1"),
+				},
+			}),
+			Entry("Metadata override with IPv6 InternalIP and ExternalIP", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-ipv6", namespaceName),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-ipv6", map[string]string{
+					MetaDataInternalIPKey: "fd00::100",
+					MetaDataExternalIPKey: "2001:db8::1",
+				})},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{
+					internalIP("fd00::100"),
+					externalIP("2001:db8::1"),
+				},
+			}),
+			Entry("Metadata override with mixed IPv4 InternalIP and IPv6 ExternalIP", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-mixed", namespaceName),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-mixed", map[string]string{
+					MetaDataInternalIPKey: "10.0.0.100",
+					MetaDataExternalIPKey: "2001:db8::1",
+				})},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{
+					internalIP("10.0.0.100"),
+					externalIP("2001:db8::1"),
+				},
+			}),
+			Entry("Metadata override keeps the hostname addresses of the BareMetalHost", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-hostname", namespaceName),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-hostname", map[string]string{
+					MetaDataInternalIPKey: "10.0.0.100",
+					MetaDataExternalIPKey: "203.0.113.1",
+				})},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC:      []bmov1alpha1.NIC{nic1},
+							Hostname: "mygreathost",
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{
+					internalIP("10.0.0.100"),
+					externalIP("203.0.113.1"),
+					addr3,
+					addr4,
+				},
+			}),
+			Entry("Metadata override with nil host", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-nohost", namespaceName),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-nohost", map[string]string{
+					MetaDataInternalIPKey: "10.0.0.100",
+				})},
+				Host:                  nil,
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{internalIP("10.0.0.100")},
+			}),
+			Entry("Metadata secret is looked up in the Metal3Machine namespace", testCaseNodeAddress{
+				// The namespace of the reference is disregarded, cross-namespace
+				// references are not allowed for the metaData secret.
+				M3Machine: m3mWithMetaData("test-metadata-namespace", "another-namespace"),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-namespace", map[string]string{
+					MetaDataInternalIPKey: "10.0.0.100",
+				})},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{internalIP("10.0.0.100")},
+			}),
+			Entry("Metadata ref exists but secret missing falls back to BMH", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("nonexistent-secret", namespaceName),
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1},
+			}),
+			Entry("Metadata secret without metaData key falls back to BMH", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-empty", namespaceName),
+				TestObjects: []runtime.Object{
+					&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-metadata-empty",
+							Namespace: namespaceName,
+						},
+						Data: map[string][]byte{
+							"networkData": []byte("links: []\n"),
+						},
+					},
+				},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1},
+			}),
+			Entry("Metadata with no InternalIP or ExternalIP falls back to BMH", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-noop", namespaceName),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-noop", map[string]string{
+					"providerid": "ns/bmh/m3m",
+				})},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1},
+			}),
+			Entry("Metadata with empty InternalIP falls back to BMH", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-blank", namespaceName),
+				TestObjects: []runtime.Object{metaDataSecretWith("test-metadata-blank", map[string]string{
+					MetaDataInternalIPKey: "",
+				})},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1},
+			}),
+			Entry("Malformed metadata falls back to BMH", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-bad", namespaceName),
+				TestObjects: []runtime.Object{
+					metaDataSecret("test-metadata-bad", "\t: not valid yaml"),
+				},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC:      []bmov1alpha1.NIC{nic1},
+							Hostname: "mygreathost",
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1, addr3, addr4},
+			}),
+			Entry("Metadata that is not a mapping falls back to BMH", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-list", namespaceName),
+				TestObjects: []runtime.Object{
+					metaDataSecret("test-metadata-list", "- InternalIP: 10.0.0.100\n"),
+				},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1},
+			}),
+			Entry("Metadata with non-string InternalIP/ExternalIP falls back to BMH", testCaseNodeAddress{
+				M3Machine: m3mWithMetaData("test-metadata-non-string", namespaceName),
+				TestObjects: []runtime.Object{
+					// InternalIP is a list, ExternalIP is a number; both should be
+					// ignored and the addresses derived from the BMH NICs.
+					metaDataSecret("test-metadata-non-string",
+						"InternalIP:\n  - 10.0.0.100\nExternalIP: 42\nnested:\n  key: value\n"),
+				},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1},
+			}),
+			Entry("Metadata secret that cannot be read returns an error", testCaseNodeAddress{
+				M3Machine:              m3mWithMetaData("test-metadata-error", namespaceName),
+				SecretGetError:         errors.New("simulated get failure"),
+				ExpectedErrorSubstring: "failed to get metaData secret " + namespaceName + "/test-metadata-error",
 			}),
 		)
 	})
