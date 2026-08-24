@@ -109,8 +109,6 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/maruel/natural v1.1.1 h1:Hja7XhhmvEFhcByqDoHz9QZbkWey+COd9xWfCfn1ioo=
 github.com/maruel/natural v1.1.1/go.mod h1:v+Rfd79xlw1AgVBjbO0BEQmptqb5HvL/k9GRHB7ZKEg=
-github.com/metal3-io/baremetal-operator/apis v0.14.0-rc.0 h1:UocKYsyU1DSVcX5kCMS6/6PnVFmDBckJqOgyHsw8EU0=
-github.com/metal3-io/baremetal-operator/apis v0.14.0-rc.0/go.mod h1:XO++Oeygy6hNJ3G0ZWPAo/Fi+qu1vMVfWERPfDz5eKA=
 github.com/metal3-io/ip-address-manager/api v1.14.0-rc.0 h1:+YJYBRLC4jBjz3IqSzBeSVY3JzTfc9vLydO4Fmeorx0=
 github.com/metal3-io/ip-address-manager/api v1.14.0-rc.0/go.mod h1:w2orGATNQecqvAm1mMDVjfQMMh2ZlCKqC5pQbKAz/2M=
 github.com/mfridman/tparse v0.18.0 h1:wh6dzOKaIwkUGyKgOntDW4liXSo37qg5AXbIhkMV3vE=
@@ -119,6 +117,8 @@ github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa1
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zxSIeXaQ=
 github.com/mitchellh/reflectwalk v1.0.2/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
+github.com/mnasiadka/baremetal-operator/apis v0.0.0-20260824064042-f457523ab4b9 h1:afzUpTb2tF4OwYQdmh3iLmedZU3auM4W5rpZQctJ4xg=
+github.com/mnasiadka/baremetal-operator/apis v0.0.0-20260824064042-f457523ab4b9/go.mod h1:XO++Oeygy6hNJ3G0ZWPAo/Fi+qu1vMVfWERPfDz5eKA=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=

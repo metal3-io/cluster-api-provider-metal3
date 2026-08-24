@@ -1235,6 +1235,7 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 				Checksum:     ptr.Deref(m.Metal3Machine.Spec.Image.Checksum, ""),
 				ChecksumType: bmov1alpha1.ChecksumType(m.Metal3Machine.Spec.Image.ChecksumType),
 				DiskFormat:   &m.Metal3Machine.Spec.Image.DiskFormat,
+				RootFSUUID:   m.Metal3Machine.Spec.Image.RootFSUUID,
 			}
 		}
 		if customDeployConfigured {
