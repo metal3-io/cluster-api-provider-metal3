@@ -603,7 +603,15 @@ func setupEtcdMember(resourceName, clusterName, nodeName, namespace string, w ht
 		http.Error(w, "etcdKey is not *rsa.PrivateKey", http.StatusInternalServerError)
 		return errors.New("etcdKey is not *rsa.PrivateKey")
 	}
-	err = apiServerMux.AddEtcdMember(resourceName, nodeName, etcdCert, etcdPrivKey)
+	// Register the etcd member under the etcd pod name (e.g. "etcd-<nodeName>"),
+	// matching how CAPI's in-memory provider registers members. KCP's etcd health
+	// probe port-forwards to the etcd pod and sets the TLS ServerName to the pod
+	// name, and the mux only serves the etcd serving certificate (and routes gRPC
+	// to the etcd handler) when that ServerName matches a registered etcd member.
+	// Registering the bare node name here makes the SNI lookup miss, so the mux
+	// hands back the API-server certificate and the etcd connection never
+	// completes ("context deadline exceeded"), leaving EtcdMemberHealthy False.
+	err = apiServerMux.AddEtcdMember(resourceName, etcdPodMember, etcdCert, etcdPrivKey)
 	if err != nil {
 		setupLog.Error(err, "failed to add etcd member")
 		http.Error(w, "", http.StatusInternalServerError)
