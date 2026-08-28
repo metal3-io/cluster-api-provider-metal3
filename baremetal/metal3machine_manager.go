@@ -55,6 +55,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -80,6 +81,12 @@ const (
 	ProviderLabelPrefix = "metal3.io/uuid"
 	// FailureDomainLabelName is a label name for FailureDomains.
 	FailureDomainLabelName = "infrastructure.cluster.x-k8s.io/failure-domain"
+	// MetaDataInternalIPKey is the optional, case-sensitive key in the metaData
+	// secret whose value overrides the InternalIP address of the Machine.
+	MetaDataInternalIPKey = "InternalIP"
+	// MetaDataExternalIPKey is the optional, case-sensitive key in the metaData
+	// secret whose value overrides the ExternalIP address of the Machine.
+	MetaDataExternalIPKey = "ExternalIP"
 )
 
 var (
@@ -1386,8 +1393,11 @@ func (m *MachineManager) CloudProviderEnabled() bool {
 }
 
 // updateMachineStatus updates a Metal3Machine object's status.
-func (m *MachineManager) updateMachineStatus(_ context.Context, host *bmov1alpha1.BareMetalHost) error {
-	addrs := m.nodeAddresses(host)
+func (m *MachineManager) updateMachineStatus(ctx context.Context, host *bmov1alpha1.BareMetalHost) error {
+	addrs, err := m.nodeAddresses(ctx, host)
+	if err != nil {
+		return err
+	}
 
 	metal3MachineOld := m.Metal3Machine.DeepCopy()
 
@@ -1415,25 +1425,40 @@ func (m *MachineManager) updateMachineStatus(_ context.Context, host *bmov1alpha
 	return nil
 }
 
-// NodeAddresses returns a slice of corev1.NodeAddress objects for a
+// nodeAddresses returns a slice of clusterv1.MachineAddress objects for a
 // given Metal3 machine.
-func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []clusterv1.MachineAddress {
+//
+// The IP addresses are normally derived from the NICs of the BareMetalHost. If
+// the metaData secret of the Metal3Machine provides address overrides, see
+// addressOverridesFromMetaData, those are used instead. The hostname based
+// addresses are always taken from the BareMetalHost, also when the IP addresses
+// are overridden.
+func (m *MachineManager) nodeAddresses(ctx context.Context, host *bmov1alpha1.BareMetalHost) ([]clusterv1.MachineAddress, error) {
 	addrs := []clusterv1.MachineAddress{}
 
-	// If the host is nil or we have no hw details, return an empty address array.
-	if host == nil || host.Status.HardwareDetails == nil {
-		return addrs
+	overrides, err := m.addressOverridesFromMetaData(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	for _, nic := range host.Status.HardwareDetails.NIC {
-		address := clusterv1.MachineAddress{
-			Type:    clusterv1.MachineInternalIP,
-			Address: nic.IP,
+	// If the host is nil or we have no hw details, only the overrides are available.
+	if host == nil || host.Status.HardwareDetails == nil {
+		return append(addrs, overrides...), nil
+	}
+
+	if len(overrides) > 0 {
+		addrs = append(addrs, overrides...)
+	} else {
+		for _, nic := range host.Status.HardwareDetails.NIC {
+			address := clusterv1.MachineAddress{
+				Type:    clusterv1.MachineInternalIP,
+				Address: nic.IP,
+			}
+			if address.Address == "" {
+				continue
+			}
+			addrs = append(addrs, address)
 		}
-		if address.Address == "" {
-			continue
-		}
-		addrs = append(addrs, address)
 	}
 
 	if host.Status.HardwareDetails.Hostname != "" {
@@ -1447,7 +1472,88 @@ func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []cluste
 		})
 	}
 
-	return addrs
+	return addrs, nil
+}
+
+// addressOverridesFromMetaData returns the machine addresses configured through
+// the metaData secret referenced by the Metal3Machine status. The secret content
+// is expected to be a YAML mapping, as rendered by the Metal3Data controller from
+// a Metal3DataTemplate, and the optional MetaDataInternalIPKey and
+// MetaDataExternalIPKey keys are read from it. The keys are case-sensitive and
+// only non-empty string values are used.
+//
+// The overrides are best effort: no override is returned when the metaData secret
+// is not referenced, does not exist yet, holds no metaData, cannot be parsed as a
+// YAML mapping or holds values of an unexpected type. Callers fall back to the
+// addresses derived from the BareMetalHost in those cases. An error is only
+// returned when the secret cannot be read, which is expected to be transient.
+func (m *MachineManager) addressOverridesFromMetaData(ctx context.Context) ([]clusterv1.MachineAddress, error) {
+	if m.Metal3Machine.Status.MetaData == nil || m.Metal3Machine.Status.MetaData.Name == "" {
+		return nil, nil
+	}
+
+	// We do not allow cross-namespace references for MetaData, so use the
+	// Metal3Machine's own namespace and disregard any namespace on the secret ref.
+	secretKey := types.NamespacedName{
+		Name:      m.Metal3Machine.Status.MetaData.Name,
+		Namespace: m.Metal3Machine.Namespace,
+	}
+
+	secret := &corev1.Secret{}
+	if err := m.client.Get(ctx, secretKey, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get metaData secret %s: %w", secretKey, err)
+	}
+
+	metaDataBytes, ok := secret.Data["metaData"]
+	if !ok {
+		return nil, nil
+	}
+
+	metaData := map[string]any{}
+	if err := yaml.Unmarshal(metaDataBytes, &metaData); err != nil {
+		// The metaData secret is owned by the user and is not required to be a
+		// YAML mapping. Ignore it instead of blocking the reconciliation.
+		m.Log.V(VerbosityLevelDebug).Info("Ignoring metaData secret that cannot be parsed as a YAML mapping",
+			LogFieldSecretName, secretKey.Name, LogFieldNamespace, secretKey.Namespace,
+			LogFieldMetal3Machine, m.Metal3Machine.Name, LogFieldError, err.Error())
+		return nil, nil
+	}
+
+	// addressOverride returns the address configured under key, if the key is
+	// present and holds a non-empty string.
+	addressOverride := func(key string) (string, bool) {
+		value, found := metaData[key]
+		if !found {
+			return "", false
+		}
+		address, ok := value.(string)
+		if !ok || address == "" {
+			m.Log.V(VerbosityLevelDebug).Info("Ignoring metaData address override that is not a non-empty string",
+				LogFieldSecretName, secretKey.Name, LogFieldNamespace, secretKey.Namespace,
+				LogFieldMetal3Machine, m.Metal3Machine.Name, LogFieldName, key)
+			return "", false
+		}
+		return address, true
+	}
+
+	addrs := []clusterv1.MachineAddress{}
+	if internalIP, ok := addressOverride(MetaDataInternalIPKey); ok {
+		addrs = append(addrs, clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalIP,
+			Address: internalIP,
+		})
+	}
+	if externalIP, ok := addressOverride(MetaDataExternalIPKey); ok {
+		addrs = append(addrs, clusterv1.MachineAddress{
+			Type:    clusterv1.MachineExternalIP,
+			Address: externalIP,
+		})
+	}
+
+	return addrs, nil
 }
 
 // ClientGetter prototype.
