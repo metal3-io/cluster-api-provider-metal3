@@ -205,12 +205,15 @@ BMO_OVERLAYS=(
 IRSO_IRONIC_OVERLAYS=(
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-33.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-35.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-37.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/pr-test"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/main"
 )
 IRSO_OPERATOR_OVERLAYS=(
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/operator/overlays/release-0.8.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/operator/overlays/release-0.9.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/operator/overlays/release-0.10.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/operator/overlays/release-0.11.0"
 )
 
 # Update BMO and Ironic images in kustomization.yaml files to use the same image that was used before pivot in the metal3-dev-env
