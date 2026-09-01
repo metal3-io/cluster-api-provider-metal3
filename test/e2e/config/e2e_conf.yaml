@@ -270,6 +270,7 @@ variables:
   NODE_DRAIN_TIMEOUT: 0
   IRSO_OPERATOR_0.8.0: "data/ironic-standalone-operator/operator/overlays/release-0.8.0"
   IRSO_OPERATOR_0.9.0: "data/ironic-standalone-operator/operator/overlays/release-0.9.0"
+  IRSO_OPERATOR_0.10.0: "data/ironic-standalone-operator/operator/overlays/release-0.10.0"
   IRSO_IRONIC_32.0: "data/ironic-standalone-operator/ironic/overlays/release-32.0"
   IRSO_IRONIC_33.0: "data/ironic-standalone-operator/ironic/overlays/release-33.0"
   IRSO_IRONIC_35.0: "data/ironic-standalone-operator/ironic/overlays/release-35.0"
