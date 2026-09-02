@@ -33,8 +33,7 @@ ${VBMCTL_VMS}
   bmcEmulator:
     type: "sushy-tools"
     image: "${BMC_EMULATOR_IMAGE}"
-    listenAddress: "${PROVISIONING_IP}"
-    listenPort: ${BMC_EMULATOR_PORT}
+    configFile: "${SUSHY_CONFIG}"
   imageServer:
     port: 80
     dataDir: "${IRONIC_DATA_DIR}/html"

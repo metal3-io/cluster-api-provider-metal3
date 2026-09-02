@@ -47,12 +47,22 @@ generate_vbmctl_vms() {
   local i
 
   # The scalability scenario is fully faked (fakeIPA + FKAS): the guests never
-  # boot, so creating real libvirt VMs (NUM_NODES can be 30) would allocate a
-  # huge amount of host memory/CPU for nothing. Skip VM creation entirely and
-  # leave the vbmctl "vms" list empty; vbmctl still sets up the networks, BMC
-  # emulator and image server, and bmcs.yaml is still generated for the tests.
+  # boot, so creating a real libvirt VM per node (NUM_NODES can be 30) would
+  # allocate a huge amount of host memory/CPU for nothing. vbmctl's "create bml"
+  # rejects an empty spec.vms, yet it is the only command that also wires the
+  # veth pairs / docker networks needed for kind<->libvirt connectivity. So
+  # define a single tiny placeholder VM (defined, never started) to bring up the
+  # lab — networks, BMC emulator, image server — without 30 real guests. The
+  # BMHs reference sushy-tools' fake systems, not this VM.
+  # TODO: Drop this placeholder once vbmctl (in baremetal-operator) allows
+  # "create bml" with an empty spec.vms (create only networks/veth/BMC emulator).
   if [[ "${SKIP_VM_CREATION:-false}" == "true" ]]; then
-    export VBMCTL_VMS=""
+    export VBMCTL_VMS="  - name: fake-placeholder
+    memory: 512
+    vcpus: 1
+    volumes:
+    - name: \"1\"
+      size: 1"
     return
   fi
 
@@ -82,6 +92,19 @@ generate_vbmctl_vms() {
   export VBMCTL_VMS="${vm_entries%$'\n'}"
 }
 
+# Stable per-node Redfish system UUIDs. sushy-tools parses a system's id as a
+# real UUID (uuid.UUID(id) in its storage resource), so the id must be a proper
+# UUID, not a name like "node-0" (which makes GET /Systems/node-0 return HTTP
+# 500). The same UUID is reused in the BMC address so Ironic targets the right
+# fake system. Populated once and shared by the sushy and bmcs config generators.
+declare -a NODE_UUIDS
+generate_node_uuids() {
+  local i
+  for ((i=0; i<NUM_NODES; i++)); do
+    NODE_UUIDS[i]="$(cat /proc/sys/kernel/random/uuid)"
+  done
+}
+
 # Generate bmcs config dynamically based on NUM_NODES
 generate_bmcs_config() {
   local bmcs_entries=""
@@ -92,7 +115,7 @@ generate_bmcs_config() {
     suffix=$(printf "%02d" "$((i + 1))")
     local ip_last_octet=$((20 + i))
     bmcs_entries+="- name: \"node-${i}\"
-  address: \"redfish-virtualmedia+http://${PROVISIONING_IP}:${BMC_EMULATOR_PORT}/redfish/v1/Systems/node-${i}\"
+  address: \"redfish-virtualmedia+http://${PROVISIONING_IP}:${BMC_EMULATOR_PORT}/redfish/v1/Systems/${NODE_UUIDS[i]}\"
   bootMacAddress: \"00:60:2f:31:81:${suffix}\"
   ipAddress: \"192.168.111.${ip_last_octet}\"
   user: admin
@@ -105,9 +128,61 @@ generate_bmcs_config() {
   echo -n "${bmcs_entries}" > "${E2E_BMCS_CONFIG}"
 }
 
+# Generate the sushy-tools config. In fake mode it enables the fake driver and
+# fake-IPA and defines virtual Redfish systems with no backing libvirt VM
+# (mirroring metal3-dev-env's NODES_PLATFORM=fake); each system's id is a real
+# UUID (NODE_UUIDS) reused in the BMC address in bmcs.yaml (.../Systems/<uuid>).
+# In real mode it only sets the listen address/port and sushy-tools uses its
+# default libvirt driver. vbmctl bind-mounts this file via bmcEmulator.configFile.
+generate_sushy_config() {
+  if [[ "${SKIP_VM_CREATION:-false}" != "true" ]]; then
+    # Real mode: only the listen address/port; sushy-tools uses its default
+    # libvirt driver to control the VMs.
+    cat > "${SUSHY_CONFIG}" <<EOF
+SUSHY_EMULATOR_LISTEN_IP = u"${PROVISIONING_IP}"
+SUSHY_EMULATOR_LISTEN_PORT = ${BMC_EMULATOR_PORT}
+EOF
+    return
+  fi
+
+  local systems="" i
+  for ((i=0; i<NUM_NODES; i++)); do
+    local suffix ext_octet
+    suffix=$(printf "%02d" "$((i + 1))")
+    ext_octet=$((20 + i))
+    systems+="    {
+        \"uuid\": \"${NODE_UUIDS[i]}\",
+        \"name\": \"node-${i}\",
+        \"power_state\": \"Off\",
+        \"external_notifier\": True,
+        \"nics\": [
+            {\"mac\": \"00:60:2f:31:81:${suffix}\", \"ip\": \"172.22.0.$((100 + i))\"},
+            {\"mac\": \"00:60:2f:32:81:${suffix}\", \"ip\": \"192.168.111.${ext_octet}\"}
+        ]
+    },
+"
+  done
+
+  cat > "${SUSHY_CONFIG}" <<EOF
+SUSHY_EMULATOR_LISTEN_IP = u"${PROVISIONING_IP}"
+SUSHY_EMULATOR_LISTEN_PORT = ${BMC_EMULATOR_PORT}
+SUSHY_EMULATOR_FAKE_DRIVER = True
+SUSHY_EMULATOR_FAKE_IPA = True
+SUSHY_EMULATOR_FAKE_SYSTEMS = [
+${systems%$'\n'}
+]
+EOF
+}
+
+# Path to the generated sushy-tools config. vbmctl bind-mounts it into the
+# container via bmcEmulator.configFile; the template references ${SUSHY_CONFIG}.
+export SUSHY_CONFIG="${REPO_ROOT}/_out/sushy.conf"
+
 # Generate vbmctl config from template
 export VBMCTL_CONFIG="${REPO_ROOT}/_out/vbmctl.yaml"
+generate_node_uuids
 generate_vbmctl_vms
+generate_sushy_config
 envsubst < "${REPO_ROOT}/test/e2e/config/vbmctl.yaml.tmpl" > "${VBMCTL_CONFIG}"
 
 # Generate bmcs config dynamically (consumed by Go tests to create BMH objects)

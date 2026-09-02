@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -62,6 +64,7 @@ var _ = Describe("When testing scalability with fakeIPA and FKAS", Label("scalab
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 		createFKASResources()
+		launchFakeIPA()
 		imageURL, imageChecksum := EnsureImage("v1.34.1")
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
@@ -89,6 +92,11 @@ var _ = Describe("When testing scalability with fakeIPA and FKAS", Label("scalab
 	})
 
 	AfterEach(func() {
+		// Collect the host lab container logs before teardown; these run as docker
+		// containers (not pods) and are invisible to the in-cluster log collection.
+		CollectVbmctlContainerLogs(ctx, filepath.Join(artifactFolder, "vbmctl-container-logs"))
+		collectFakeIPAContainerLogs(filepath.Join(artifactFolder, "vbmctl-container-logs"))
+		removeFakeIPA()
 		FKASKustomization := e2eConfig.MustGetVariable("FKAS_RELEASE_LATEST")
 		By(fmt.Sprintf("Removing FKAS from kustomization %s from the bootsrap cluster", FKASKustomization))
 		err := BuildAndRemoveKustomization(ctx, FKASKustomization, bootstrapClusterProxy)
@@ -144,6 +152,91 @@ func createFKASResources() {
 		WaitIntervals:       e2eConfig.GetIntervals("default", "wait-deployment"),
 	})
 	Expect(err).NotTo(HaveOccurred())
+}
+
+// fakeIPAContainerName is the name of the host container running fake-ipa.
+const fakeIPAContainerName = "fake-ipa"
+
+// launchFakeIPA starts the fake Ironic Python Agent container on the host. Paired
+// with the sushy-tools fake driver (configured by hack/setup-bml.sh), it lets the
+// scalability BMHs reach Available/Provisioned without any real VM booting an IPA
+// ramdisk, mirroring metal3-dev-env's NODES_PLATFORM=fake.
+func launchFakeIPA() {
+	image := e2eConfig.MustGetVariable("FAKE_IPA_IMAGE")
+
+	provisionerIP := os.Getenv("CLUSTER_BARE_METAL_PROVISIONER_IP")
+	if provisionerIP == "" {
+		provisionerIP = "172.22.0.2"
+	}
+	ironicAPIPort := os.Getenv("IRONIC_API_PORT")
+	if ironicAPIPort == "" {
+		ironicAPIPort = "6385"
+	}
+	advertiseIP := os.Getenv("EXTERNAL_SUBNET_V4_HOST")
+	if advertiseIP == "" {
+		advertiseIP = "192.168.111.1"
+	}
+	ironicURL := "https://" + net.JoinHostPort(provisionerIP, ironicAPIPort)
+
+	certDir := filepath.Join(os.TempDir(), "fake-ipa")
+	Expect(os.MkdirAll(certDir, 0o750)).To(Succeed())
+	configPy := fmt.Sprintf(`FAKE_IPA_API_URL = "%s"
+FAKE_IPA_INSPECTION_CALLBACK_URL = "%s/v1/continue_inspection"
+FAKE_IPA_ADVERTISE_ADDRESS_IP = "%s"
+FAKE_IPA_INSECURE = True
+FAKE_IPA_MIN_BOOT_TIME = 20
+FAKE_IPA_MAX_BOOT_TIME = 30
+`, ironicURL, ironicURL, advertiseIP)
+	Expect(os.WriteFile(filepath.Join(certDir, "config.py"), []byte(configPy), 0o600)).To(Succeed())
+
+	By(fmt.Sprintf("Launching fake-ipa container (%s)", image))
+	// Remove any stale container left over from a previous run.
+	_ = exec.CommandContext(ctx, "docker", "rm", "-f", fakeIPAContainerName).Run() // #nosec G204
+	sshDir := filepath.Join(os.Getenv("HOME"), ".ssh")
+	cmd := exec.CommandContext(ctx, "docker", "run", "-d", "--net", "host", // #nosec G204
+		"--name", fakeIPAContainerName,
+		"-v", certDir+":/root/cert",
+		"-v", sshDir+":/root/ssh",
+		"-e", "CONFIG=/root/cert/config.py",
+		image,
+	)
+	out, err := cmd.CombinedOutput()
+	Expect(err).NotTo(HaveOccurred(), "failed to start fake-ipa container: %s", string(out))
+}
+
+// removeFakeIPA force-removes the fake-ipa container (best-effort).
+func removeFakeIPA() {
+	cmd := exec.CommandContext(context.Background(), "docker", "rm", "-f", fakeIPAContainerName) // #nosec G204
+	if out, err := cmd.CombinedOutput(); err != nil {
+		Logf("docker rm -f %s (may not exist): %v: %s", fakeIPAContainerName, err, string(out))
+	}
+}
+
+// collectFakeIPAContainerLogs captures the fake-ipa container's logs and inspect
+// metadata before teardown. fake-ipa runs as a host docker container (not a
+// vbmctl-managed container and not a Kubernetes pod), so it is otherwise never
+// collected. Best-effort: failures are logged, never fatal to cleanup.
+func collectFakeIPAContainerLogs(outputPath string) {
+	if err := os.MkdirAll(outputPath, 0o750); err != nil {
+		Logf("couldn't create fake-ipa log directory %q: %v", outputPath, err)
+		return
+	}
+	// docker logs writes to both stdout and stderr; capture both.
+	logs, err := exec.CommandContext(context.Background(), "docker", "logs", fakeIPAContainerName).CombinedOutput() // #nosec G204
+	if err != nil {
+		Logf("couldn't get logs for container %s: %v", fakeIPAContainerName, err)
+	}
+	if err = writeToFile(logs, fakeIPAContainerName+".log", outputPath); err != nil {
+		Logf("couldn't write logs for container %s: %v", fakeIPAContainerName, err)
+	}
+	inspect, err := exec.CommandContext(context.Background(), "docker", "inspect", fakeIPAContainerName).Output() // #nosec G204
+	if err != nil {
+		Logf("couldn't inspect container %s: %v", fakeIPAContainerName, err)
+		return
+	}
+	if err = writeToFile(inspect, fakeIPAContainerName+".inspect.json", outputPath); err != nil {
+		Logf("couldn't write inspect for container %s: %v", fakeIPAContainerName, err)
+	}
 }
 
 func LogToFile(logFile string, data []byte) {

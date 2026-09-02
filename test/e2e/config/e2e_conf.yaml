@@ -13,6 +13,8 @@ images:
   loadBehavior: mustLoad
 - name: quay.io/metal3-io/ip-address-manager:latest
   loadBehavior: mustLoad
+- name: quay.io/metal3-io/metal3-fkas:ci
+  loadBehavior: tryLoad
 
 providers:
 - name: cluster-api
@@ -321,7 +323,6 @@ variables:
   # Default vars for the template, those values could be overridden by the env-vars.
   CAPI_VERSION: "v1beta2"
   CAPM3_VERSION: "${CAPM3_VERSION:-v1beta2}"
-  CONFIG_FILE_PATH: "${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
   SERVICE_CIDR: "10.96.0.0/12"
   POD_CIDR: "192.168.0.0/18"
   BARE_METAL_PROVISIONER_CIDR: "24"
@@ -355,6 +356,7 @@ variables:
   BMO_RELEASE_PR_TEST: "data/bmo-deployment/overlays/pr-test"
   BMO_RELEASE_MAIN: "data/bmo-deployment/overlays/release-main"
   FKAS_RELEASE_LATEST: "data/fkas"
+  FAKE_IPA_IMAGE: "${FAKE_IPA_IMAGE:-quay.io/metal3-io/fake-ipa:latest}"
   REPO_NAME: "${REPO_NAME:-cluster-api-provider-metal3}"
   EXP_MACHINE_TAINT_PROPAGATION: "true"
 

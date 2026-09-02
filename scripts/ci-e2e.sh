@@ -66,29 +66,30 @@ fi
 
 mkdir -p "${CAPI_CONFIG_FOLDER}"
 
-# Start fresh clusterctl.yaml each run
-: > "${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
-
+# Feature-gate variables are exported (not written to clusterctl.yaml): the e2e
+# framework builds its own clusterctl config and does not read that file, but
+# clusterctl does merge OS environment variables when resolving components.
+#
+# USE_CLUSTERCLASS_TEMPLATES selects which template set the run builds/uses
+# (clusterclass vs normal). It is deliberately separate from CLUSTER_TOPOLOGY,
+# which only enables the ClusterTopology feature gate in the CAPI controller:
+# most tests enable the gate but still provision from normal templates.
+USE_CLUSTERCLASS_TEMPLATES=false
 case "${GINKGO_FOCUS:-}" in
   features)
-    echo "ENABLE_BMH_NAME_BASED_PREALLOCATION: true" >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
+    export ENABLE_BMH_NAME_BASED_PREALLOCATION=true
   ;;
 
   scalability)
-    echo 'CLUSTER_TOPOLOGY: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
-    # Build FKAS image from source so that the scalability test uses the latest code
-    FKAS_TAG=ci make docker-build-fkas
+    export CLUSTER_TOPOLOGY=true
   ;;
 
   in-place-upgrade)
-    # Enable Cluster Topology and in-place updates features
-    echo 'CLUSTER_TOPOLOGY: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
-    echo 'EXP_RUNTIME_SDK: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
-    echo 'EXP_IN_PLACE_UPDATES: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
+    export CLUSTER_TOPOLOGY=true
+    export EXP_RUNTIME_SDK=true
+    export EXP_IN_PLACE_UPDATES=true
   ;;
 esac
-
-echo 'EXP_MACHINE_TAINT_PROPAGATION: true' >> "${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
 
 if [[ ${GINKGO_FOCUS:-} != "scalability" ]]; then
   # Don't run scalability tests if not asked for.
@@ -117,6 +118,11 @@ if [[ -z "${CAPM3_DOCKER_SG:-}" ]] && getent group docker &>/dev/null \
   echo "Activating 'docker' group membership for this session via sg (avoids logout/login)..."
   export CAPM3_DOCKER_SG=1
   exec sg docker -c "$(printf '%q ' "${BASH_SOURCE[0]}" "$@")"
+fi
+
+# Build FKAS image from source so the scalability test uses the latest code.
+if [[ "${GINKGO_FOCUS:-}" == "scalability" ]]; then
+  FKAS_TAG=ci make docker-build-fkas
 fi
 
 # If running in-place-upgrade tests, ensure extension namespace and ssh key secret exist
@@ -353,10 +359,12 @@ kind delete cluster --name "${MANAGEMENT_CLUSTER_NAME}" || true
 # The bootstrap cluster (kind) is created by the Go test framework
 # via CAPI's bootstrap package. VMs are already running from vbmctl above.
 export E2E_COPY_KUBECONFIG=true
-if [[ -n "${CLUSTER_TOPOLOGY:-}" ]]; then
-  export CLUSTER_TOPOLOGY=true
+export EXP_MACHINE_TAINT_PROPAGATION=true
+# USE_CLUSTERCLASS_TEMPLATES (set per-scenario above) decides the template set;
+# CLUSTER_TOPOLOGY only toggles the controller feature gate, so it does not
+# select the make target here.
+if [[ "${USE_CLUSTERCLASS_TEMPLATES}" == "true" ]]; then
   make e2e-clusterclass-tests
 else
-  export EXP_MACHINE_TAINT_PROPAGATION=true
   make e2e-tests
 fi

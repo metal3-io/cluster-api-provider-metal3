@@ -874,6 +874,8 @@ clean-e2e: ## Clean up e2e artifacts, kind clusters, and leftover resources
 	sudo rm -rf $(LIBVIRT_POOL_PATH)
 	# Remove vbmctl containers
 	docker rm -f vbmctl-image-server-e2e vbmctl-sushy-tools-e2e vbmctl-sushy-tools 2>/dev/null || true
+	# Remove the fake-ipa container used by the scalability (fake) scenario
+	docker rm -f fake-ipa 2>/dev/null || true
 	# Delete the management kind cluster created by this test suite only; do not
 	# touch other kind clusters that may be running on the host.
 	@if command -v kind &> /dev/null; then \

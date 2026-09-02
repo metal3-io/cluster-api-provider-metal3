@@ -29,6 +29,10 @@ fi
 export CONTAINER_RUNTIME="docker"
 export BOOTSTRAP_CLUSTER="kind"
 
+# Extra Ironic config injected into the Ironic CR (spec.extraConfig) via envsubst.
+# Empty list by default; the scalability scenario overrides it below.
+export IRONIC_EXTRA_CONFIG="${IRONIC_EXTRA_CONFIG:-[]}"
+
 export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.36.2"}
 export KUBERNETES_VERSION_UPGRADE_FROM=${KUBERNETES_VERSION_UPGRADE_FROM:-"v1.35.6"}
 
@@ -80,6 +84,10 @@ case "${GINKGO_FOCUS:-}" in
     # so skip creating real libvirt VMs entirely (30 nodes would otherwise
     # allocate ~120 GiB / 60 vCPUs and exhaust the CI worker).
     export SKIP_VM_CREATION=${SKIP_VM_CREATION:-"true"}
+    # fake-ipa heartbeats to Ironic over plain HTTP, so relax the agent TLS
+    # requirement (OS_AGENT__REQUIRE_TLS=false). Injected into the Ironic CR
+    # spec.extraConfig via envsubst; other scenarios keep the empty default.
+    export IRONIC_EXTRA_CONFIG='[{group: "agent", name: "require_tls", value: "false"}]'
     # Note: Uses KUBERNETES_VERSION_UPGRADE_FROM directly now (no duplication needed)
   ;;
 
