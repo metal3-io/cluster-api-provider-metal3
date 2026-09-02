@@ -13,7 +13,7 @@ require (
 	github.com/metal3-io/ironic-standalone-operator/api v0.11.0
 	github.com/moby/moby/client v0.5.1
 	github.com/onsi/ginkgo/v2 v2.32.1
-	github.com/onsi/gomega v1.42.1
+	github.com/onsi/gomega v1.43.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.10
 	golang.org/x/crypto v0.55.0
