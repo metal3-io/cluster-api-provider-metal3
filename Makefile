@@ -83,7 +83,7 @@ ifneq ($(GO),)
 	# checksum-verified semver tag.
 	SETUP_ENVTEST_VER := $(call get_go_version,sigs.k8s.io/controller-runtime)
 endif
-ENVTEST_K8S_VERSION := 1.36.x
+ENVTEST_K8S_VERSION := 1.37.x
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -127,7 +127,7 @@ help:  # Display this help
 ## --------------------------------------
 ##@ tests:
 
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.36.2
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.37.0
 KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
 
 .PHONY: setup-envtest
