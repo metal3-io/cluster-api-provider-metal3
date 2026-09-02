@@ -542,7 +542,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, testName s
 	By("Reconfiguring provisioning network on the bootstrap cluster")
 	provisioningIP := os.Getenv("CLUSTER_PROVISIONING_IP")
 	if provisioningIP == "" {
-		provisioningIP = "172.22.0.2"
+		provisioningIP = defaultClusterProvisioningIP
 	}
 	provisioningInterface := e2eConfig.MustGetVariable("BARE_METAL_PROVISIONER_INTERFACE")
 	ConfigureProvisioningNetwork(ctx, e2eConfig.ManagementClusterName, provisioningIP, provisioningInterface)

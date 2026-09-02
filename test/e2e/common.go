@@ -64,10 +64,13 @@ const (
 	other          vmState = "other"
 	artifactoryURL         = "https://artifactory.nordix.org/artifactory/metal3/images/k8s"
 	imagesURL              = "http://172.22.0.1/images"
-	osTypeCentos           = "centos"
-	osTypeUbuntu           = "ubuntu"
-	osTypeLeap             = "opensuse-leap"
-	ironicSuffix           = "-ironic"
+	// defaultClusterProvisioningIP is the fallback provisioning IP reachable from the
+	// cluster node (matches CLUSTER_PROVISIONING_IP / CLUSTER_BARE_METAL_PROVISIONER_IP).
+	defaultClusterProvisioningIP = "172.22.0.2"
+	osTypeCentos                 = "centos"
+	osTypeUbuntu                 = "ubuntu"
+	osTypeLeap                   = "opensuse-leap"
+	ironicSuffix                 = "-ironic"
 	// Out-of-service Taint test actions.
 	oostAdded   = "added"
 	oostRemoved = "removed"
