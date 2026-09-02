@@ -20,7 +20,7 @@ if [[ "${CAPM3RELEASEBRANCH}" == release-* ]]; then
 else
     export CAPM3RELEASE="v1.14.99"
     export IPAMRELEASE="v1.14.99"
-    export CAPI_RELEASE_PREFIX="v1.13."
+    export CAPI_RELEASE_PREFIX="v1.14."
 fi
 
 # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
@@ -65,7 +65,7 @@ export DATE
 # If CAPI_NIGHTLY_BUILD is true, it means that the tests are run against the
 # nightly build of CAPI components which are built from CAPI's main branch.
 if [[ "${CAPI_NIGHTLY_BUILD:-false}" == "true" ]]; then
-  export CAPIRELEASE="v1.13.99"
+  export CAPIRELEASE="v1.14.99"
   echo 'export CAPI_NIGHTLY_BUILD="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
 fi
 
@@ -198,18 +198,19 @@ yaml_envsubst() {
 BMO_OVERLAYS=(
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.12"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.13"
+  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.14"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/pr-test"
-  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-main"
 )
 IRSO_IRONIC_OVERLAYS=(
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-33.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-35.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-37.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/pr-test"
-  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/main"
 )
 IRSO_OPERATOR_OVERLAYS=(
-  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/operator/overlays/release-0.8.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/operator/overlays/release-0.9.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/operator/overlays/release-0.10.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/operator/overlays/release-0.11.0"
 )
 
 # Update BMO and Ironic images in kustomization.yaml files to use the same image that was used before pivot in the metal3-dev-env
