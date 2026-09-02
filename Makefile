@@ -472,8 +472,16 @@ lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Lint codebase
 	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 	cd $(APIS_DIR) && $(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yaml $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 
+.PHONY: kube-api-lint
 kube-api-lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Run kube-api-linter on the codebase
 	cd $(APIS_DIR) && $(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yaml $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+
+.PHONY: golangci
+golangci: $(GOLANGCI_LINT) ## Run golangci-lint over all modules (CI)
+	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
