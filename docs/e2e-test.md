@@ -100,13 +100,13 @@ The e2e tests use the following Kubernetes version variables:
 
 | Variable | Purpose | Example | Used In |
 |----------|---------|---------|---------|
-| `KUBERNETES_VERSION` | Latest/target Kubernetes version | v1.36.2 | All tests |
+| `KUBERNETES_VERSION` | Latest/target Kubernetes version | v1.37.0 | All tests |
 | `KUBERNETES_VERSION_UPGRADE_FROM` | Starting version for minor upgrades | v1.35.6 | k8s-upgrade, ip-reuse, scalability |
 | `KUBERNETES_VERSION_PATCH_TO` | Target version for patch upgrades | v1.35.6 | node-reuse (patch upgrade tests) |
-| `KUBERNETES_N0_VERSION` | Starting version for N+3 upgrade | v1.33.13 | k8s-upgrade-n3 |
-| `KUBERNETES_N1_VERSION` | N+1 version for N+3 upgrade | v1.34.9 | k8s-upgrade-n3 |
-| `KUBERNETES_N2_VERSION` | N+2 version for N+3 upgrade | v1.35.6 | k8s-upgrade-n3 |
-| `KUBERNETES_N3_VERSION` | N+3 target version for N+3 upgrade | v1.36.2 | k8s-upgrade-n3 |
+| `KUBERNETES_N0_VERSION` | Starting version for N+3 upgrade | v1.34.9 | k8s-upgrade-n3 |
+| `KUBERNETES_N1_VERSION` | N+1 version for N+3 upgrade | v1.35.6 | k8s-upgrade-n3 |
+| `KUBERNETES_N2_VERSION` | N+2 version for N+3 upgrade | v1.36.2 | k8s-upgrade-n3 |
+| `KUBERNETES_N3_VERSION` | N+3 target version for N+3 upgrade | v1.37.0 | k8s-upgrade-n3 |
 
 **Note:** KUBERNETES_VERSION_PATCH_TO is
 used only in node reuse test, we do this upgrade to make rollout happen to test
@@ -184,7 +184,11 @@ For example:
 
 Main branch k8s-upgrade tests:
 
-- `v1.35` => `v1.36`
+- `v1.36` => `v1.37`
+
+Release 1.14 branch k8s-ugprade test:
+
+- v1.36 => v1.37
 
 Release 1.13 branch k8s-upgrade test:
 
@@ -198,13 +202,13 @@ Release 1.11 branch k8s-upgrade test:
 
 - `v1.33` => `v1.34`
 
-When Kubernetes 1.37 is released, k8s-upgrade `v1.36` => `v1.37` will be
+When Kubernetes 1.38 is released, k8s-upgrade `v1.37` => `v1.38` will be
 supported in latest release branch and main branch.
 
 ### K8s N+3 upgrade tests
 
-Kubernetes N+3(v1.36) version upgrade in target control plane nodes.
-We start the test with version N(v1.33) and gradually upgrade the
+Kubernetes N+3(v1.37) version upgrade in target control plane nodes.
+We start the test with version N(v1.34) and gradually upgrade the
 target cluster control plane one by one for main branch. We are
 excluding the worker node upgrade and keep it to initial N version.
 When a new Kubernetes minor release is available, we will try to support
@@ -216,13 +220,11 @@ export GINKGO_FOCUS=k8s-upgrade-n3
 
 Main branch k8s-upgrade-n3 tests:
 
-- `v1.32` => `v1.33`
-
-- `v1.33` => `v1.34`
-
 - `v1.34` => `v1.35`
+- `v1.35` => `v1.36`
+- `v1.36` => `v1.37`
 
-When Kubernetes 1.36 is released, k8s-upgrade-n3 test will be updated accordingly.
+When Kubernetes 1.38 is released, k8s-upgrade-n3 test will be updated accordingly.
 
 ### Test matrix for n+3 k8s upgrade version
 
@@ -232,7 +234,7 @@ planes:
 <!-- markdownlint-disable MD013 -->
 | KUBERNETES_N0_VERSION | KUBERNETES_N1_VERSION | KUBERNETES_N2_VERSION | KUBERNETES_N3_VERSION |
 | --------------------- | --------------------- | --------------------- | --------------------- |
-|       1.33.13        |        1.34.9         |       1.35.6          |        v1.36.2        |
+|        1.34.9         |        1.35.6         |       1.36.2          |        v1.37.0        |
 <!-- markdownlint-enable MD013 -->
 
 ### K8s conformance tests
@@ -334,7 +336,7 @@ clusters:
 
 | tests               | bootstrap cluster | metal3 cluster init | metal3 cluster final |
 | ------------------- | ----------------- | --------------------| -------------------- |
-| integration         | v1.36.2           | v1.36.2             | x                    |
-| remediation         | v1.36.2           | v1.36.2             | x                    |
-| pivot based feature | v1.36.2           | v1.36.2             | v1.36.2              |
-| upgrade             | v1.36.2           | v1.36.2             | v1.36.2              |
+| integration         | v1.37.0           | v1.37.0             | x                    |
+| remediation         | v1.37.0           | v1.37.0             | x                    |
+| pivot based feature | v1.37.0           | v1.37.0             | v1.37.0              |
+| upgrade             | v1.37.0           | v1.37.0             | v1.37.0              |
