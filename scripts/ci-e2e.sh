@@ -136,6 +136,15 @@ source "${REPO_ROOT}/hack/ensure-kind.sh"
 # shellcheck source=./hack/ensure-kubectl.sh
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 
+# Deploy Grafana Alloy for log shipping.
+# Populate the CI labels from Jenkins' built-in env vars when available; they
+# fall back to local/0 for manual runs outside CI.
+ALLOY_KUBE_CONTEXT="$(kubectl config current-context 2>/dev/null || echo "")"
+export ALLOY_KUBE_CONTEXT
+export ALLOY_JOB="metal3ci"
+export ALLOY_PIPELINE_ID="${JOB_NAME:-local}"
+export ALLOY_BUILD_NUMBER="${BUILD_NUMBER:-0}"
+"${REPO_ROOT}/hack/log-collection/deploy-alloy.sh" || echo "WARN: Alloy deployment failed; continuing without log shipping." >&2
 # If running in-place-upgrade tests, ensure extension namespace and ssh key secret exist
 if [[ "${GINKGO_FOCUS:-}" == "in-place-upgrade" ]]; then
   EXT_NS="test-extension-system"
@@ -295,6 +304,9 @@ for overlay in "${BMO_OVERLAYS[@]}"; do
 done
 
 # run e2e tests
+echo "==> Final Alloy log check (before e2e)"
+kubectl -n monitoring logs -l app.kubernetes.io/name=alloy --tail=100 2>/dev/null || true
+
 if [[ -n "${CLUSTER_TOPOLOGY:-}" ]]; then
   export CLUSTER_TOPOLOGY=true
   make e2e-clusterclass-tests
