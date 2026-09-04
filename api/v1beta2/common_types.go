@@ -114,6 +114,15 @@ type Image struct {
 	// +kubebuilder:validation:Enum=raw;qcow2;vdi;vmdk;live-iso
 	// +optional
 	DiskFormat string `json:"diskFormat,omitempty"`
+
+	// ociAuthSecretName optionally names a Docker-config secret containing
+	// registry credentials for oci:// images. Must be in the same namespace
+	// as the BareMetalHost. Allowed types: kubernetes.io/dockerconfigjson|dockercfg.
+	// Only used when url has the oci:// scheme.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	OCIAuthSecretName *string `json:"ociAuthSecretName,omitempty"`
 }
 
 // Custom deploy is a description of a customized deploy process.
@@ -176,6 +185,10 @@ func (i *Image) Validate(base field.Path) field.ErrorList {
 			errors = append(errors, field.Forbidden(base.Child("ChecksumType"), "must be empty for OCI images"))
 		}
 		return errors
+	}
+
+	if i.OCIAuthSecretName != nil && *i.OCIAuthSecretName != "" {
+		errors = append(errors, field.Forbidden(base.Child("OCIAuthSecretName"), "must be empty for non-OCI images"))
 	}
 
 	// Checksum is not required for live-iso.

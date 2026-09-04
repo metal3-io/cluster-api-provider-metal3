@@ -1238,10 +1238,11 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 
 		if imageConfigured {
 			host.Spec.Image = &bmov1alpha1.Image{
-				URL:          m.Metal3Machine.Spec.Image.URL,
-				Checksum:     ptr.Deref(m.Metal3Machine.Spec.Image.Checksum, ""),
-				ChecksumType: bmov1alpha1.ChecksumType(m.Metal3Machine.Spec.Image.ChecksumType),
-				DiskFormat:   &m.Metal3Machine.Spec.Image.DiskFormat,
+				URL:               m.Metal3Machine.Spec.Image.URL,
+				Checksum:          ptr.Deref(m.Metal3Machine.Spec.Image.Checksum, ""),
+				ChecksumType:      bmov1alpha1.ChecksumType(m.Metal3Machine.Spec.Image.ChecksumType),
+				DiskFormat:        &m.Metal3Machine.Spec.Image.DiskFormat,
+				OCIAuthSecretName: m.Metal3Machine.Spec.Image.OCIAuthSecretName,
 			}
 		}
 		if customDeployConfigured {
