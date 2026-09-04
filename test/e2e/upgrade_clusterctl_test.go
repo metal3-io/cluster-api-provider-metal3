@@ -37,11 +37,11 @@ var (
 	managementClusterNamespace string
 )
 
-// Ironic 35.0 -> latest image tag.
-var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", Label("clusterctl-upgrade"), func() {
-	minorVersion := "1.13"
-	bmoFromRelease := "0.13"
-	ironicFromRelease := "35.0"
+// Ironic 37.0 -> latest image tag.
+var _ = Describe("When testing cluster upgrade from releases (v1.14=>current)", Label("clusterctl-upgrade"), func() {
+	minorVersion := "1.14"
+	bmoFromRelease := "0.14"
+	ironicFromRelease := "37.0"
 	bmoToRelease := "main"
 	ironicToRelease := "main"
 
@@ -102,11 +102,11 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 	})
 })
 
-// Ironic 33.0 -> latest image tag.
-var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", Label("clusterctl-upgrade"), func() {
-	minorVersion := "1.12"
-	bmoFromRelease := "0.12"
-	ironicFromRelease := "33.0"
+// Ironic 35.0 -> latest image tag.
+var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", Label("clusterctl-upgrade"), func() {
+	minorVersion := "1.13"
+	bmoFromRelease := "0.13"
+	ironicFromRelease := "35.0"
 	bmoToRelease := "main"
 	ironicToRelease := "main"
 
@@ -120,7 +120,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", 
 	var capiStableRelease string
 
 	BeforeEach(func() {
-		k8sVersion = "v1.36.2"
+		k8sVersion = "v1.37.0"
 		validateGlobals(specName)
 		imageURL, imageChecksum := EnsureImage(k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
