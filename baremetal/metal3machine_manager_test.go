@@ -1929,6 +1929,26 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectUserData: true,
 			},
 		),
+		Entry("OCI image with auth secret",
+			testCaseSetHostSpec{
+				UserDataNamespace:         "",
+				ExpectedUserDataNamespace: namespaceName,
+				OverrideImage: &infrav1.Image{
+					URL:               "oci://example.com/image:latest",
+					DiskFormat:        testImageDiskFormat,
+					OCIAuthSecretName: new("registry-creds"),
+				},
+				Host: newBareMetalHost("host2", nil, bmov1alpha1.StateNone,
+					nil, false, "metadata", false, "", false,
+				),
+				ExpectedImage: &bmov1alpha1.Image{
+					URL:               "oci://example.com/image:latest",
+					DiskFormat:        &testImageDiskFormat,
+					OCIAuthSecretName: new("registry-creds"),
+				},
+				ExpectUserData: true,
+			},
+		),
 		Entry("Non-OCI image with checksum and checksumType",
 			testCaseSetHostSpec{
 				UserDataNamespace:         "",

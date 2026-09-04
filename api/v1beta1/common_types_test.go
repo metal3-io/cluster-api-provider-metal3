@@ -121,6 +121,23 @@ func TestImageValidate(t *testing.T) {
 			ErrorExpected: true,
 			Name:          "OCI image with checksumType",
 		},
+		{
+			Image: Image{
+				URL:               "oci://example.com/image:latest",
+				OCIAuthSecretName: new("registry-creds"),
+			},
+			ErrorExpected: false,
+			Name:          "OCI image with ociAuthSecretName",
+		},
+		{
+			Image: Image{
+				URL:               "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+				Checksum:          "f7600f7a274d974a236c4da5161265859c32da93a7c8de6a77d560378a1384ef",
+				OCIAuthSecretName: new("registry-creds"),
+			},
+			ErrorExpected: true,
+			Name:          "non-OCI image with ociAuthSecretName",
+		},
 	}
 
 	for _, tc := range cases {
