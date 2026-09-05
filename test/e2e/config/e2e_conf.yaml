@@ -4,6 +4,7 @@
 # - control-plane kubeadm
 # - metal3
 
+managementClusterName: "${MANAGEMENT_CLUSTER_NAME:-capm3-e2e}"
 images:
 # Use local dev images built from the source tree;
 - name: quay.io/metal3-io/cluster-api-provider-metal3:latest
@@ -12,6 +13,8 @@ images:
   loadBehavior: mustLoad
 - name: quay.io/metal3-io/ip-address-manager:latest
   loadBehavior: mustLoad
+- name: quay.io/metal3-io/metal3-fkas:ci
+  loadBehavior: tryLoad
 
 providers:
 - name: cluster-api
@@ -298,7 +301,7 @@ variables:
   SCALE_SPEC_CONCURRENCY: 10
   IRONIC_NAMESPACE: "baremetal-operator-system"
   NAMEPREFIX: "baremetal-operator"
-  IRONIC_DATA_DIR: "${DEV_ENV_WORKING_DIR}/ironic"
+  IRONIC_DATA_DIR: "${IRONIC_DATA_DIR}"
   BMOPATH: "${M3PATH}/baremetal-operator"
   IRONIC_TLS_SETUP: "true"
   IRONIC_BASIC_AUTH: "true"
@@ -320,10 +323,11 @@ variables:
   # Default vars for the template, those values could be overridden by the env-vars.
   CAPI_VERSION: "v1beta2"
   CAPM3_VERSION: "${CAPM3_VERSION:-v1beta2}"
-  CONFIG_FILE_PATH: "${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
   SERVICE_CIDR: "10.96.0.0/12"
   POD_CIDR: "192.168.0.0/18"
   BARE_METAL_PROVISIONER_CIDR: "24"
+  BARE_METAL_PROVISIONER_INTERFACE: "ironicendpoint"
+  CLUSTER_BARE_METAL_PROVISIONER_IP: "172.22.0.2"
   CLUSTER_APIENDPOINT_HOST: "192.168.111.249"
   CLUSTER_APIENDPOINT_PORT: "6443"
   EXTERNAL_SUBNET_V4_PREFIX: "24"
@@ -352,6 +356,7 @@ variables:
   BMO_RELEASE_PR_TEST: "data/bmo-deployment/overlays/pr-test"
   BMO_RELEASE_MAIN: "data/bmo-deployment/overlays/release-main"
   FKAS_RELEASE_LATEST: "data/fkas"
+  FAKE_IPA_IMAGE: "${FAKE_IPA_IMAGE:-quay.io/metal3-io/fake-ipa:latest}"
   REPO_NAME: "${REPO_NAME:-cluster-api-provider-metal3}"
   EXP_MACHINE_TAINT_PROPAGATION: "true"
 
