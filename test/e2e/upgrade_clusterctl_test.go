@@ -42,8 +42,8 @@ var _ = Describe("When testing cluster upgrade from releases (v1.14=>current)", 
 	minorVersion := "1.14"
 	bmoFromRelease := "0.14"
 	ironicFromRelease := "37.0"
-	bmoToRelease := "main"
-	ironicToRelease := "main"
+	bmoToRelease := "latest"
+	ironicToRelease := "latest"
 
 	// Use the .99 versions available in the local artifact repository (built from
 	// release branch kustomize overlays in e2e_conf.yaml). The old clusterctl binary
@@ -107,8 +107,8 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 	minorVersion := "1.13"
 	bmoFromRelease := "0.13"
 	ironicFromRelease := "35.0"
-	bmoToRelease := "main"
-	ironicToRelease := "main"
+	bmoToRelease := "latest"
+	ironicToRelease := "latest"
 
 	// Use the .99 versions available in the local artifact repository (built from
 	// release branch kustomize overlays in e2e_conf.yaml). The old clusterctl binary
