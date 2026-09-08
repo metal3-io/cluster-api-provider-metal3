@@ -354,6 +354,8 @@ variables:
   FKAS_RELEASE_LATEST: "data/fkas"
   REPO_NAME: "${REPO_NAME:-cluster-api-provider-metal3}"
   EXP_MACHINE_TAINT_PROPAGATION: "true"
+  GOLDPINGER_IMAGE: "${GOLDPINGER_IMAGE:-docker.io/bloomberg/goldpinger:3.11.2@sha256:a1fb87c2e9d985b227f4a1d67996b4637e0c23068051bbd8cc7e98d55349f70c}"
+  GOLDPINGER_NAMESPACE: "${GOLDPINGER_NAMESPACE:-goldpinger}"
 
 intervals:
   default/wait-controllers: [ "10m", "10s" ]
@@ -390,5 +392,6 @@ intervals:
   default/wait-all-pod-to-be-running-on-target-cluster: [ "30m", "10s" ]
   default/wait-command: [ "2m", "10s" ]
   default/wait-delete-remediation-template: [ "5m", "10s" ]
+  default/wait-goldpinger: [ "5m", "10s" ]
   default/wait-resource-stabilize: [ "15m", "15s" ]
   default/wait-delete-ironic: [ "3m", "5s" ]
