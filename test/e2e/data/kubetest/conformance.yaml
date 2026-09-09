@@ -1,9 +1,11 @@
 ginkgo.focus: \[Conformance\]
 ginkgo.skip: \[Serial\]
-disable-log-dump: true
 ginkgo.flake-attempts: 3
 ginkgo.trace: true
 ginkgo.v: true
+# The kubetest harness hard-codes --dump-logs-on-failure=false; config flags are
+# appended after it, so this re-enables dumping failing-namespace pod logs (last flag wins).
+dump-logs-on-failure: true
 # Use 5m instead of the default 10m to fail faster
 # if kube-system Pods are not coming up.
 system-pods-startup-timeout: 5m
