@@ -168,9 +168,8 @@ in the bootstrap cluster either before pivoting or after re-pivoting.
 
 | tests          | CAPM3 from             | CAPM3 to  | CAPI from             | CAPI to         |
 | ---------------| ---------------------- | --------- | --------------------- |---------------- |
-| v1.12=>current | v1.12 latest patch     | main      | v1.12 latest patch    | latest release  |
-| v1.11=>current | v1.11 latest patch     | main      | v1.11 latest patch    | latest release  |
-| v1.10=>current | v1.10 latest patch     | main      | v1.10 latest patch    | latest release  |
+| v1.14=>current | v1.14 latest patch     | main      | v1.14 latest patch    | latest release  |
+| v1.13=>current | v1.13 latest patch     | main      | v1.13 latest patch    | latest release  |
 
 ### K8s upgrade tests
 
@@ -197,10 +196,6 @@ Release 1.13 branch k8s-upgrade test:
 Release 1.12 branch k8s-upgrade test:
 
 - `v1.34` => `v1.35`
-
-Release 1.11 branch k8s-upgrade test:
-
-- `v1.33` => `v1.34`
 
 When Kubernetes 1.38 is released, k8s-upgrade `v1.37` => `v1.38` will be
 supported in latest release branch and main branch.

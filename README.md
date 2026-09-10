@@ -38,6 +38,7 @@ Metal3.
 | v1beta1       | v1beta1             | v1.11.X       |  v1.11.X       |
 | v1beta1       | v1beta2             | v1.12.X       |  v1.12.X       |
 | v1beta2       | v1beta2             | v1.13.X       |  v1.13.X       |
+| v1beta2       | v1beta2             | v1.14.X       |  v1.14.X       |
 
 ## Deploying the metal3 provider
 
@@ -156,6 +157,13 @@ To trigger e2e tests on a PR, use the following phrases:
 - **/test metal3-centos-e2e-integration-test-main** runs integration e2e
   tests with CAPM3 API version v1beta2 and branch main on CentOS
 
+Release-1.14 branch:
+
+- **/test metal3-ubuntu-e2e-integration-test-release-1-14** runs integration e2e
+  tests with CAPM3 API version v1beta2 and branch release-1.14 on Ubuntu
+- **/test metal3-centos-e2e-integration-test-release-1-14** runs integration e2e
+  tests with CAPM3 API version v1beta2 and branch release-1.14 on CentOS
+
 Release-1.13 branch:
 
 - **/test metal3-ubuntu-e2e-integration-test-release-1-13** runs integration e2e
@@ -170,13 +178,6 @@ Release-1.12 branch:
 - **/test metal3-centos-e2e-integration-test-release-1-12** runs integration e2e
   tests with CAPM3 API version v1beta1 and branch release-1.12 on CentOS
 
-Release-1.11 branch:
-
-- **/test metal3-ubuntu-e2e-integration-test-release-1-11** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.11 on Ubuntu
-- **/test metal3-centos-e2e-integration-test-release-1-11** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.11 on CentOS
-
 ### Basic tests
 
 Unlike integration tests, basic tests focus on the target cluster creation
@@ -184,12 +185,12 @@ without involving pivoting from the bootstrap cluster. To run basic tests use:
 
 - **/test metal3-ubuntu-e2e-basic-test-main** runs basic e2e tests with main
   branch on Ubuntu
+- **/test metal3-centos-e2e-basic-test-release-1-14** runs basic e2e tests on
+  release-1.14 branch with CentOS
 - **/test metal3-centos-e2e-basic-test-release-1-13** runs basic e2e tests on
   release-1.13 branch with CentOS
 - **/test metal3-centos-e2e-basic-test-release-1-12** runs basic e2e tests on
   release-1.12 branch with CentOS
-- **/test metal3-centos-e2e-basic-test-release-1-11** runs basic e2e tests on
-  release-1.11 branch with CentOS
 
 ### Feature tests
 
@@ -207,6 +208,27 @@ On main branch:
   based feature tests with CAPM3 API version v1beta2 and branch main on CentOS
 - **/test metal3-centos-e2e-feature-test-main-features** runs e2e non pivot based
   feature tests with CAPM3 API version v1beta2 and branch main on CentOS
+
+Release-1.14 branch:
+
+- **/test metal3-ubuntu-e2e-feature-test-release-1-14-pivoting** runs e2e pivot
+  based feature tests with CAPM3 API version v1beta2 and branch release-1.14
+  on Ubuntu
+- **/test metal3-ubuntu-e2e-feature-test-release-1-14-remediation** runs e2e
+  remediation based feature tests with CAPM3 API version v1beta2 and branch
+  release-1.14 on Ubuntu
+- **/test metal3-ubuntu-e2e-feature-test-release-1-14-features** runs e2e non
+  pivot based feature tests with CAPM3 API version v1beta2 and branch release-1.14
+  on Ubuntu
+- **/test metal3-centos-e2e-feature-test-release-1-14-pivoting** runs e2e pivot
+  based feature tests with CAPM3 API version v1beta2 and branch release-1.14 on
+  CentOS
+- **/test metal3-centos-e2e-feature-test-release-1-14-remediation** runs e2e
+  remediation based feature tests with CAPM3 API version v1beta2 and branch
+  release-1.14 on CentOS
+- **/test metal3-centos-e2e-feature-test-release-1-14-features** runs e2e non
+  pivot based feature tests with CAPM3 API version v1beta2 and branch
+  release-1.14 on CentOS
 
 Release-1.13 branch:
 
@@ -250,27 +272,6 @@ Release-1.12 branch:
   pivot based feature tests with CAPM3 API version v1beta1 and branch
   release-1.12 on CentOS
 
-Release-1.11 branch:
-
-- **/test metal3-ubuntu-e2e-feature-test-release-1-11-pivoting** runs e2e pivot
-  based feature tests with CAPM3 API version v1beta1 and branch release-1.11
-  on Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-release-1-11-remediation** runs e2e
-  remediation based feature tests with CAPM3 API version v1beta1 and branch
-  release-1.11 on Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-release-1-11-features** runs e2e non
-  pivot based feature tests with CAPM3 API version v1beta1 and branch
-  release-1.11 on Ubuntu
-- **/test metal3-centos-e2e-feature-test-release-1-11-pivoting** runs e2e pivot
-  based feature tests with CAPM3 API version v1beta1 and branch release-1.11 on
-  CentOS
-- **/test metal3-centos-e2e-feature-test-release-1-11-remediation** runs e2e
-  remediation based feature tests with CAPM3 API version v1beta1 and branch
-  release-1.11 on CentOS
-- **/test metal3-centos-e2e-feature-test-release-1-11-features** runs e2e non
-  pivot based feature tests with CAPM3 API version v1beta1 and branch
-  release-1.11 on CentOS
-
 ### Upgrade tests
 
 #### Clusterctl upgrade tests
@@ -281,14 +282,14 @@ We run upgrade test on main branch from different releases:
 - **/test metal3-e2e-clusterctl-upgrade-test-main** runs e2e clusterctl
   upgrade tests on main with Ubuntu
 
+- **/test metal3-e2e-clusterctl-upgrade-test-release-1-14** runs e2e clusterctl
+  upgrade tests on release-1.14 with Ubuntu
+
 - **/test metal3-e2e-clusterctl-upgrade-test-release-1-13** runs e2e clusterctl
   upgrade tests on release-1.13 with Ubuntu
 
 - **/test metal3-e2e-clusterctl-upgrade-test-release-1-12** runs e2e clusterctl
   upgrade tests on release-1.12 with Ubuntu
-
-- **/test metal3-e2e-clusterctl-upgrade-test-release-1-11** runs e2e clusterctl
-  upgrade tests on release-1.11 with Ubuntu
 
 #### K8s upgrade tests
 
@@ -297,9 +298,9 @@ The trigger takes the format:
 `/test metal3-e2e-<from-minor-k8s-v>-<to-minor-k8s-v>-upgrade-test-<branch>`
 
 - **/test metal3-e2e-1-35-1-36-upgrade-test-main**
+- **/test metal3-e2e-1-36-1-37-upgrade-test-release-1-14**
 - **/test metal3-e2e-1-35-1-36-upgrade-test-release-1-13**
 - **/test metal3-e2e-1-34-1-35-upgrade-test-release-1-12**
-- **/test metal3-e2e-1-31-1-32-upgrade-test-release-1-11**
 
 Note:
 
