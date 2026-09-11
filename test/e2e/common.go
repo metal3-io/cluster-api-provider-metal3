@@ -1152,12 +1152,34 @@ func CreateTargetCluster(ctx context.Context, inputGetter func() CreateTargetClu
 		ListOptions: &client.ListOptions{LabelSelector: labels.Everything(), Namespace: "kube-system"},
 		Condition:   framework.PhasePodCondition(corev1.PodRunning),
 	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-all-pod-to-be-running-on-target-cluster")...)
+	// Deploy Alloy to the workload cluster.
+	deployAlloyToCluster(ctx, targetCluster, input.ClusterName)
+
 	return targetCluster, &result
+}
+
+func deployAlloyToCluster(ctx context.Context, cluster framework.ClusterProxy, clusterName string) {
+	alloyScript := filepath.Join(os.Getenv("CAPM3PATH"), "hack", "log-collection", "deploy-alloy.sh")
+
+	cmd := exec.CommandContext(ctx, alloyScript)
+	cmd.Env = append(os.Environ(),
+		"KUBECONFIG="+cluster.GetKubeconfigPath(),
+		"ALLOY_KUBE_CONTEXT=",
+		"ALLOY_CLUSTER_LABEL="+clusterName,
+	)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		Logf("WARN: Alloy deployment to workload cluster %q failed: %v\n%s", clusterName, err, string(output))
+		return
+	}
+	Logf("Alloy deployed to workload cluster %q", clusterName)
 }
 
 // TODO: This is now a thin wrapper around ApplyBMHs (plus a NUM_NODES slice and
 // a WaitForBMHsAvailable). Consider removing it and calling ApplyBMHs directly
 // from the callers to avoid the confusing indirection.
+// deployAlloyToCluster deploys Grafana Alloy to a workload cluster.
 func ApplyBmh(ctx context.Context, e2eConfig *clusterctl.E2EConfig, clusterProxy framework.ClusterProxy, clusterNamespace string, specName string) {
 	numNodes := int(*e2eConfig.MustGetInt32PtrVariable("NUM_NODES"))
 
