@@ -22,4 +22,5 @@ spec:
     extraKernelParams: "console=ttyS0"
   tls:
     certificateName: ironic-cert
+  extraConfig: ${IRONIC_EXTRA_CONFIG}
 ---
