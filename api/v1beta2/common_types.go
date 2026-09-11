@@ -114,6 +114,16 @@ type Image struct {
 	// +kubebuilder:validation:Enum=raw;qcow2;vdi;vmdk;live-iso
 	// +optional
 	DiskFormat string `json:"diskFormat,omitempty"`
+
+	// rootFSUUID identifies the root filesystem of a whole-disk image, by
+	// its filesystem UUID. Required by Ironic when deploying a whole-disk
+	// image onto a host with software RAID configured, so it can locate
+	// the root filesystem inside the assembled RAID array and correctly
+	// reinstall a RAID-aware bootloader. Not needed for plain (non-RAID)
+	// deploys, or for partition images.
+	// +optional
+	// +kubebuilder:validation:MaxLength=36
+	RootFSUUID *string `json:"rootFSUUID,omitempty"`
 }
 
 // Custom deploy is a description of a customized deploy process.
