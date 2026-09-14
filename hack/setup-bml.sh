@@ -135,6 +135,22 @@ ensure_libvirt_access() {
     return 0
   fi
 
+  # The daemon/socket may simply not be running yet. openSUSE Leap ships modular
+  # libvirt with the sockets disabled by default, so the virtqemud socket does
+  # not exist until started (vbmctl then fails with "virtqemud-sock: No such
+  # file or directory"). Try starting it before assuming a permissions problem.
+  if command -v systemctl &>/dev/null; then
+    echo "libvirt not reachable at ${uri}; attempting to start the daemon..."
+    if systemctl list-unit-files virtqemud.socket &>/dev/null; then
+      sudo systemctl enable --now virtqemud.socket virtnetworkd.socket virtstoraged.socket &>/dev/null || true
+    else
+      sudo systemctl enable --now libvirtd &>/dev/null || true
+    fi
+    if virsh -c "${uri}" uri &>/dev/null; then
+      return 0
+    fi
+  fi
+
   # Prefer the "libvirt" group, fall back to the legacy "libvirtd" group.
   local libvirt_group="libvirt"
   getent group libvirt &>/dev/null || libvirt_group="libvirtd"
@@ -159,9 +175,12 @@ EOF
 }
 ensure_libvirt_access
 
-# Create virtual bare metal lab (VMs, networks, BMC emulator, image server)
+# Create virtual bare metal lab (VMs, networks, BMC emulator, image server).
+# Run under sudo: vbmctl creates veth pairs (needs CAP_NET_ADMIN) and the setcap
+# file capability is ignored on workers that mount the workspace nosuid, giving
+# "operation not permitted". sudo guarantees the caps regardless of the mount.
 echo "Creating virtual bare metal lab with vbmctl..."
-"${VBMCTL}" -c "${VBMCTL_CONFIG}" create bml
+sudo "${VBMCTL}" -c "${VBMCTL_CONFIG}" create bml
 
 # Wait for the sushy-tools BMC emulator to become reachable on the provisioning
 # IP. sushy-tools may start before the provisioning bridge IP is assigned,
@@ -210,22 +229,19 @@ wait_for_sushy_tools() {
 }
 wait_for_sushy_tools
 
-# Docker's nftables FORWARD chain uses "policy drop" and only accepts traffic
-# on its own bridges (docker0, kind-bridge). Libvirt sets up NAT and forwarding
-# rules in a separate table (libvirt_network) but packets must also pass
-# Docker's filter chain. Add accept rules to Docker's DOCKER-USER chain
-# (the standard hook for user-defined overrides) for the libvirt bridges.
-echo "Adding nftables rules for VM internet access..."
-add_nft_rule() {
-  # Only add the rule if it doesn't already exist (makes the script idempotent).
-  if ! sudo nft list chain ip filter DOCKER-USER 2>/dev/null | grep -Fq -- "$*"; then
-    sudo nft add rule ip filter DOCKER-USER "$@"
-  fi
+# Docker's FORWARD chain defaults to drop, so allow the lab bridges through its
+# DOCKER-USER hook.
+echo "Adding firewall rules for VM internet access..."
+allow_bridge_forwarding() {
+  # $1 is the iptables direction flag (-i or -o), $2 the bridge name. Insert the
+  # rule only if it does not already exist (makes the script idempotent).
+  sudo iptables -C DOCKER-USER "$1" "$2" -j ACCEPT 2>/dev/null || \
+    sudo iptables -I DOCKER-USER "$1" "$2" -j ACCEPT
 }
-add_nft_rule iifname "${EXTERNAL_BRIDGE}" accept
-add_nft_rule oifname "${EXTERNAL_BRIDGE}" accept
-add_nft_rule iifname "${PROVISIONING_BRIDGE}" accept
-add_nft_rule oifname "${PROVISIONING_BRIDGE}" accept
+allow_bridge_forwarding -i "${EXTERNAL_BRIDGE}"
+allow_bridge_forwarding -o "${EXTERNAL_BRIDGE}"
+allow_bridge_forwarding -i "${PROVISIONING_BRIDGE}"
+allow_bridge_forwarding -o "${PROVISIONING_BRIDGE}"
 
 # On firewalld distros (CentOS/RHEL) the lab bridges land in the 'public' zone,
 # which REJECTs inbound traffic to host services (sushy :8000, image server :80),
