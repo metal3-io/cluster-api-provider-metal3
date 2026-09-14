@@ -58,8 +58,8 @@ download_kubectl()
 # on PATH when present so the upgrade actually takes effect.
 install_kubectl()
 {
-    if [[ "${OSTYPE}" != "linux-gnu"* ]]; then
-        echo "Automatic kubectl installation is only supported on linux-gnu"
+    if [[ "$(uname -s)" != "Linux" ]]; then
+        echo "Automatic kubectl installation is only supported on Linux"
         echo "Please install ${MINIMUM_KUBECTL_VERSION} or later manually."
         return 2
     fi
