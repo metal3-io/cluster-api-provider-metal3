@@ -354,7 +354,7 @@ func RePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	By("Reconfiguring provisioning network on the bootstrap cluster before repivoting Ironic")
 	provisioningIP := os.Getenv("CLUSTER_PROVISIONING_IP")
 	if provisioningIP == "" {
-		provisioningIP = "172.22.0.2"
+		provisioningIP = defaultClusterProvisioningIP
 	}
 	provisioningInterface := input.E2EConfig.MustGetVariable("BARE_METAL_PROVISIONER_INTERFACE")
 	ConfigureProvisioningNetwork(ctx, input.E2EConfig.ManagementClusterName, provisioningIP, provisioningInterface)
