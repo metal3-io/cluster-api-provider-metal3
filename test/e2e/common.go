@@ -65,7 +65,7 @@ const (
 	artifactoryURL         = "https://artifactory.nordix.org/artifactory/metal3/images/k8s"
 	imagesURL              = "http://172.22.0.1/images"
 	// defaultClusterProvisioningIP is the fallback provisioning IP reachable from the
-	// cluster node (matches CLUSTER_PROVISIONING_IP / CLUSTER_BARE_METAL_PROVISIONER_IP).
+	// cluster node (matches CLUSTER_PROVISIONING_IP).
 	defaultClusterProvisioningIP = "172.22.0.2"
 	osTypeCentos                 = "centos"
 	osTypeUbuntu                 = "ubuntu"

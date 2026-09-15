@@ -96,6 +96,7 @@ TEST_EXTENSION_IMG ?= $(REGISTRY)/test-extension:$(TAG)
 TAG ?= v1beta1
 BMO_TAG ?= capm3-$(TAG)
 FKAS_TAG ?= latest
+E2E_TAG ?= e2e
 ARCH ?= $(shell go env GOARCH)
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
 
@@ -644,6 +645,11 @@ docker-build-debug: ## Build the docker image for controller-manager with debug 
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
+.PHONY: docker-build-e2e
+docker-build-e2e: ## Build the CAPM3 controller image for e2e tests (loaded into the kind mgmt cluster by the test framework)
+	docker build --network=host \
+	--build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG):$(E2E_TAG)
+
 .PHONY: docker-build-fkas
 # Allow overriding this by setting CONTAINER_RUNTIME var
 CONTAINER_RUNTIME := $(if $(CONTAINER_RUNTIME),$(CONTAINER_RUNTIME),docker)
@@ -910,6 +916,7 @@ clean-e2e: ## Clean up e2e artifacts, kind clusters, and leftover resources
 		echo "Restoring e2e data overlays from snapshot..."; \
 		cp -a "$(ROOT_DIR)/_out/e2e-data-backup/bmo-deployment/." "$(ROOT_DIR)/test/e2e/data/bmo-deployment/"; \
 		cp -a "$(ROOT_DIR)/_out/e2e-data-backup/ironic-standalone-operator/." "$(ROOT_DIR)/test/e2e/data/ironic-standalone-operator/"; \
+		cp -a "$(ROOT_DIR)/_out/e2e-data-backup/infrastructure-metal3-overlays-main/." "$(ROOT_DIR)/test/e2e/data/infrastructure-metal3/overlays/main/"; \
 	fi
 	# Clean artifacts and temp files
 	rm -rf $(ROOT_DIR)/_out $(ROOT_DIR)/_artifacts /tmp/cni.yaml /tmp/target_cluster_logs /tmp/source_cluster_logs /tmp/manifests
