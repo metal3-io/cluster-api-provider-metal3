@@ -43,6 +43,18 @@ var _ = Describe("When testing integration", Label("integration"), func() {
 				Namespace:             namespace,
 			}
 		})
+		By("Running the BMH-to-Node label sync test")
+		LabelSync(ctx, func() LabelSyncInput {
+			return LabelSyncInput{
+				E2EConfig:             e2eConfig,
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				TargetClusterProxy:    targetCluster,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+				SpecName:              specName,
+			}
+		})
+
 		By("Pivot objects to target cluster")
 		Pivoting(ctx, func() PivotingInput {
 			return PivotingInput{
