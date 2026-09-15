@@ -108,6 +108,7 @@ var (
 	watchFilterValue                 string
 	logOptions                       = logs.NewOptions()
 	enableBMHNameBasedPreallocation  bool
+	enableCAPIIPAddressClaims        bool
 	managerOptions                   = flags.ManagerOptions{}
 	skipCRDMigrationPhases           []string
 )
@@ -229,6 +230,10 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	baremetal.EnableBMHNameBasedPreallocation = enableBMHNameBasedPreallocation
+	if v, ok := os.LookupEnv("ENABLE_CAPI_IPADDRESS_CLAIMS"); ok {
+		enableCAPIIPAddressClaims, _ = strconv.ParseBool(v)
+	}
+	baremetal.EnableCAPIIPAddressClaims = enableCAPIIPAddressClaims
 
 	setupChecks(mgr)
 	setupReconcilers(ctx, mgr)
@@ -264,6 +269,13 @@ func initFlags(fs *pflag.FlagSet) {
 		"enable-bmh-name-based-preallocation",
 		false,
 		"If set to true, it enables PreAllocation field to use Metal3IPClaim name structured with BaremetalHost and M3IPPool names",
+	)
+
+	fs.BoolVar(
+		&enableCAPIIPAddressClaims,
+		"enable-capi-ipaddress-claims",
+		false,
+		"If set to true, Metal3 IPPools will use CAPI IPAddressClaims instead of Metal3 IPClaims for IP allocation. This enables the deprecation path from Metal3 IPClaim/IPAddress to CAPI variants. Can also be set via ENABLE_CAPI_IPADDRESS_CLAIMS env var.",
 	)
 
 	fs.DurationVar(
