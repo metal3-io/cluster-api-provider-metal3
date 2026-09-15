@@ -43,7 +43,23 @@ updates:
     kubernetes:
       patterns: [ "k8s.io/*" ]
     capi:
-      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/api", "sigs.k8s.io/cluster-api/test" ]
+      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/*" ]
+    test:
+      patterns: [ "github.com/onsi/*" ]
+    controller-runtime:
+      patterns: [ "sigs.k8s.io/controller-runtime" ]
+    metal3:
+      patterns: [ "github.com/metal3-io/baremetal-operator/apis", "github.com/metal3-io/ip-address-manager/api" ]
+    golang-x:
+      patterns: [ "golang.org/x/*" ]
+    mock:
+      patterns: [ "go.uber.org/mock" ]
+    pflag:
+      patterns: [ "github.com/spf13/pflag" ]
+    go-logr:
+      patterns: [ "github.com/go-logr/*" ]
+    semver:
+      patterns: [ "github.com/blang/semver" ]
   ignore:
   # Ignore controller-runtime major and minor bumps as its upgraded manually.
   - dependency-name: "sigs.k8s.io/controller-runtime"
@@ -103,7 +119,23 @@ updates:
     kubernetes:
       patterns: [ "k8s.io/*" ]
     capi:
-      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/test" ]
+      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/*" ]
+    test:
+      patterns: [ "github.com/onsi/*" ]
+    controller-runtime:
+      patterns: [ "sigs.k8s.io/controller-runtime" ]
+    metal3:
+      patterns: [ "github.com/metal3-io/baremetal-operator/apis", "github.com/metal3-io/ip-address-manager/api" ]
+    golang-x:
+      patterns: [ "golang.org/x/*" ]
+    mock:
+      patterns: [ "go.uber.org/mock" ]
+    pflag:
+      patterns: [ "github.com/spf13/pflag" ]
+    go-logr:
+      patterns: [ "github.com/go-logr/*" ]
+    semver:
+      patterns: [ "github.com/blang/semver" ]
   ignore:
   # golang.org/x/* only releases minors no patches, so minors have to be allowed
   - dependency-name: "golang.org/x/*"
@@ -162,7 +194,23 @@ updates:
     kubernetes:
       patterns: [ "k8s.io/*" ]
     capi:
-      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/test" ]
+      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/*" ]
+    test:
+      patterns: [ "github.com/onsi/*" ]
+    controller-runtime:
+      patterns: [ "sigs.k8s.io/controller-runtime" ]
+    metal3:
+      patterns: [ "github.com/metal3-io/baremetal-operator/apis", "github.com/metal3-io/ip-address-manager/api" ]
+    golang-x:
+      patterns: [ "golang.org/x/*" ]
+    mock:
+      patterns: [ "go.uber.org/mock" ]
+    pflag:
+      patterns: [ "github.com/spf13/pflag" ]
+    go-logr:
+      patterns: [ "github.com/go-logr/*" ]
+    semver:
+      patterns: [ "github.com/blang/semver" ]
   ignore:
   # golang.org/x/* only releases minors no patches, so minors have to be allowed
   - dependency-name: "golang.org/x/*"
