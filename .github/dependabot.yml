@@ -80,28 +80,6 @@ updates:
 ## main branch config ends here
 
 ## release-1.14 branch config starts here
-- package-ecosystem: "github-actions"
-  directory: "/" # Location of package manifests
-  schedule:
-    interval: "monthly"
-    day: "tuesday"
-    time: "03:30" # 3.30am utc
-  target-branch: release-1.14
-  ## group all action bumps into single PR
-  groups:
-    github-actions:
-      patterns: [ "*" ]
-  ignore:
-  # Ignore major and minor bumps for release branch
-  - dependency-name: "*"
-    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
-  cooldown:
-    default-days: 3
-  commit-message:
-    prefix: ":seedling:"
-  labels:
-  - "ok-to-test"
-  # Go
 - package-ecosystem: "gomod"
   directories:
   - "/"
@@ -155,28 +133,6 @@ updates:
 ## release-1.14 branch config ends here
 
 ## release-1.13 branch config starts here
-- package-ecosystem: "github-actions"
-  directory: "/" # Location of package manifests
-  schedule:
-    interval: "monthly"
-    day: "tuesday"
-    time: "04:30" # 4.30am utc
-  target-branch: release-1.13
-  ## group all action bumps into single PR
-  groups:
-    github-actions:
-      patterns: [ "*" ]
-  ignore:
-  # Ignore major and minor bumps for release branch
-  - dependency-name: "*"
-    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
-  cooldown:
-    default-days: 3
-  commit-message:
-    prefix: ":seedling:"
-  labels:
-  - "ok-to-test"
-  # Go
 - package-ecosystem: "gomod"
   directories:
   - "/"
