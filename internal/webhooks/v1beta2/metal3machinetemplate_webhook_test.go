@@ -64,6 +64,26 @@ func TestMetal3MachineTemplateValidation(t *testing.T) {
 		},
 	}
 
+	validFDDataTemplates := valid.DeepCopy()
+	validFDDataTemplates.Spec.FailureDomainDataTemplates = []infrav1.FailureDomainDataTemplate{
+		{
+			FailureDomain: "rack1",
+			DataTemplate:  &infrav1.Metal3ObjectRef{Name: "m3dt-rack1", Namespace: "foo"},
+		},
+		{
+			FailureDomain: "rack2",
+			DataTemplate:  &infrav1.Metal3ObjectRef{Name: "m3dt-rack2"},
+		},
+	}
+
+	crossNamespaceFDDataTemplates := valid.DeepCopy()
+	crossNamespaceFDDataTemplates.Spec.FailureDomainDataTemplates = []infrav1.FailureDomainDataTemplate{
+		{
+			FailureDomain: "rack1",
+			DataTemplate:  &infrav1.Metal3ObjectRef{Name: "m3dt-rack1", Namespace: "other"},
+		},
+	}
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -93,6 +113,16 @@ func TestMetal3MachineTemplateValidation(t *testing.T) {
 			name:      "should succeed with customDeploy",
 			expectErr: false,
 			c:         validCustomDeploy,
+		},
+		{
+			name:      "should succeed with valid failureDomainDataTemplates",
+			expectErr: false,
+			c:         validFDDataTemplates,
+		},
+		{
+			name:      "should return error when failureDomainDataTemplates dataTemplate is cross-namespace",
+			expectErr: true,
+			c:         crossNamespaceFDDataTemplates,
 		},
 	}
 
