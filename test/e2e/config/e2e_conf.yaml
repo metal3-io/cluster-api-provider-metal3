@@ -7,7 +7,7 @@
 managementClusterName: "${MANAGEMENT_CLUSTER_NAME:-capm3-e2e}"
 images:
 # Use local dev images built from the source tree;
-- name: quay.io/metal3-io/cluster-api-provider-metal3:latest
+- name: ${REGISTRY}/localimages/cluster-api-provider-metal3:${E2E_TAG}
   loadBehavior: mustLoad
 - name: quay.io/metal3-io/baremetal-operator:latest
   loadBehavior: mustLoad
@@ -327,7 +327,7 @@ variables:
   POD_CIDR: "192.168.0.0/18"
   BARE_METAL_PROVISIONER_CIDR: "24"
   BARE_METAL_PROVISIONER_INTERFACE: "ironicendpoint"
-  CLUSTER_BARE_METAL_PROVISIONER_IP: "172.22.0.2"
+  CLUSTER_PROVISIONING_IP: "172.22.0.2"
   CLUSTER_APIENDPOINT_HOST: "192.168.111.249"
   CLUSTER_APIENDPOINT_PORT: "6443"
   EXTERNAL_SUBNET_V4_PREFIX: "24"
@@ -337,7 +337,7 @@ variables:
   IPAM_PROVISIONING_POOL_RANGE_START: "172.22.0.100"
   IPAM_PROVISIONING_POOL_RANGE_END: "172.22.0.200"
   EXTERNAL_SUBNET_V4_HOST: "192.168.111.1"
-  REGISTRY: "192.168.111.1:5000"
+  REGISTRY: "172.22.0.1:5000"
   IMAGE_CHECKSUM_TYPE: "sha256"
   IMAGE_USERNAME: "metal3"
   NODE_DRAIN_TIMEOUT: 0

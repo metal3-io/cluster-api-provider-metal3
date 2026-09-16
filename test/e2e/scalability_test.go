@@ -164,7 +164,7 @@ const fakeIPAContainerName = "fake-ipa"
 func launchFakeIPA() {
 	image := e2eConfig.MustGetVariable("FAKE_IPA_IMAGE")
 
-	provisionerIP := os.Getenv("CLUSTER_BARE_METAL_PROVISIONER_IP")
+	provisionerIP := os.Getenv("CLUSTER_PROVISIONING_IP")
 	if provisionerIP == "" {
 		provisionerIP = defaultClusterProvisioningIP
 	}

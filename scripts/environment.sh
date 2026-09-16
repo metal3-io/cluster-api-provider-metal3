@@ -147,16 +147,12 @@ if [ ! -f "${HOME}/.ssh/id_rsa" ]; then
 fi
 SSH_PUB_KEY_CONTENT=$(cat "$HOME/.ssh/id_rsa.pub")
 export SSH_PUB_KEY_CONTENT
-# The host that has images for provisioning, this should be in the
-# format of a URL host, e.g. with IPv6, it should be surrounded
-# by brackets
+# The host that serves provisioning images and the local e2e registry, in
+# URL-host format (e.g. IPv6 surrounded by brackets).
 export PROVISIONING_URL_HOST="172.22.0.1"
+# Ironic provisioning VIP. Defined once and aliased: different tests and
+# templates read it under either name.
 export CLUSTER_PROVISIONING_IP="172.22.0.2"
-export CLUSTER_URL_HOST="$CLUSTER_PROVISIONING_IP"
-
-export BARE_METAL_PROVISIONER_URL_HOST="172.22.0.1"
-export CLUSTER_BARE_METAL_PROVISIONER_IP="172.22.0.2"
-export CLUSTER_BARE_METAL_PROVISIONER_HOST="$CLUSTER_PROVISIONING_IP"
 
 # Ironic config vars
 export IRONIC_DATA_DIR="${IRONIC_DATA_DIR:-/opt/metal3/ironic/}"

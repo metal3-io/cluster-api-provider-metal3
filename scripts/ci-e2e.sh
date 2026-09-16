@@ -163,7 +163,14 @@ export IRONIC_BASIC_AUTH="${IRONIC_BASIC_AUTH:-true}"
 export IRONIC_TLS_SETUP="${IRONIC_TLS_SETUP:-true}"
 export IRONIC_KEEPALIVED="${IRONIC_KEEPALIVED:-true}"
 export IRONIC_USE_MARIADB="${IRONIC_USE_MARIADB:-false}"
-export REGISTRY="${REGISTRY:-172.22.0.1:5000}"
+# Local registry for the CAPM3 e2e image. Host comes from PROVISIONING_URL_HOST
+# (scripts/environment.sh) so both the kind cluster and the bare metal nodes can
+# reach it on the provisioning network; port defaults to 5000.
+export REGISTRY_PORT="${REGISTRY_PORT:-5000}"
+export REGISTRY="${REGISTRY:-${PROVISIONING_URL_HOST}:${REGISTRY_PORT}}"
+# Tag for the locally built CAPM3 image published to ${REGISTRY} (kept in sync
+# with the Makefile E2E_TAG default and the e2e_conf.yaml mustLoad entry).
+export E2E_TAG="${E2E_TAG:-e2e}"
 if [[ "${CAPM3RELEASEBRANCH}" == "main" ]]; then
   export BARE_METAL_OPERATOR_IMAGE="${BARE_METAL_OPERATOR_IMAGE:-quay.io/metal3-io/baremetal-operator:main}"
   export IRONIC_IMAGE="${IRONIC_IMAGE:-quay.io/metal3-io/ironic:main}"
@@ -179,7 +186,6 @@ fi
 
 # Provisioning network vars (previously set by metal3-dev-env)
 export CLUSTER_PROVISIONING_IP="${CLUSTER_PROVISIONING_IP:-172.22.0.2}"
-export CLUSTER_BARE_METAL_PROVISIONER_IP="${CLUSTER_BARE_METAL_PROVISIONER_IP:-172.22.0.2}"
 export CLUSTER_DHCP_RANGE_START="${CLUSTER_DHCP_RANGE_START:-172.22.0.10}"
 export CLUSTER_DHCP_RANGE_END="${CLUSTER_DHCP_RANGE_END:-172.22.0.100}"
 export BARE_METAL_PROVISIONER_NETWORK="${BARE_METAL_PROVISIONER_NETWORK:-172.22.0.0/24}"
@@ -246,6 +252,7 @@ rm -rf "${E2E_DATA_BACKUP_DIR}"
 mkdir -p "${E2E_DATA_BACKUP_DIR}"
 cp -a "${REPO_ROOT}/test/e2e/data/bmo-deployment" "${E2E_DATA_BACKUP_DIR}/bmo-deployment"
 cp -a "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator" "${E2E_DATA_BACKUP_DIR}/ironic-standalone-operator"
+cp -a "${REPO_ROOT}/test/e2e/data/infrastructure-metal3/overlays/main" "${E2E_DATA_BACKUP_DIR}/infrastructure-metal3-overlays-main"
 
 # Update BMO image in overlays
 case "${REPO_NAME:-}" in
@@ -258,6 +265,11 @@ case "${REPO_NAME:-}" in
 esac
 
 update_kustomize_image quay.io/metal3-io/baremetal-operator BARE_METAL_OPERATOR_IMAGE "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
+
+# Build and publish(local) the CAPM3 controller image for the e2e tests.
+export CAPM3_E2E_IMAGE="${REGISTRY}/localimages/cluster-api-provider-metal3:${E2E_TAG}"
+"${REPO_ROOT}/hack/build-e2e-image.sh"
+update_kustomize_image quay.io/metal3-io/cluster-api-provider-metal3 CAPM3_E2E_IMAGE "${REPO_ROOT}/test/e2e/data/infrastructure-metal3/overlays/main"
 
 # Apply envsubst to kustomization.yaml files in BMO and Ironic overlays
 yaml_envsubst "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
