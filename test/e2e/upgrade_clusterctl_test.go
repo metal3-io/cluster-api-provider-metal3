@@ -44,7 +44,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", 
 	BeforeEach(func() {
 		k8sVersion = "v1.34.9"
 		validateGlobals(specName)
-		imageURL, imageChecksum := EnsureImage(k8sVersion)
+		imageURL, imageChecksum := EnsureImage(e2eConfig, k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
@@ -102,7 +102,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.10=>current)", 
 	BeforeEach(func() {
 		k8sVersion = "v1.34.9"
 		validateGlobals(specName)
-		imageURL, imageChecksum := EnsureImage(k8sVersion)
+		imageURL, imageChecksum := EnsureImage(e2eConfig, k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
