@@ -99,7 +99,7 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	kcpBmhBeforeUpgrade := getProvisionedBmhNames(ctx, input.Namespace, clusterClient)
 
 	By("Download image [node_reuse]")
-	imageURL, imageChecksum := EnsureImage(toK8sVersion)
+	imageURL, imageChecksum := EnsureImage(input.E2EConfig, toK8sVersion)
 
 	By("Set nodeReuse field to 'True' and create new KCP Metal3MachineTemplate with upgraded image to boot [node_reuse]")
 	m3MachineTemplateName := input.ClusterName + "-controlplane"

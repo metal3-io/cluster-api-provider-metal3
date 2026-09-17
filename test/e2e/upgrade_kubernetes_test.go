@@ -117,7 +117,7 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 
 	// Download node image
 	By("Download image")
-	imageURL, imageChecksum := EnsureImage(upgradedK8sVersion)
+	imageURL, imageChecksum := EnsureImage(input.E2EConfig, upgradedK8sVersion)
 
 	By("Create new KCP Metal3MachineTemplate with upgraded image to boot")
 	m3MachineTemplateName := clusterName + "-controlplane"

@@ -17,7 +17,7 @@ var _ = Describe("When testing K8S conformance", Label("k8s-conformance"), func(
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
 		k8sVersion := e2eConfig.MustGetVariable("KUBERNETES_VERSION")
-		imageURL, imageChecksum := EnsureImage(k8sVersion)
+		imageURL, imageChecksum := EnsureImage(e2eConfig, k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
