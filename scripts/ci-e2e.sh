@@ -191,6 +191,32 @@ export CLUSTER_DHCP_RANGE_END="${CLUSTER_DHCP_RANGE_END:-172.22.0.100}"
 export BARE_METAL_PROVISIONER_NETWORK="${BARE_METAL_PROVISIONER_NETWORK:-172.22.0.0/24}"
 export BARE_METAL_PROVISIONER_CIDR="${BARE_METAL_PROVISIONER_CIDR:-24}"
 export BARE_METAL_PROVISIONER_INTERFACE="${BARE_METAL_PROVISIONER_INTERFACE:-ironicendpoint}"
+# IP of vbmctl's image server (hack/setup-bml.sh), which serves
+# IRONIC_DATA_DIR/html on the provisioning network. Node images already use it
+# (see imagesURL in test/e2e/common.go); IPA reuses it below.
+export PROVISIONING_IP="${PROVISIONING_IP:-172.22.0.1}"
+
+## --- IPA (Ironic Python Agent) local caching ---
+# A single e2e job can install/reinstall Ironic (and thus its IPA downloader
+# init container) several times — e.g. bootstrap cluster, pivoted target
+# cluster, ironic version upgrades — each getting a fresh, empty shared volume.
+# Without a local cache, every one of those installs would hit the upstream
+# server again for the exact same file. Download it once here into vbmctl's
+# image server data dir, and point every Ironic instance at that local copy
+# instead (IPA_BASEURI, exported below).
+IPA_UPSTREAM_BASEURI="https://tarballs.opendev.org/openstack/ironic-python-agent/dib"
+IPA_FLAVOR="${IPA_FLAVOR:-centos9}"
+IPA_FILENAME="ipa-${IPA_FLAVOR}-$(echo "${IPA_BRANCH:-master}" | tr / -).tar.gz"
+
+mkdir -p "${IRONIC_DATA_DIR}/html"
+for ipa_asset in "${IPA_FILENAME}" "${IPA_FILENAME}.sha256"; do
+  if [[ ! -f "${IRONIC_DATA_DIR}/html/${ipa_asset}" ]]; then
+    echo "Downloading ${ipa_asset} from upstream (cached locally for the rest of this job)..."
+    wget --no-verbose -P "${IRONIC_DATA_DIR}/html/" "${IPA_UPSTREAM_BASEURI}/${ipa_asset}"
+  fi
+done
+
+export IPA_BASEURI="http://${PROVISIONING_IP}"
 
 update_kustomize_image() {
   local image_name="$1"
