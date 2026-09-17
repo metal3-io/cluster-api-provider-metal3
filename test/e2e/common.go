@@ -62,7 +62,6 @@ const (
 	paused         vmState = "paused"
 	shutoff        vmState = "shutoff"
 	other          vmState = "other"
-	artifactoryURL         = "https://artifactory.nordix.org/artifactory/metal3/images/k8s"
 	imagesURL              = "http://172.22.0.1/images"
 	ironicImageDir         = "/opt/metal3-dev-env/ironic/html/images"
 	osTypeCentos           = "centos"
@@ -199,21 +198,29 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 	}
 }
 
-func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
+// EnsureImage makes sure that the node image for the given OS (from the $OS
+// environment variable) and Kubernetes version is available locally, downloading
+// and converting it if needed. The source URL to download the qcow2 image from is
+// read from the e2e config variable "NODE_IMAGE_URL_<OS>_<k8sVersion>", e.g.
+// "NODE_IMAGE_URL_UBUNTU_v1.37.0".
+func EnsureImage(e2eConfig *clusterctl.E2EConfig, k8sVersion string) (imageURL string, imageChecksum string) {
 	osType := strings.ToLower(os.Getenv("OS"))
 	Expect(osType).To(BeElementOf([]string{osTypeUbuntu, osTypeCentos, osTypeLeap}))
 	imageNamePrefix := ""
+	osVarName := ""
 	switch osType {
 	case osTypeCentos:
 		imageNamePrefix = "CENTOS_10_NODE_IMAGE_K8S"
+		osVarName = "CENTOS"
 	case osTypeUbuntu:
 		imageNamePrefix = "UBUNTU_24.04_NODE_IMAGE_K8S"
+		osVarName = "UBUNTU"
 	case osTypeLeap:
 		imageNamePrefix = "LEAP_15_6_NODE_IMAGE_K8S"
+		osVarName = "LEAP"
 	}
 	imageName := fmt.Sprintf("%s_%s.qcow2", imageNamePrefix, k8sVersion)
 	rawImageName := fmt.Sprintf("%s_%s-raw.img", imageNamePrefix, k8sVersion)
-	imageLocation := fmt.Sprintf("%s_%s/", artifactoryURL, k8sVersion)
 	imageURL = fmt.Sprintf("%s/%s", imagesURL, rawImageName)
 	imageChecksum = fmt.Sprintf("%s/%s.sha256sum", imagesURL, rawImageName)
 
@@ -224,7 +231,11 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 		Logf("Local image %v already exists", rawImagePath)
 	} else if os.IsNotExist(err) {
 		Logf("Local image %v is not found \nDownloading..", rawImagePath)
-		err = DownloadFile(imagePath, fmt.Sprintf("%s/%s", imageLocation, imageName))
+		sourceURLVarName := fmt.Sprintf("NODE_IMAGE_URL_%s_%s", osVarName, k8sVersion)
+		Expect(e2eConfig.HasVariable(sourceURLVarName)).To(BeTrue(), "no node image source URL configured for OS %q and Kubernetes version %q; expected variable %q to be set in the e2e config", osType, k8sVersion, sourceURLVarName)
+		sourceURL := e2eConfig.GetVariableOrEmpty(sourceURLVarName)
+		Expect(sourceURL).ToNot(BeEmpty(), "node image source URL for OS %q and Kubernetes version %q (variable %q) is a placeholder and has not been published yet", osType, k8sVersion, sourceURLVarName)
+		err = DownloadFile(imagePath, sourceURL)
 		Expect(err).ToNot(HaveOccurred())
 		cmd := exec.CommandContext(context.Background(), "qemu-img", "convert", "-O", "raw", imagePath, rawImagePath) // #nosec G204:gosec
 		err = cmd.Run()
@@ -1082,7 +1093,7 @@ type CreateTargetClusterInput struct {
 func CreateTargetCluster(ctx context.Context, inputGetter func() CreateTargetClusterInput) (framework.ClusterProxy, *clusterctl.ApplyClusterTemplateAndWaitResult) {
 	By("Creating a high available cluster")
 	input := inputGetter()
-	imageURL, imageChecksum := EnsureImage(input.K8sVersion)
+	imageURL, imageChecksum := EnsureImage(input.E2EConfig, input.K8sVersion)
 	os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 	os.Setenv("IMAGE_RAW_URL", imageURL)
 	controlPlaneMachineCount := input.KCPMachineCount
@@ -1318,7 +1329,7 @@ func UpgradeControlPlane(ctx context.Context, inputGetter func() UpgradeControlP
 	// Upgrade process starts here
 	// Download node image
 	By("Download image")
-	imageURL, imageChecksum := EnsureImage(k8sToVersion)
+	imageURL, imageChecksum := EnsureImage(e2eConfig, k8sToVersion)
 
 	By("Create new KCP Metal3MachineTemplate with upgraded image to boot")
 	m3MachineTemplateName := clusterName + "-controlplane"
