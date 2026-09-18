@@ -4,10 +4,9 @@ kind: Kustomization
 resources:
 - ../../../../../../config/default
 
-# The CAPM3 image is injected at e2e runtime by scripts/ci-e2e.sh
-# (kustomize edit set image -> ${REGISTRY}/localimages/cluster-api-provider-metal3:e2e),
-# so the run tests the code in this tree. Standalone kustomize build keeps the
-# config/default :main image.
+# scripts/ci-e2e.sh injects the local e2e image here (kustomize edit set image),
+# keeping ${REGISTRY} in sync with the kubeadm registries.conf and e2e_conf.yaml.
+# Standalone kustomize build falls back to the config/default :main image
 patches:
 - patch: |
     # Extend default with TLS 1.3 hardening.
