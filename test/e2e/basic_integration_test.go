@@ -40,6 +40,18 @@ var _ = Describe("When testing basic cluster creation", Label("basic"), func() {
 				Namespace:             namespace,
 			}
 		})
+
+		By("Running the BMH-to-Node label sync test")
+		LabelSync(ctx, func() LabelSyncInput {
+			return LabelSyncInput{
+				E2EConfig:             e2eConfig,
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				TargetClusterProxy:    targetCluster,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+				SpecName:              specName,
+			}
+		})
 	})
 
 	AfterEach(func() {
