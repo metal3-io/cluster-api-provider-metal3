@@ -22,6 +22,10 @@ KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-capm3}"
 
 if [[ "$(kind get clusters)" =~ .*"${KIND_CLUSTER_NAME}".* ]]; then
     echo "cluster already exists, moving on"
+    # Deploy Alloy on existing clusters
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    export ALLOY_KUBE_CONTEXT="kind-${KIND_CLUSTER_NAME}"
+    "${SCRIPT_DIR}/log-collection/deploy-alloy.sh" || echo "WARN: Alloy deployment failed; continuing without log shipping." >&2
     exit 0
 fi
 
@@ -76,3 +80,8 @@ if [ "${kind_network}" != "bridge" ]; then
         docker network connect "${kind_network}" "${reg_name}" || true
     fi
 fi
+
+# Deploy Grafana Alloy for log shipping
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export ALLOY_KUBE_CONTEXT="kind-${KIND_CLUSTER_NAME}"
+"${SCRIPT_DIR}/log-collection/deploy-alloy.sh" || echo "WARN: Alloy deployment failed; continuing without log shipping." >&2
