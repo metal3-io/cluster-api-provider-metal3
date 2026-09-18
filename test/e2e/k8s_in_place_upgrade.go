@@ -53,7 +53,7 @@ func InPlaceUpgrade(ctx context.Context, inputGetter func() InPlaceUpgradeInput)
 
 	// Download and ensure node image is available locally
 	By("Download and ensure image is available locally")
-	imageURL, imageChecksum := EnsureImage(upgradedK8sVersion)
+	imageURL, imageChecksum := EnsureImage(input.E2EConfig, upgradedK8sVersion)
 
 	Logf("Image URL: %s", imageURL)
 	Logf("Image Checksum: %s", imageChecksum)

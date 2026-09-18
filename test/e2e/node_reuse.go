@@ -51,7 +51,6 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	)
 
 	const (
-		artifactoryURL = "https://artifactory.nordix.org/artifactory/metal3/images/k8s"
 		imagesURL      = "http://172.22.0.1/images"
 		ironicImageDir = "/opt/metal3-dev-env/ironic/html/images"
 		nodeReuseLabel = "infrastructure.cluster.x-k8s.io/node-reuse"
@@ -102,7 +101,7 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	kcpBmhBeforeUpgrade := getProvisionedBmhNamesUuids(ctx, input.Namespace, clusterClient)
 
 	By("Download image [node_reuse]")
-	imageURL, imageChecksum := EnsureImage(toK8sVersion)
+	imageURL, imageChecksum := EnsureImage(input.E2EConfig, toK8sVersion)
 
 	By("Set nodeReuse field to 'True' and create new KCP Metal3MachineTemplate with upgraded image to boot [node_reuse]")
 	m3MachineTemplateName := input.ClusterName + "-controlplane"
