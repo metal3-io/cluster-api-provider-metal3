@@ -38,7 +38,7 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 
 	// Download node image
 	Byf("Download image %s", toK8sVersion)
-	imageURL, imageChecksum := EnsureImage(toK8sVersion)
+	imageURL, imageChecksum := EnsureImage(input.E2EConfig, toK8sVersion)
 
 	// Upgrade KCP
 	By("Create new KCP Metal3MachineTemplate with upgraded image to boot")

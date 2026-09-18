@@ -277,6 +277,25 @@ variables:
   IRSO_IRONIC_35.0: "data/ironic-standalone-operator/ironic/overlays/release-35.0"
   IRSO_IRONIC_37.0: "data/ironic-standalone-operator/ironic/overlays/release-37.0"
   IRSO_IRONIC_PR_TEST: "data/ironic-standalone-operator/ironic/overlays/pr-test"
+
+  # Node image source URLs, keyed by OS and Kubernetes version as
+  # "NODE_IMAGE_URL_<OS>_<KUBERNETES_VERSION>". These point at the qcow2 image
+  # to download for EnsureImage (see test/e2e/common.go).
+  NODE_IMAGE_URL_UBUNTU_v1.37.0: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/EouRmQcJMDYxa9w3a5niS-nQ3sT13ztwSTZIG-5DOWYpm9iumKmi7OTsdEU1A8DS/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/UBUNTU_24.04_NODE_IMAGE_K8S_v1.37.0.qcow2"
+  # TODO: Add the URL once an image is published for this version.
+  NODE_IMAGE_URL_UBUNTU_v1.36.2: ""
+  # TODO: Add the URL once an image is published for this version.
+  NODE_IMAGE_URL_UBUNTU_v1.34.1: ""
+  NODE_IMAGE_URL_CENTOS_v1.37.0: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/qBVVBPA7b72OTvcnLaKDkn7N4_YmWeVlBvaIsEnzX9EHGqBXQZyFxG15piXNjYot/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/CENTOS_10_NODE_IMAGE_K8S_v1.37.0.qcow2"
+  # TODO: Add the URL once an image is published for this version.
+  NODE_IMAGE_URL_CENTOS_v1.36.2: ""
+  # TODO: Add the URL once an image is published for this version.
+  NODE_IMAGE_URL_CENTOS_v1.34.1: ""
+  NODE_IMAGE_URL_LEAP_v1.37.0: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/GcnMwhSDRk_PwFkJKuiwF1Fa2CdmikeY-lktiV4isnojwjXoEwETHc-GFqQOKoxW/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/LEAP_15_6_NODE_IMAGE_K8S_v1.37.0.qcow2"
+  # TODO: Add the URL once Leap images are published at the new location.
+  NODE_IMAGE_URL_LEAP_v1.36.2: ""
+  # TODO: Add the URL once Leap images are published at the new location.
+  NODE_IMAGE_URL_LEAP_v1.34.1: ""
   BMO_RELEASE_0.12: "data/bmo-deployment/overlays/release-0.12"
   BMO_RELEASE_0.13: "data/bmo-deployment/overlays/release-0.13"
   BMO_RELEASE_0.14: "data/bmo-deployment/overlays/release-0.14"
