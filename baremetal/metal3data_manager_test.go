@@ -6359,3 +6359,284 @@ var _ = Describe("Metal3Data manager DNS from IPPool", func() {
 		}),
 	)
 })
+
+var _ = Describe("Metal3Data manager with EnableCAPIIPAddressClaims", func() {
+	BeforeEach(func() {
+		EnableCAPIIPAddressClaims = true
+	})
+
+	AfterEach(func() {
+		EnableCAPIIPAddressClaims = false
+	})
+
+	type testCaseCAPIClaimsRouting struct {
+		m3dtSpec        infrav1.Metal3DataTemplateSpec
+		ipClaims        []*capipamv1.IPAddressClaim
+		ipAddresses     []*capipamv1.IPAddress
+		ipPools         []*ipamv1.IPPool
+		expectError     bool
+		expectRequeue   bool
+		expectedAddress map[string]AddressFromPool
+	}
+
+	DescribeTable("Test getAddressesFromPool routes Metal3 pool refs through CAPI claims",
+		func(tc testCaseCAPIClaimsRouting) {
+			objects := make([]client.Object, 0, len(tc.ipClaims)+len(tc.ipAddresses)+len(tc.ipPools))
+			for _, claim := range tc.ipClaims {
+				objects = append(objects, claim)
+			}
+			for _, addr := range tc.ipAddresses {
+				objects = append(objects, addr)
+			}
+			for _, pool := range tc.ipPools {
+				objects = append(objects, pool)
+			}
+			m3d := &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
+					Template: testMetal3ObjectReference(metal3DataTemplateName),
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Metal3Data",
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			}
+			m3dt := infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
+				Spec:       tc.m3dtSpec,
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			dataMgr, err := NewDataManager(fakeClient, m3d,
+				logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			poolAddresses, err := dataMgr.getAddressesFromPool(context.TODO(), m3dt, nil, nil, nil)
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+				Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
+			} else if tc.expectRequeue {
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			if tc.expectedAddress != nil {
+				Expect(poolAddresses).To(Equal(tc.expectedAddress))
+			}
+		},
+		Entry("Metal3 pool ref creates CAPI claim and requeues when not fulfilled", testCaseCAPIClaimsRouting{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					IPAddressesFromPool: []infrav1.FromPool{
+						{
+							Key:  "Address-1",
+							Name: testPoolName,
+						},
+					},
+				},
+				NetworkData: &infrav1.NetworkData{},
+			},
+			expectRequeue: true,
+		}),
+		Entry("Metal3 pool ref with fulfilled CAPI claim returns address with DNS from IPPool", testCaseCAPIClaimsRouting{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					IPAddressesFromPool: []infrav1.FromPool{
+						{
+							Key:  "Address-1",
+							Name: testPoolName,
+						},
+					},
+				},
+				NetworkData: &infrav1.NetworkData{},
+			},
+			ipClaims: []*capipamv1.IPAddressClaim{
+				{
+					ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
+					Spec: capipamv1.IPAddressClaimSpec{
+						PoolRef: capipamv1.IPPoolReference{
+							Name:     testPoolName,
+							APIGroup: "ipam.metal3.io",
+							Kind:     "IPPool",
+						},
+					},
+					Status: capipamv1.IPAddressClaimStatus{
+						AddressRef: capipamv1.IPAddressReference{
+							Name: "test-ip-192.168.0.10",
+						},
+					},
+				},
+			},
+			ipAddresses: []*capipamv1.IPAddress{
+				{
+					ObjectMeta: testObjectMeta("test-ip-192.168.0.10", namespaceName, ""),
+					Spec: capipamv1.IPAddressSpec{
+						Address: "192.168.0.10",
+						Prefix:  ptr.To(int32(24)),
+						Gateway: "192.168.0.1",
+					},
+				},
+			},
+			ipPools: []*ipamv1.IPPool{
+				{
+					ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+					Spec: ipamv1.IPPoolSpec{
+						DNSServers: []ipamv1.IPAddressStr{"8.8.8.8", "8.8.4.4"},
+						NamePrefix: "test",
+						Pools: []ipamv1.Pool{
+							{
+								Subnet: (*ipamv1.IPSubnetStr)(ptr.To("192.168.0.0/24")),
+							},
+						},
+					},
+				},
+			},
+			expectedAddress: map[string]AddressFromPool{
+				testPoolName: {
+					Address:    ipamv1.IPAddressStr("192.168.0.10"),
+					Prefix:     ptr.To(int32(24)),
+					Gateway:    ipamv1.IPAddressStr("192.168.0.1"),
+					dnsServers: []ipamv1.IPAddressStr{"8.8.8.8", "8.8.4.4"},
+				},
+			},
+		}),
+		Entry("Metal3 pool ref with fulfilled CAPI claim returns per-subnet DNS override", testCaseCAPIClaimsRouting{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					IPAddressesFromPool: []infrav1.FromPool{
+						{
+							Key:  "Address-1",
+							Name: testPoolName,
+						},
+					},
+				},
+				NetworkData: &infrav1.NetworkData{},
+			},
+			ipClaims: []*capipamv1.IPAddressClaim{
+				{
+					ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
+					Spec: capipamv1.IPAddressClaimSpec{
+						PoolRef: capipamv1.IPPoolReference{
+							Name:     testPoolName,
+							APIGroup: "ipam.metal3.io",
+							Kind:     "IPPool",
+						},
+					},
+					Status: capipamv1.IPAddressClaimStatus{
+						AddressRef: capipamv1.IPAddressReference{
+							Name: "test-ip-10.0.1.50",
+						},
+					},
+				},
+			},
+			ipAddresses: []*capipamv1.IPAddress{
+				{
+					ObjectMeta: testObjectMeta("test-ip-10.0.1.50", namespaceName, ""),
+					Spec: capipamv1.IPAddressSpec{
+						Address: "10.0.1.50",
+						Prefix:  ptr.To(int32(24)),
+						Gateway: "10.0.1.1",
+					},
+				},
+			},
+			ipPools: []*ipamv1.IPPool{
+				{
+					ObjectMeta: testObjectMeta(testPoolName, namespaceName, ""),
+					Spec: ipamv1.IPPoolSpec{
+						DNSServers: []ipamv1.IPAddressStr{"8.8.8.8"},
+						NamePrefix: "test",
+						Pools: []ipamv1.Pool{
+							{
+								Start:      (*ipamv1.IPAddressStr)(ptr.To("192.168.0.10")),
+								End:        (*ipamv1.IPAddressStr)(ptr.To("192.168.0.100")),
+								Subnet:     (*ipamv1.IPSubnetStr)(ptr.To("192.168.0.0/24")),
+								DNSServers: []ipamv1.IPAddressStr{"1.1.1.1"},
+							},
+							{
+								Start:      (*ipamv1.IPAddressStr)(ptr.To("10.0.1.10")),
+								End:        (*ipamv1.IPAddressStr)(ptr.To("10.0.1.100")),
+								Subnet:     (*ipamv1.IPSubnetStr)(ptr.To("10.0.1.0/24")),
+								DNSServers: []ipamv1.IPAddressStr{"9.9.9.9"},
+							},
+						},
+					},
+				},
+			},
+			expectedAddress: map[string]AddressFromPool{
+				testPoolName: {
+					Address:    ipamv1.IPAddressStr("10.0.1.50"),
+					Prefix:     ptr.To(int32(24)),
+					Gateway:    ipamv1.IPAddressStr("10.0.1.1"),
+					dnsServers: []ipamv1.IPAddressStr{"9.9.9.9"},
+				},
+			},
+		}),
+	)
+
+	DescribeTable("Test releaseAddressesFromPool routes Metal3 pool refs through CAPI release",
+		func(expectError bool, objects []client.Object, m3dtSpec infrav1.Metal3DataTemplateSpec) {
+			m3d := &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Metal3Data",
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			}
+			m3dt := infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName+"-abc", "", ""),
+				Spec:       m3dtSpec,
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			dataMgr, err := NewDataManager(fakeClient, m3d,
+				logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = dataMgr.releaseAddressesFromPool(context.TODO(), m3dt)
+			if expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			// Verify the CAPI claim was deleted (not the Metal3 claim path)
+			claim := &capipamv1.IPAddressClaim{}
+			nn := types.NamespacedName{
+				Name:      metal3DataName + "-" + testPoolName,
+				Namespace: namespaceName,
+			}
+			err = fakeClient.Get(context.TODO(), nn, claim)
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		},
+		Entry("Metal3 pool ref releases via CAPI claim path",
+			false,
+			[]client.Object{
+				&capipamv1.IPAddressClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       metal3DataName + "-" + testPoolName,
+						Namespace:  namespaceName,
+						Finalizers: []string{infrav1.DataFinalizer},
+					},
+					Spec: capipamv1.IPAddressClaimSpec{
+						PoolRef: capipamv1.IPPoolReference{
+							Name:     testPoolName,
+							APIGroup: "ipam.metal3.io",
+							Kind:     "IPPool",
+						},
+					},
+				},
+			},
+			infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					IPAddressesFromPool: []infrav1.FromPool{
+						{
+							Key:  "Address-1",
+							Name: testPoolName,
+						},
+					},
+				},
+				NetworkData: &infrav1.NetworkData{},
+			},
+		),
+	)
+})
