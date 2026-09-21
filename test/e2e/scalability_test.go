@@ -65,7 +65,7 @@ var _ = Describe("When testing scalability with fakeIPA and FKAS", Label("scalab
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 		createFKASResources()
 		launchFakeIPA()
-		imageURL, imageChecksum := EnsureImage(e2eConfig, "v1.34.1")
+		imageURL, imageChecksum := EnsureImage(e2eConfig, "v1.34.9")
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 	})
