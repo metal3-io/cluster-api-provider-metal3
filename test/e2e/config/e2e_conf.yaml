@@ -289,8 +289,8 @@ variables:
   NODE_IMAGE_URL_CENTOS_v1.34.9: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/AER0Z3wEHIdHuJsH2PNljLZ4MvFtFDSZaKfNWqz2q8dEBCDzAzVe_wIjCsXpnLRA/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/CENTOS_10_NODE_IMAGE_K8S_v1.34.9.qcow2"
   NODE_IMAGE_URL_LEAP_v1.37.0: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/GcnMwhSDRk_PwFkJKuiwF1Fa2CdmikeY-lktiV4isnojwjXoEwETHc-GFqQOKoxW/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/LEAP_15_6_NODE_IMAGE_K8S_v1.37.0.qcow2"
   NODE_IMAGE_URL_LEAP_v1.36.2: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/rIasUbu81ZminPrBFJUo3iYFAzfhEekY6Ux0GJWzBkQ3K2g4VStL1O9pP_4RxwSf/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/LEAP_15_6_NODE_IMAGE_K8S_v1.36.2.qcow2"
-  # TODO: Add the URL once Leap images are published at the new location.
-  NODE_IMAGE_URL_LEAP_v1.34.9: ""
+  NODE_IMAGE_URL_LEAP_v1.34.9: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/aPfdvqyQrrtb5S9baLo6soLTvfp2Gl_qa_BofYCyE88sI9t5jtE0t4-cwGysfnLu/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/LEAP_15_6_NODE_IMAGE_K8S_v1.34.9.qcow2"
+  # TODO: Add the URL once an image is published for this version.
   BMO_RELEASE_0.12: "data/bmo-deployment/overlays/release-0.12"
   BMO_RELEASE_0.13: "data/bmo-deployment/overlays/release-0.13"
   BMO_RELEASE_0.14: "data/bmo-deployment/overlays/release-0.14"
