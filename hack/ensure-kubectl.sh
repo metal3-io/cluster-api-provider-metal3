@@ -18,6 +18,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
 GOPATH_BIN="$(go env GOPATH)/bin/"
 MINIMUM_KUBECTL_VERSION=${KUBERNETES_VERSION:-"v1.37.0"}
 
@@ -25,8 +29,8 @@ MINIMUM_KUBECTL_VERSION=${KUBERNETES_VERSION:-"v1.37.0"}
 download_kubectl()
 {
     local target_dir="$1"
-    local tmp arch
-    tmp="$(mktemp)"
+    local arch tmp_dir checksum expected_checksum
+    local kubectl_url="https://dl.k8s.io/release/${MINIMUM_KUBECTL_VERSION}/bin/linux"
 
     # Normalize to the architecture names used by the Kubernetes release downloads.
     arch="$(uname -m)"
@@ -40,15 +44,50 @@ download_kubectl()
     esac
 
     echo "Installing kubectl ${MINIMUM_KUBECTL_VERSION} to ${target_dir}"
-    curl -fsSLo "${tmp}" "https://dl.k8s.io/release/${MINIMUM_KUBECTL_VERSION}/bin/linux/${arch}/kubectl"
-    chmod +x "${tmp}"
-    # Install to the target dir, using sudo if the location is not writable
-    if [[ -w "${target_dir}" ]]; then
-        mv -f "${tmp}" "${target_dir}/kubectl"
-    elif command -v sudo &>/dev/null; then
-        sudo mv -f "${tmp}" "${target_dir}/kubectl"
+
+    if ! command -v sha256sum &>/dev/null; then
+        echo "ERROR: sha256sum not found. On macOS, install coreutils: brew install coreutils" >&2
+        exit 1
+    fi
+
+    tmp_dir="$(mktemp -d)"
+
+    # shellcheck disable=SC2064 # Intentional: expand tmp_dir now since it's local
+    trap "rm -rf '${tmp_dir}'" RETURN EXIT
+
+    # Download the checksum for the kubectl binary
+    if ! curl --proto '=https' --tlsv1.3 -sSfL \
+         --retry 3 --retry-delay 5 --max-time 120 \
+         -o "${tmp_dir}/kubectl.sha256sum" "${kubectl_url}/${arch}/kubectl.sha256"; then
+        echo >&2 "fatal: failed to download kubectl checksum from ${kubectl_url}/${arch}/kubectl.sha256"
+        return 1
+    fi
+
+    # Download the kubectl binary
+    if ! curl --proto '=https' --tlsv1.3 -sSfL \
+         --retry 3 --retry-delay 5 --max-time 120 \
+         -o "${tmp_dir}/kubectl" "${kubectl_url}/${arch}/kubectl"; then
+        echo >&2 "fatal: failed to download kubectl from ${kubectl_url}/${arch}/kubectl"
+        return 1
+    fi
+
+    # Verify checksum before using
+    checksum="$(sha256sum "${tmp_dir}/kubectl" | awk '{print $1;}')" || return 1
+    expected_checksum="$(awk '{print $1;}' "${tmp_dir}/kubectl.sha256sum")" || return 1
+    if [[ "${checksum}" != "${expected_checksum}" ]]; then
+        echo >&2 "fatal: ${kubectl_url}/${arch}/kubectl checksum '${checksum}' differs from expected '${expected_checksum}'"
+        return 1
     else
-        rm -f "${tmp}"
+        echo "kubectl checksum ${checksum} verified"
+    fi
+
+    # Install to the target dir, using sudo if the location is not writable
+    chmod +x "${tmp_dir}/kubectl"
+    if [[ -w "${target_dir}" ]]; then
+        mv -f "${tmp_dir}/kubectl" "${target_dir}/kubectl"
+    elif command -v sudo &>/dev/null; then
+        sudo mv -f "${tmp_dir}/kubectl" "${target_dir}/kubectl"
+    else
         echo "ERROR: ${target_dir} is not writable and sudo is unavailable."
         return 2
     fi
@@ -72,7 +111,7 @@ install_kubectl()
         target_dir="$(cd "$(dirname "${active_kubectl}")" && pwd)"
     else
         target_dir="${GOPATH_BIN%/}"
-        if ! [ -d "${target_dir}" ]; then
+        if [[ ! -d "${target_dir}" ]]; then
             mkdir -p "${target_dir}"
         fi
     fi
@@ -108,7 +147,7 @@ verify_kubectl_version()
 
     # If kubectl is not available on the path, or not a working binary, get it
     if ! kubectl version --client &>/dev/null; then
-        echo 'kubectl not found or not working, installing'
+        echo "kubectl not found or not working, installing"
         install_kubectl || return $?
         hash -r
     fi

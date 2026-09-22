@@ -4,6 +4,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
 # Install Go if not found in PATH
 install_go() {
     # Check if go is already available
@@ -15,10 +19,10 @@ install_go() {
     local go_version="${GO_VERSION:-1.26.4}"
     local os
     local arch
-    
+
     os=$(uname -s | tr '[:upper:]' '[:lower:]')
     arch=$(uname -m)
-    
+
     # Normalize architecture names
     case "${arch}" in
         x86_64)
@@ -30,7 +34,7 @@ install_go() {
     esac
 
     local install_dir="/usr/local/go"
-    
+
     # Check if we have write access to /usr/local
     if [[ ! -w /usr/local ]]; then
         # Fall back to user local directory
@@ -45,7 +49,7 @@ install_go() {
     local download_url="https://dl.google.com/go/${go_tar}"
 
     echo "Installing Go ${go_version} from ${download_url}..."
-    
+
     # Download and extract Go
     local tmp_dir
     tmp_dir=$(mktemp -d)
@@ -53,9 +57,25 @@ install_go() {
     # shellcheck disable=SC2064 # Intentional: expand tmp_dir now since it's local
     trap "rm -rf '${tmp_dir}'" RETURN
 
-    if ! curl -sL "${download_url}" -o "${tmp_dir}/${go_tar}"; then
+    if ! curl -sSfL "${download_url}.sha256" -o "${tmp_dir}/${go_tar}.sha256"; then
+        echo "Failed to download Go checksum from ${download_url}.sha256"
+        return 1
+    fi
+
+    if ! curl -sSfL "${download_url}" -o "${tmp_dir}/${go_tar}"; then
         echo "Failed to download Go from ${download_url}"
         return 1
+    fi
+
+    # Verify checksum
+    local checksum expected_checksum
+    checksum="$(sha256sum "${tmp_dir}/${go_tar}" | awk '{print $1}')"
+    expected_checksum="$(awk '{print $1}' "${tmp_dir}/${go_tar}.sha256")"
+    if [[ "${checksum}" != "${expected_checksum}" ]]; then
+        echo "${go_tar} checksum '${checksum}' differs from expected '${expected_checksum}'"
+        return 1
+    else
+        echo "Go checksum ${checksum} verified"
     fi
 
     # Remove existing installation if present
