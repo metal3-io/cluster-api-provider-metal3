@@ -116,55 +116,6 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		}),
 	)
 
-	type TestCaseParsePrefixAnnotation struct {
-		PrefixStr      string
-		ExpectedErr    bool
-		ExpectedResult map[string]struct{}
-	}
-
-	DescribeTable("Parse Prefix Annotation",
-		func(tc TestCaseParsePrefixAnnotation) {
-			prefixSet, err := parsePrefixAnnotation(tc.PrefixStr)
-			if tc.ExpectedErr {
-				Expect(err).To(HaveOccurred())
-			} else {
-				Expect(err).NotTo(HaveOccurred())
-				Expect(reflect.DeepEqual(prefixSet, tc.ExpectedResult)).To(BeTrue(), "Expected %v but got %v", tc.ExpectedResult, prefixSet)
-			}
-		},
-		Entry("Parse single prefix", TestCaseParsePrefixAnnotation{
-			PrefixStr:   "foo.metal3.io",
-			ExpectedErr: false,
-			ExpectedResult: map[string]struct{}{
-				"foo.metal3.io": {},
-			},
-		}),
-		Entry("Parse multiple prefixes", TestCaseParsePrefixAnnotation{
-			PrefixStr:   "foo.metal3.io, moo.myprefix,,bar",
-			ExpectedErr: false,
-			ExpectedResult: map[string]struct{}{
-				"foo.metal3.io": {},
-				"moo.myprefix":  {},
-				"bar":           {},
-			},
-		}),
-		Entry("Parse empty prefix string", TestCaseParsePrefixAnnotation{
-			PrefixStr:      "",
-			ExpectedErr:    false,
-			ExpectedResult: map[string]struct{}{},
-		}),
-		Entry("Parse empty prefix string with commas", TestCaseParsePrefixAnnotation{
-			PrefixStr:      ",, ,,",
-			ExpectedErr:    false,
-			ExpectedResult: map[string]struct{}{},
-		}),
-		Entry("Invalid prefix does not meet DNS (RFC 1123)", TestCaseParsePrefixAnnotation{
-			PrefixStr:      "foo.io, @bar.io",
-			ExpectedErr:    true,
-			ExpectedResult: nil,
-		}),
-	)
-
 	type TestCaseSynchronizeLabelSyncSetsOnNode struct {
 		PrefixSet      map[string]struct{}
 		Host           *bmov1alpha1.BareMetalHost

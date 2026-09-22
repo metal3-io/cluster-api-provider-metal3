@@ -4,21 +4,33 @@
 # - control-plane kubeadm
 # - metal3
 
+managementClusterName: "${MANAGEMENT_CLUSTER_NAME:-capm3-e2e}"
 images:
 # Use local dev images built from the source tree;
-- name: quay.io/metal3-io/cluster-api-provider-metal3:latest
+- name: ${REGISTRY}/localimages/cluster-api-provider-metal3:${E2E_TAG}
   loadBehavior: mustLoad
 - name: quay.io/metal3-io/baremetal-operator:latest
   loadBehavior: mustLoad
 - name: quay.io/metal3-io/ip-address-manager:latest
   loadBehavior: mustLoad
+- name: quay.io/metal3-io/metal3-fkas:ci
+  loadBehavior: tryLoad
 
 providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: "v1.14.99"
+  - name: "v1.15.99"
     value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/core-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.15/metadata.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/core-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -47,8 +59,17 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: "v1.14.99"
+  - name: "v1.15.99"
     value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/bootstrap-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.15/metadata.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/bootstrap-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -77,8 +98,17 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: "v1.14.99"
+  - name: "v1.15.99"
     value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.15/metadata.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/control-plane-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -107,9 +137,27 @@ providers:
 - name: metal3
   type: IPAMProvider
   versions:
+  - name: v1.15.99
+    value: "${PWD}/test/e2e/data/ipamprovider-metal3/overlays/main/"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/ipam-metal3/main/metadata.yaml"
+      targetName: "metadata.yaml"
+  - name: v1.14.99
+    value: "${PWD}/test/e2e/data/ipamprovider-metal3/overlays/release-1.14/"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/ipam-metal3/v1.14/metadata.yaml"
+      targetName: "metadata.yaml"
   - name: v1.13.99
     value: "${PWD}/test/e2e/data/ipamprovider-metal3/overlays/release-1.13/"
-    contract: v1beta1
+    contract: v1beta2
     replacements:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
@@ -129,28 +177,6 @@ providers:
 - name: metal3
   type: InfrastructureProvider
   versions:
-  - name: "v1.13.99"
-    value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/release-1.13/"
-    contract: v1beta2
-    files:
-    - sourcePath: "../data/shared/infrastructure-metal3/v1.13/metadata.yaml"
-      targetName: "metadata.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-ubuntu.yaml"
-      targetName: "cluster-template-ubuntu.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-centos.yaml"
-      targetName: "cluster-template-centos.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-centos-fake.yaml"
-      targetName: "cluster-template-centos-fake.yaml"
-    - sourcePath: "../_out/v1.13/clusterclass-metal3.yaml"
-      targetName: "clusterclass-metal3.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-upgrade-workload.yaml"
-      targetName: "cluster-template-upgrade-workload.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-centos-md-remediation.yaml"
-      targetName: "cluster-template-centos-md-remediation.yaml"
-    - sourcePath: "../_out/v1.13/cluster-template-ubuntu-md-remediation.yaml"
-      targetName: "cluster-template-ubuntu-md-remediation.yaml"
-    - sourcePath: "../_out/v1.13/clusterclass.yaml"
-      targetName: "clusterclass-test-clusterclass.yaml"
   - name: "v1.12.99"
     value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/release-1.12/"
     contract: v1beta1
@@ -173,7 +199,51 @@ providers:
       targetName: "cluster-template-ubuntu-md-remediation.yaml"
     - sourcePath: "../_out/v1.12/clusterclass.yaml"
       targetName: "clusterclass-test-clusterclass.yaml"
+  - name: "v1.13.99"
+    value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/release-1.13/"
+    contract: v1beta2
+    files:
+    - sourcePath: "../data/shared/infrastructure-metal3/v1.13/metadata.yaml"
+      targetName: "metadata.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-ubuntu.yaml"
+      targetName: "cluster-template-ubuntu.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-centos.yaml"
+      targetName: "cluster-template-centos.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-centos-fake.yaml"
+      targetName: "cluster-template-centos-fake.yaml"
+    - sourcePath: "../_out/v1.13/clusterclass-metal3.yaml"
+      targetName: "clusterclass-metal3.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-upgrade-workload.yaml"
+      targetName: "cluster-template-upgrade-workload.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-centos-md-remediation.yaml"
+      targetName: "cluster-template-centos-md-remediation.yaml"
+    - sourcePath: "../_out/v1.13/cluster-template-ubuntu-md-remediation.yaml"
+      targetName: "cluster-template-ubuntu-md-remediation.yaml"
+    - sourcePath: "../_out/v1.13/clusterclass.yaml"
+      targetName: "clusterclass-test-clusterclass.yaml"
   - name: "v1.14.99"
+    value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/release-1.14/"
+    contract: v1beta2
+    files:
+    - sourcePath: "../data/shared/infrastructure-metal3/v1.14/metadata.yaml"
+      targetName: "metadata.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-ubuntu.yaml"
+      targetName: "cluster-template-ubuntu.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-centos.yaml"
+      targetName: "cluster-template-centos.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-centos-fake.yaml"
+      targetName: "cluster-template-centos-fake.yaml"
+    - sourcePath: "../_out/v1.14/clusterclass-metal3.yaml"
+      targetName: "clusterclass-metal3.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-upgrade-workload.yaml"
+      targetName: "cluster-template-upgrade-workload.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-centos-md-remediation.yaml"
+      targetName: "cluster-template-centos-md-remediation.yaml"
+    - sourcePath: "../_out/v1.14/cluster-template-ubuntu-md-remediation.yaml"
+      targetName: "cluster-template-ubuntu-md-remediation.yaml"
+    - sourcePath: "../_out/v1.14/clusterclass.yaml"
+      targetName: "clusterclass-test-clusterclass.yaml"
+  - name: "v1.15.99"
     value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/main/"
     contract: v1beta2
     files:
@@ -217,21 +287,21 @@ providers:
 variables:
   CNI: "/tmp/cni.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
-  KUBERNETES_VERSION: "${KUBERNETES_VERSION:-v1.36.2}"
+  KUBERNETES_VERSION: "${KUBERNETES_VERSION:-v1.37.0}"
   KUBERNETES_VERSION_MINOR: "${KUBERNETES_VERSION%.*}"
-  KUBERNETES_VERSION_UPGRADE_FROM: "${KUBERNETES_VERSION_UPGRADE_FROM:-v1.35.6}"
+  KUBERNETES_VERSION_UPGRADE_FROM: "${KUBERNETES_VERSION_UPGRADE_FROM:-v1.36.2}"
   # KUBERNETES_VERSION_PATCH_TO is used only in node reuse test, we do this
   # upgrade to make rollout happen, we are not testing k8s upgrade here, so
   # what version of k8s we are using for this upgrade is not important, as long
   # as it is a patch upgrade and it triggers the rollout.
-  KUBERNETES_VERSION_PATCH_TO: "v1.35.6"
+  KUBERNETES_VERSION_PATCH_TO: "v1.36.2"
   CONTROL_PLANE_MACHINE_COUNT: 3
   WORKER_MACHINE_COUNT: 1
   NUM_NODES: 4
   SCALE_SPEC_CONCURRENCY: 10
   IRONIC_NAMESPACE: "baremetal-operator-system"
   NAMEPREFIX: "baremetal-operator"
-  IRONIC_DATA_DIR: "${DEV_ENV_WORKING_DIR}/ironic"
+  IRONIC_DATA_DIR: "${IRONIC_DATA_DIR}"
   BMOPATH: "${M3PATH}/baremetal-operator"
   IRONIC_TLS_SETUP: "true"
   IRONIC_BASIC_AUTH: "true"
@@ -253,10 +323,11 @@ variables:
   # Default vars for the template, those values could be overridden by the env-vars.
   CAPI_VERSION: "v1beta2"
   CAPM3_VERSION: "${CAPM3_VERSION:-v1beta2}"
-  CONFIG_FILE_PATH: "${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
   SERVICE_CIDR: "10.96.0.0/12"
   POD_CIDR: "192.168.0.0/18"
   BARE_METAL_PROVISIONER_CIDR: "24"
+  BARE_METAL_PROVISIONER_INTERFACE: "ironicendpoint"
+  CLUSTER_PROVISIONING_IP: "172.22.0.2"
   CLUSTER_APIENDPOINT_HOST: "192.168.111.249"
   CLUSTER_APIENDPOINT_PORT: "6443"
   EXTERNAL_SUBNET_V4_PREFIX: "24"
@@ -266,21 +337,40 @@ variables:
   IPAM_PROVISIONING_POOL_RANGE_START: "172.22.0.100"
   IPAM_PROVISIONING_POOL_RANGE_END: "172.22.0.200"
   EXTERNAL_SUBNET_V4_HOST: "192.168.111.1"
-  REGISTRY: "192.168.111.1:5000"
+  REGISTRY: "172.22.0.1:5000"
   IMAGE_CHECKSUM_TYPE: "sha256"
   IMAGE_USERNAME: "metal3"
   NODE_DRAIN_TIMEOUT: 0
   IRSO_OPERATOR_0.8.0: "data/ironic-standalone-operator/operator/overlays/release-0.8.0"
-  IRSO_OPERATOR_LATEST: "data/ironic-standalone-operator/operator/overlays/release-0.9.0"
+  IRSO_OPERATOR_0.9.0: "data/ironic-standalone-operator/operator/overlays/release-0.9.0"
+  IRSO_OPERATOR_0.10.0: "data/ironic-standalone-operator/operator/overlays/release-0.10.0"
+  IRSO_OPERATOR_LATEST: "data/ironic-standalone-operator/operator/overlays/release-0.11.0"
   IRSO_IRONIC_33.0: "data/ironic-standalone-operator/ironic/overlays/release-33.0"
   IRSO_IRONIC_35.0: "data/ironic-standalone-operator/ironic/overlays/release-35.0"
+  IRSO_IRONIC_37.0: "data/ironic-standalone-operator/ironic/overlays/release-37.0"
   IRSO_IRONIC_PR_TEST: "data/ironic-standalone-operator/ironic/overlays/pr-test"
   IRSO_IRONIC_MAIN: "data/ironic-standalone-operator/ironic/overlays/main"
+
+  # Node image source URLs, keyed by OS and Kubernetes version as
+  # "NODE_IMAGE_URL_<OS>_<KUBERNETES_VERSION>". These point at the qcow2 image
+  # to download for EnsureImage (see test/e2e/common.go).
+  NODE_IMAGE_URL_UBUNTU_v1.37.0: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/EouRmQcJMDYxa9w3a5niS-nQ3sT13ztwSTZIG-5DOWYpm9iumKmi7OTsdEU1A8DS/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/UBUNTU_24.04_NODE_IMAGE_K8S_v1.37.0.qcow2"
+  NODE_IMAGE_URL_UBUNTU_v1.36.2: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/zpjWeMU_rBjEYndjFBsi8tiHg-JP8vnrjza6zTyyB7EDwhbX5BU7blzfJHM7UfY2/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.2.qcow2"
+  NODE_IMAGE_URL_UBUNTU_v1.34.9: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/iMjqj0Un8WDvDAhqTknLB_qqRxCMscr4bJzTtUvh5yvTpYfbW-dAg2SnWOlyGyvM/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/UBUNTU_24.04_NODE_IMAGE_K8S_v1.34.9.qcow2"
+  NODE_IMAGE_URL_CENTOS_v1.37.0: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/qBVVBPA7b72OTvcnLaKDkn7N4_YmWeVlBvaIsEnzX9EHGqBXQZyFxG15piXNjYot/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/CENTOS_10_NODE_IMAGE_K8S_v1.37.0.qcow2"
+  NODE_IMAGE_URL_CENTOS_v1.36.2: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/TuPCYj51maWT0cdJ9iXHHiihnjaRphQGwp22ub1UvrhrLL1aGvzQVZtRe92c2axb/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/CENTOS_10_NODE_IMAGE_K8S_v1.36.2.qcow2"
+  NODE_IMAGE_URL_CENTOS_v1.34.9: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/AER0Z3wEHIdHuJsH2PNljLZ4MvFtFDSZaKfNWqz2q8dEBCDzAzVe_wIjCsXpnLRA/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/CENTOS_10_NODE_IMAGE_K8S_v1.34.9.qcow2"
+  NODE_IMAGE_URL_LEAP_v1.37.0: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/GcnMwhSDRk_PwFkJKuiwF1Fa2CdmikeY-lktiV4isnojwjXoEwETHc-GFqQOKoxW/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/LEAP_15_6_NODE_IMAGE_K8S_v1.37.0.qcow2"
+  NODE_IMAGE_URL_LEAP_v1.36.2: "https://idknxc8t3pjc.objectstorage.eu-paris-1.oci.customer-oci.com/p/rIasUbu81ZminPrBFJUo3iYFAzfhEekY6Ux0GJWzBkQ3K2g4VStL1O9pP_4RxwSf/n/idknxc8t3pjc/b/public-metal3-node-image-bucket/o/LEAP_15_6_NODE_IMAGE_K8S_v1.36.2.qcow2"
+  # TODO: Add the URL once Leap images are published at the new location.
+  NODE_IMAGE_URL_LEAP_v1.34.9: ""
   BMO_RELEASE_0.12: "data/bmo-deployment/overlays/release-0.12"
   BMO_RELEASE_0.13: "data/bmo-deployment/overlays/release-0.13"
+  BMO_RELEASE_0.14: "data/bmo-deployment/overlays/release-0.14"
   BMO_RELEASE_PR_TEST: "data/bmo-deployment/overlays/pr-test"
   BMO_RELEASE_MAIN: "data/bmo-deployment/overlays/release-main"
   FKAS_RELEASE_LATEST: "data/fkas"
+  FAKE_IPA_IMAGE: "${FAKE_IPA_IMAGE:-registry.nordix.org/quay-io-proxy/metal3-io/fake-ipa}"
   REPO_NAME: "${REPO_NAME:-cluster-api-provider-metal3}"
   EXP_MACHINE_TAINT_PROPAGATION: "true"
 

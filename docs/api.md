@@ -138,7 +138,7 @@ spec:
       rollingUpdate:
         maxSurge: 1
       type: RollingUpdate
-  version: v1.36.2
+  version: v1.37.0
   kubeadmConfigSpec:
     joinConfiguration:
       controlPlane: {}
@@ -259,7 +259,7 @@ spec:
   # The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
   # and removed in CAPM3 v1.14.
   providerID: metal3://metal3/node-0/controlplane-0
-  version: v1.36.2
+  version: v1.37.0
 ```
 
 ## Metal3Machine
@@ -340,6 +340,57 @@ unset, that field will also remain unset on the BareMetalHost.
 When the Metal3Machine gets deleted, the CAPM3 controller will remove its
 ownerreference from the data template object. This will trigger the deletion of
 the generated Metal3Data object and the secrets generated for this machine.
+
+### Node address overrides
+
+The addresses in `Machine.status.addresses` are normally derived from the
+hardware details that Ironic discovered on the BareMetalHost during inspection:
+one `InternalIP` per NIC, plus `Hostname` and `InternalDNS` from the hostname.
+
+The IP addresses can be overridden through the `metaData` secret referenced in
+`Metal3Machine.status.metaData`. The following optional keys are recognized in
+the metadata:
+
+- **InternalIP** : used as the `InternalIP` address of the Machine
+- **ExternalIP** : used as the `ExternalIP` address of the Machine
+
+The keys are case-sensitive and only non-empty string values are used. If either
+key is set, the addresses from the BareMetalHost NICs are not used at all, so
+both keys must be set to get both address types. The `Hostname` and
+`InternalDNS` addresses always come from the BareMetalHost, also when the IP
+addresses are overridden.
+
+This is useful when the BareMetalHost hardware details are unavailable, or when
+the desired addresses differ from the NICs discovered by inspection, for example
+with overlay networks, VIPs or externally routable addresses.
+
+The overrides are best effort. They are ignored, and the addresses are derived
+from the BareMetalHost instead, if the secret does not exist yet, holds no
+`metaData`, cannot be parsed as a YAML mapping, or holds values of an unexpected
+type.
+
+Since the metadata is usually rendered by the Metal3Data controller, the
+addresses are typically set through the `metaData` field of a
+Metal3DataTemplate:
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: Metal3DataTemplate
+metadata:
+  name: nodepool-1
+  namespace: metal3
+spec:
+  metaData:
+    ipAddressesFromIPPool:
+    - key: InternalIP
+      name: provisioning-pool
+      apiGroup: ipam.metal3.io
+      kind: IPPool
+    - key: ExternalIP
+      name: external-pool
+      apiGroup: ipam.metal3.io
+      kind: IPPool
+```
 
 ### hostSelector Examples
 
@@ -429,10 +480,10 @@ metadata:
 spec:
   automatedCleaningMode: metadata
   image:
-    checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.2-raw.img.sha256sum
+    checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.37.0-raw.img.sha256sum
     checksumType: sha256
     format: raw
-    url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.2-raw.img
+    url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.37.0-raw.img
   hostSelector:
     matchLabels:
       key1: value1
@@ -490,7 +541,7 @@ spec:
         name: md-0
         apiGroup: infrastructure.cluster.x-k8s.io
         kind: Metal3MachineTemplate
-      version: v1.36.2
+      version: v1.37.0
 ```
 
 ## KubeadmConfigTemplate
@@ -575,10 +626,10 @@ spec:
     spec:
       automatedCleaningMode: metadata
       image:
-        checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.2-raw.img.sha256sum
+        checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.37.0-raw.img.sha256sum
         checksumType: sha256
         format: raw
-        url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.2-raw.img
+        url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.37.0-raw.img
       hostSelector:
         matchLabels:
           key1: value1

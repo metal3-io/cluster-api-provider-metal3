@@ -56,6 +56,7 @@ spec:
             drop:
             - ALL
           privileged: false
+          readOnlyRootFilesystem: true
           runAsUser: 65532
           runAsGroup: 65532
         terminationMessagePolicy: FallbackToLogsOnError

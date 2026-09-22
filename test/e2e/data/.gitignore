@@ -6,3 +6,6 @@
 */overlays/*/ironic-htpasswd
 */overlays/*/ironic-inspector-htpasswd
 
+# ironic-standalone-operator basic-auth and tls credentials
+ironic-standalone-operator/ironic/components/basic-auth/ironic-password
+ironic-standalone-operator/ironic/components/basic-auth/ironic-username

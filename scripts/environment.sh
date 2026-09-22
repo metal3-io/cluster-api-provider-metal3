@@ -1,22 +1,6 @@
 #!/bin/bash
 # File contains e2e var exports
 
-function clone_repo() {
-  local REPO_URL="$1"
-  local REPO_BRANCH="$2"
-  local REPO_PATH="$3"
-  if [[ -d "${REPO_PATH}" && "${FORCE_REPO_UPDATE}" == "true" ]]; then
-    rm -rf "${REPO_PATH}"
-  fi
-  if [ ! -d "${REPO_PATH}" ]; then
-    git clone "${REPO_URL}" "${REPO_PATH}"
-    pushd "${REPO_PATH}" || exit 1
-    git checkout "${REPO_BRANCH}"
-    git pull -r || true
-    popd || exit 1
-  fi
-}
-
 function os_check() {
   # Check OS type and version
   # shellcheck disable=SC1091
@@ -36,27 +20,25 @@ os_check
 
 if [[ "${OS}" == ubuntu ]]; then
   export IMAGE_OS="ubuntu"
-  export CONTAINER_RUNTIME="docker"
 elif [[ "${OS}" == centos ]]; then
   export IMAGE_OS="centos"
-  export CONTAINER_RUNTIME="podman"
 elif [[ "${OS}" == "opensuse-leap" ]]; then
   export IMAGE_OS="leap"
-  export CONTAINER_RUNTIME="podman"
 fi
 
-if [ "${CONTAINER_RUNTIME}" == "docker" ]; then
-  export BOOTSTRAP_CLUSTER="kind"
-else
-  export BOOTSTRAP_CLUSTER="minikube"
-fi
+export CONTAINER_RUNTIME="docker"
+export BOOTSTRAP_CLUSTER="kind"
 
-export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.36.2"}
-export KUBERNETES_VERSION_UPGRADE_FROM=${KUBERNETES_VERSION_UPGRADE_FROM:-"v1.35.6"}
+# Extra Ironic config injected into the Ironic CR (spec.extraConfig) via envsubst.
+# Empty list by default; the scalability scenario overrides it below.
+export IRONIC_EXTRA_CONFIG="${IRONIC_EXTRA_CONFIG:-[]}"
+
+export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.37.0"}
+export KUBERNETES_VERSION_UPGRADE_FROM=${KUBERNETES_VERSION_UPGRADE_FROM:-"v1.36.2"}
 
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta2"}
-export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
+export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta2"}
 export M3PATH=${M3PATH:-"${HOME}/go/src/github.com/metal3-io"}
 export CAPM3_LOCAL_IMAGE="${CAPM3PATH}"
 
@@ -86,10 +68,10 @@ case "${GINKGO_FOCUS:-}" in
     export NUM_NODES="4"
     export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
-    export KUBERNETES_N0_VERSION=${KUBERNETES_N0_VERSION:-"v1.33.13"}
-    export KUBERNETES_N1_VERSION=${KUBERNETES_N1_VERSION:-"v1.34.9"}
-    export KUBERNETES_N2_VERSION=${KUBERNETES_N2_VERSION:-"v1.35.6"}
-    export KUBERNETES_N3_VERSION=${KUBERNETES_N3_VERSION:-"v1.36.2"}
+    export KUBERNETES_N0_VERSION=${KUBERNETES_N0_VERSION:-"v1.34.9"}
+    export KUBERNETES_N1_VERSION=${KUBERNETES_N1_VERSION:-"v1.35.6"}
+    export KUBERNETES_N2_VERSION=${KUBERNETES_N2_VERSION:-"v1.36.2"}
+    export KUBERNETES_N3_VERSION=${KUBERNETES_N3_VERSION:-"v1.37.0"}
   ;;
 
   # Scalability test environment vars and config
@@ -98,6 +80,14 @@ case "${GINKGO_FOCUS:-}" in
     export BMH_BATCH_SIZE=${BMH_BATCH_SIZE:-"2"}
     export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"0"}
+    # This scenario is fully faked with fakeIPA and FKAS: the guests never boot,
+    # so skip creating real libvirt VMs entirely (30 nodes would otherwise
+    # allocate ~120 GiB / 60 vCPUs and exhaust the CI worker).
+    export SKIP_VM_CREATION=${SKIP_VM_CREATION:-"true"}
+    # fake-ipa heartbeats to Ironic over plain HTTP, so relax the agent TLS
+    # requirement (OS_AGENT__REQUIRE_TLS=false). Injected into the Ironic CR
+    # spec.extraConfig via envsubst; other scenarios keep the empty default.
+    export IRONIC_EXTRA_CONFIG='[{group: "agent", name: "require_tls", value: "false"}]'
     # Note: Uses KUBERNETES_VERSION_UPGRADE_FROM directly now (no duplication needed)
   ;;
 
@@ -139,8 +129,11 @@ case "${GINKGO_FOCUS:-}" in
   ;;
 
   *)
-    # unknown GINKGO_FOCUS, let's print out the crucial env and continue
-    echo "WARNING: unrecognized GINKGO_FOCUS='${GINKGO_FOCUS:-}'"
+    # GINKGO_FOCUS always defaults to "basic" (set in ci-e2e.sh) when unset, so
+    # reaching here means an unrecognized focus value — fail fast instead of
+    # guessing a node count.
+    echo "ERROR: unrecognized GINKGO_FOCUS='${GINKGO_FOCUS:-}'" >&2
+    exit 1
   ;;
 esac
 
@@ -154,19 +147,15 @@ if [ ! -f "${HOME}/.ssh/id_rsa" ]; then
 fi
 SSH_PUB_KEY_CONTENT=$(cat "$HOME/.ssh/id_rsa.pub")
 export SSH_PUB_KEY_CONTENT
-# The host that has images for provisioning, this should be in the
-# format of a URL host, e.g. with IPv6, it should be surrounded
-# by brackets
+# The host that serves provisioning images and the local e2e registry, in
+# URL-host format (e.g. IPv6 surrounded by brackets).
 export PROVISIONING_URL_HOST="172.22.0.1"
+# Ironic provisioning VIP. Defined once and aliased: different tests and
+# templates read it under either name.
 export CLUSTER_PROVISIONING_IP="172.22.0.2"
-export CLUSTER_URL_HOST="$CLUSTER_PROVISIONING_IP"
 
-export BARE_METAL_PROVISIONER_URL_HOST="172.22.0.1"
-export CLUSTER_BARE_METAL_PROVISIONER_IP="172.22.0.2"
-export CLUSTER_BARE_METAL_PROVISIONER_HOST="$CLUSTER_PROVISIONING_IP"
-
-# Ironic config vars needed in ironic_tls_setup.sh and ironic_basic_auth.sh
-export IRONIC_DATA_DIR="$WORKING_DIR/ironic"
+# Ironic config vars
+export IRONIC_DATA_DIR="${IRONIC_DATA_DIR:-/opt/metal3/ironic/}"
 export IRONIC_TLS_SETUP="true"
 export IRONIC_BASIC_AUTH="true"
 
@@ -177,5 +166,5 @@ export PROVIDER_ID_FORMAT="metal3://{{ ds.meta_data.providerid }}"
 export EXP_CLUSTER_RESOURCE_SET="true"
 
 # IRSO version
-export IRSOBRANCH="release-0.9"
-export IRSOCOMMIT="v0.9.0"
+export IRSOBRANCH="release-0.11"
+export IRSOCOMMIT="v0.11.0"

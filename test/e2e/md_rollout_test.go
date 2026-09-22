@@ -16,7 +16,7 @@ var _ = Describe("When testing MachineDeployment rolling upgrades", Label("capi-
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
 		k8sVersion := e2eConfig.MustGetVariable("KUBERNETES_VERSION")
-		imageURL, imageChecksum := EnsureImage(k8sVersion)
+		imageURL, imageChecksum := EnsureImage(e2eConfig, k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.

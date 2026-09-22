@@ -62,6 +62,10 @@ type RemediationStrategy struct {
 
 	// retryLimit sets maximum number of remediation retries.
 	// retryLimit must be a positive integer. The default is 1.
+	// Setting a very high value is discouraged: the controller waits at
+	// least timeoutSeconds (minimum 100s) between attempts, so a large
+	// retryLimit keeps the host in a reboot loop for a very long time
+	// before remediation is allowed to fail.
 	// +optional
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:default=1

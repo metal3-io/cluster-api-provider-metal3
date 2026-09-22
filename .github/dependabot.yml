@@ -43,7 +43,23 @@ updates:
     kubernetes:
       patterns: [ "k8s.io/*" ]
     capi:
-      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/api", "sigs.k8s.io/cluster-api/test" ]
+      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/*" ]
+    test:
+      patterns: [ "github.com/onsi/*" ]
+    controller-runtime:
+      patterns: [ "sigs.k8s.io/controller-runtime" ]
+    metal3:
+      patterns: [ "github.com/metal3-io/baremetal-operator/apis", "github.com/metal3-io/ip-address-manager/api" ]
+    golang-x:
+      patterns: [ "golang.org/x/*" ]
+    mock:
+      patterns: [ "go.uber.org/mock" ]
+    pflag:
+      patterns: [ "github.com/spf13/pflag" ]
+    go-logr:
+      patterns: [ "github.com/go-logr/*" ]
+    semver:
+      patterns: [ "github.com/blang/semver" ]
   ignore:
   # Ignore controller-runtime major and minor bumps as its upgraded manually.
   - dependency-name: "sigs.k8s.io/controller-runtime"
@@ -63,14 +79,14 @@ updates:
   - "ok-to-test"
 ## main branch config ends here
 
-## release-1.13 branch config starts here
+## release-1.14 branch config starts here
 - package-ecosystem: "github-actions"
   directory: "/" # Location of package manifests
   schedule:
     interval: "monthly"
     day: "tuesday"
     time: "03:30" # 3.30am utc
-  target-branch: release-1.13
+  target-branch: release-1.14
   ## group all action bumps into single PR
   groups:
     github-actions:
@@ -97,13 +113,29 @@ updates:
     interval: "weekly"
     day: "tuesday"
     time: "04:00" # 4am utc
-  target-branch: release-1.13
+  target-branch: release-1.14
   ## group all dependencies with a k8s.io prefix into a single PR.
   groups:
     kubernetes:
       patterns: [ "k8s.io/*" ]
     capi:
-      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/test" ]
+      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/*" ]
+    test:
+      patterns: [ "github.com/onsi/*" ]
+    controller-runtime:
+      patterns: [ "sigs.k8s.io/controller-runtime" ]
+    metal3:
+      patterns: [ "github.com/metal3-io/baremetal-operator/apis", "github.com/metal3-io/ip-address-manager/api" ]
+    golang-x:
+      patterns: [ "golang.org/x/*" ]
+    mock:
+      patterns: [ "go.uber.org/mock" ]
+    pflag:
+      patterns: [ "github.com/spf13/pflag" ]
+    go-logr:
+      patterns: [ "github.com/go-logr/*" ]
+    semver:
+      patterns: [ "github.com/blang/semver" ]
   ignore:
   # golang.org/x/* only releases minors no patches, so minors have to be allowed
   - dependency-name: "golang.org/x/*"
@@ -120,16 +152,16 @@ updates:
   labels:
   - "ok-to-test"
 
-## release-1.13 branch config ends here
+## release-1.14 branch config ends here
 
-## release-1.12 branch config starts here
+## release-1.13 branch config starts here
 - package-ecosystem: "github-actions"
   directory: "/" # Location of package manifests
   schedule:
     interval: "monthly"
     day: "tuesday"
     time: "04:30" # 4.30am utc
-  target-branch: release-1.12
+  target-branch: release-1.13
   ## group all action bumps into single PR
   groups:
     github-actions:
@@ -156,13 +188,29 @@ updates:
     interval: "weekly"
     day: "tuesday"
     time: "05:00" # 5am utc
-  target-branch: release-1.12
+  target-branch: release-1.13
   ## group all dependencies with a k8s.io prefix into a single PR.
   groups:
     kubernetes:
       patterns: [ "k8s.io/*" ]
     capi:
-      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/test" ]
+      patterns: [ "sigs.k8s.io/cluster-api", "sigs.k8s.io/cluster-api/*" ]
+    test:
+      patterns: [ "github.com/onsi/*" ]
+    controller-runtime:
+      patterns: [ "sigs.k8s.io/controller-runtime" ]
+    metal3:
+      patterns: [ "github.com/metal3-io/baremetal-operator/apis", "github.com/metal3-io/ip-address-manager/api" ]
+    golang-x:
+      patterns: [ "golang.org/x/*" ]
+    mock:
+      patterns: [ "go.uber.org/mock" ]
+    pflag:
+      patterns: [ "github.com/spf13/pflag" ]
+    go-logr:
+      patterns: [ "github.com/go-logr/*" ]
+    semver:
+      patterns: [ "github.com/blang/semver" ]
   ignore:
   # golang.org/x/* only releases minors no patches, so minors have to be allowed
   - dependency-name: "golang.org/x/*"
@@ -179,4 +227,4 @@ updates:
   labels:
   - "ok-to-test"
 
-## release-1.12 branch config ends here
+## release-1.13 branch config ends here

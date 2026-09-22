@@ -18,16 +18,14 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	"github.com/metal3-io/cluster-api-provider-metal3/internal/metrics"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,8 +50,6 @@ var (
 
 const (
 	labelSyncControllerName = "metal3-label-sync-controller"
-	// PrefixAnnotationKey is prefix for annotation key.
-	PrefixAnnotationKey = "metal3.io/metal3-label-sync-prefixes"
 )
 
 // Metal3LabelSyncReconciler reconciles label updates to BareMetalHost objects with the corresponding K Node objects in the workload cluster.
@@ -75,11 +71,21 @@ type Metal3LabelSyncReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 // Reconcile handles label sync events.
-func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rres ctrl.Result, rerr error) {
+	reconcileStart := time.Now()
 	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues(
 		baremetal.LogFieldBMH, req.NamespacedName,
 	)
 	controllerLog.V(baremetal.VerbosityLevelTrace).Info("Reconcile: starting label sync reconciliation")
+
+	// Record metrics at the end of reconciliation
+	defer func() {
+		hasError := rerr != nil
+		metrics.RecordMetal3LabelSyncReconcile(req.Namespace, reconcileStart, hasError)
+		if rerr != nil {
+			metrics.RecordReconcileError(labelSyncControllerName, req.Namespace, false)
+		}
+	}()
 
 	// We need to get the NodeRef from the CAPI Machine object:
 	// BareMetalHost.ConsumerRef --> Metal3Machine.OwnerRef --> Machine.NodeRef
@@ -219,7 +225,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		controllerLog.V(baremetal.VerbosityLevelDebug).Info("No annotations on Metal3Cluster")
 		return ctrl.Result{}, nil
 	}
-	prefixStr, ok := annotations[PrefixAnnotationKey]
+	prefixStr, ok := annotations[baremetal.PrefixAnnotationKey]
 	if !ok {
 		controllerLog.V(baremetal.VerbosityLevelDebug).Info("No prefix annotation found on Metal3Cluster")
 		return ctrl.Result{}, nil
@@ -228,7 +234,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		"prefixes", prefixStr)
 
 	controllerLog.V(baremetal.VerbosityLevelTrace).Info("Parsing prefix annotation")
-	prefixSet, err := parsePrefixAnnotation(prefixStr)
+	prefixSet, err := baremetal.ParsePrefixAnnotation(prefixStr)
 	if err != nil {
 		controllerLog.V(baremetal.VerbosityLevelDebug).Info("Failed to parse prefix annotation",
 			baremetal.LogFieldError, err.Error())
@@ -407,53 +413,4 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(ctx context.Co
 		result = append(result, ctrl.Request{NamespacedName: hostObjKey})
 	}
 	return result
-}
-
-// parsePrefixAnnotation parses a string for prefixes. The string must be in the format: `prefix-1,prefix-2,...`
-// and each prefix must conform to the definition of a subdomain in DNS (RFC 1123).
-func parsePrefixAnnotation(prefixStr string) (map[string]struct{}, error) {
-	entries := strings.Split(prefixStr, ",")
-	prefixSet := make(map[string]struct{})
-	for _, prefix := range entries {
-		prefix = strings.TrimSpace(prefix)
-		if prefix == "" {
-			// ignore empty prefix string (e.g. `, ,`)
-			continue
-		} else if err := IsDNS1123Subdomain(prefix); err != nil {
-			return nil, fmt.Errorf("invalid prefix (%v): %w", prefix, err)
-		}
-		prefixSet[prefix] = struct{}{}
-	}
-	return prefixSet, nil
-}
-
-// The following code is also used by kubectl for label and prefix validation.
-// Reference: https://github.com/kubernetes/apimachinery/blob/master/pkg/util/validation/validation.go
-const dns1123LabelFmt string = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
-const dns1123SubdomainFmt string = dns1123LabelFmt + "(\\." + dns1123LabelFmt + ")*"
-const dns1123SubdomainErrorMsg string = "a DNS-1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character"
-
-// DNS1123SubdomainMaxLength is a subdomain's max length in DNS (RFC 1123).
-const DNS1123SubdomainMaxLength int = 253
-
-var dns1123SubdomainRegexp = regexp.MustCompile("^" + dns1123SubdomainFmt + "$")
-
-// IsDNS1123Subdomain tests for a string that conforms to the definition of a
-// subdomain in DNS (RFC 1123).
-func IsDNS1123Subdomain(value string) error {
-	if len(value) > DNS1123SubdomainMaxLength {
-		return fmt.Errorf("%v must be no more than %d characters", value, DNS1123SubdomainMaxLength)
-	}
-	if !dns1123SubdomainRegexp.MatchString(value) {
-		return errors.New(RegexError(dns1123SubdomainErrorMsg, dns1123SubdomainFmt, "example.com"))
-	}
-	return nil
-}
-
-// RegexError returns a string explanation of a regex validation failure.
-func RegexError(msg string, fmt string, examples ...string) string {
-	if len(examples) == 0 {
-		return msg + " (regex used for validation is '" + fmt + "')"
-	}
-	return msg + " (e.g. '" + strings.Join(examples, "' or '") + "', regex used for validation is '" + fmt + "')"
 }

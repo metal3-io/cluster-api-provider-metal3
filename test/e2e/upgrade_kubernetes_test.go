@@ -71,7 +71,9 @@ var _ = Describe("Kubernetes version upgrade in target nodes", Label("k8s-upgrad
 		ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		ListNodes(ctx, targetCluster.GetClient())
+		if targetCluster != nil {
+			ListNodes(ctx, targetCluster.GetClient())
+		}
 		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup, clusterctlConfigPath)
 	})
 
@@ -115,7 +117,7 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 
 	// Download node image
 	By("Download image")
-	imageURL, imageChecksum := EnsureImage(upgradedK8sVersion)
+	imageURL, imageChecksum := EnsureImage(input.E2EConfig, upgradedK8sVersion)
 
 	By("Create new KCP Metal3MachineTemplate with upgraded image to boot")
 	m3MachineTemplateName := clusterName + "-controlplane"

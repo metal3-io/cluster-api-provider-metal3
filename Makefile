@@ -83,7 +83,7 @@ ifneq ($(GO),)
 	# checksum-verified semver tag.
 	SETUP_ENVTEST_VER := $(call get_go_version,sigs.k8s.io/controller-runtime)
 endif
-ENVTEST_K8S_VERSION := 1.36.x
+ENVTEST_K8S_VERSION := 1.37.x
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -96,6 +96,7 @@ TEST_EXTENSION_IMG ?= $(REGISTRY)/test-extension:$(TAG)
 TAG ?= v1beta1
 BMO_TAG ?= capm3-$(TAG)
 FKAS_TAG ?= latest
+E2E_TAG ?= e2e
 ARCH ?= $(shell go env GOARCH)
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
 
@@ -127,7 +128,7 @@ help:  # Display this help
 ## --------------------------------------
 ##@ tests:
 
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.36.2
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.37.0
 KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
 
 .PHONY: setup-envtest
@@ -197,12 +198,20 @@ E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/e2e_conf.yaml
 E2E_OUT_DIR ?= $(ROOT_DIR)/test/e2e/_out
 E2E_CONF_FILE_ENVSUBST ?= $(E2E_OUT_DIR)/$(notdir $(E2E_CONF_FILE))
 SKIP_CLEANUP ?= false
-SKIP_CREATE_MGMT_CLUSTER ?= true
+SKIP_CREATE_MGMT_CLUSTER ?= false
+PROVISIONING_NETWORK_NAME ?= provisioning-e2e
+EXTERNAL_NETWORK_NAME ?= external-e2e
+# Name of the kind management cluster (must match managementClusterName in
+# test/e2e/config/e2e_conf.yaml).
+MANAGEMENT_CLUSTER_NAME ?= capm3-e2e
+# Storage path of the libvirt pool created by vbmctl (see vbmctl.yaml.tmpl).
+LIBVIRT_POOL_PATH ?= /tmp/pool_capm3
 
 ## Processes e2e_conf file
 .PHONY: e2e-substitutions
 e2e-substitutions: $(ENVSUBST)
 	mkdir -p $(E2E_OUT_DIR)/main
+	mkdir -p $(E2E_OUT_DIR)/v1.14
 	mkdir -p $(E2E_OUT_DIR)/v1.13
 	mkdir -p $(E2E_OUT_DIR)/v1.12
 	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
@@ -212,13 +221,13 @@ e2e-substitutions: $(ENVSUBST)
 ## --------------------------------------
 ##@ templates
 E2E_TEMPLATES_DIR ?= $(ROOT_DIR)/test/e2e/data/infrastructure-metal3
-.PHONY: cluster-templates cluster-templates-main cluster-templates-main-v1beta1 cluster-templates-v1.13 cluster-templates-v1.12
-cluster-templates: cluster-templates-main cluster-templates-main-v1beta1 cluster-templates-v1.13 cluster-templates-v1.12
+.PHONY: cluster-templates cluster-templates-main cluster-templates-main-v1beta1 cluster-templates-v1.14 cluster-templates-v1.13 cluster-templates-v1.12
+cluster-templates: cluster-templates-main cluster-templates-main-v1beta1 cluster-templates-v1.14 cluster-templates-v1.13 cluster-templates-v1.12
 	mkdir -p $(ARTIFACTS)/templates
 	cp -r $(E2E_OUT_DIR)/. $(ARTIFACTS)/templates/
 
-.PHONY: clusterclass-templates clusterclass-templates-main clusterclass-templates-v1.13 clusterclass-templates-v1.12
-clusterclass-templates: clusterclass-templates-main clusterclass-templates-v1.13 clusterclass-templates-v1.12
+.PHONY: clusterclass-templates clusterclass-templates-main clusterclass-templates-v1.14 clusterclass-templates-v1.13 clusterclass-templates-v1.12
+clusterclass-templates: clusterclass-templates-main clusterclass-templates-v1.14 clusterclass-templates-v1.13 clusterclass-templates-v1.12
 	mkdir -p $(ARTIFACTS)/templates
 	cp -r $(E2E_OUT_DIR)/. $(ARTIFACTS)/templates/
 
@@ -244,6 +253,7 @@ cluster-templates-main: $(KUSTOMIZE) ## Generate cluster templates
 cluster-templates-main-v1beta1: $(KUSTOMIZE) ## Generate cluster templates for main-v1beta1
 	mkdir -p $(E2E_OUT_DIR)/main
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-centos > $(E2E_OUT_DIR)/main/cluster-template-centos-v1beta1.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-ubuntu > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-v1beta1.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/main/cluster-template-centos-md-remediation-v1beta1.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-centos-md-taints > $(E2E_OUT_DIR)/main/cluster-template-centos-md-taints-v1beta1.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-centos-ip-reuse > $(E2E_OUT_DIR)/main/cluster-template-centos-ip-reuse-v1beta1.yaml
@@ -255,6 +265,18 @@ clusterclass-templates-main: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/clusterclass-template-centos > $(E2E_OUT_DIR)/main/cluster-template-centos.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/clusterclass-template-upgrade-workload > $(E2E_OUT_DIR)/main/cluster-template-upgrade-workload.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/clusterclass > $(E2E_OUT_DIR)/main/clusterclass.yaml
+
+.PHONY: cluster-templates-v1.14
+cluster-templates-v1.14: $(KUSTOMIZE) ## Generate cluster templates
+	mkdir -p $(E2E_OUT_DIR)/v1.14
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.14/cluster-template-ubuntu > $(E2E_OUT_DIR)/v1.14/cluster-template-ubuntu.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.14/cluster-template-centos > $(E2E_OUT_DIR)/v1.14/cluster-template-centos.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.14/cluster-template-centos-fake > $(E2E_OUT_DIR)/v1.14/cluster-template-centos-fake.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.14/clusterclass-metal3 > $(E2E_OUT_DIR)/v1.14/clusterclass-metal3.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.14/cluster-template-upgrade-workload > $(E2E_OUT_DIR)/v1.14/cluster-template-upgrade-workload.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.14/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/v1.14/cluster-template-centos-md-remediation.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.14/cluster-template-ubuntu-md-remediation > $(E2E_OUT_DIR)/v1.14/cluster-template-ubuntu-md-remediation.yaml
+	touch $(E2E_OUT_DIR)/v1.14/clusterclass.yaml
 
 .PHONY: cluster-templates-v1.13
 cluster-templates-v1.13: $(KUSTOMIZE) ## Generate cluster templates
@@ -279,6 +301,14 @@ cluster-templates-v1.12: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.12/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/v1.12/cluster-template-centos-md-remediation.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.12/cluster-template-ubuntu-md-remediation > $(E2E_OUT_DIR)/v1.12/cluster-template-ubuntu-md-remediation.yaml
 	touch $(E2E_OUT_DIR)/v1.12/clusterclass.yaml
+
+.PHONY: clusterclass-templates-v1.14
+clusterclass-templates-v1.14: $(KUSTOMIZE) ## Generate cluster templates
+	mkdir -p $(E2E_OUT_DIR)/v1.14
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.14/clusterclass-template-ubuntu > $(E2E_OUT_DIR)/v1.14/cluster-template-ubuntu.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.14/clusterclass-template-centos > $(E2E_OUT_DIR)/v1.14/cluster-template-centos.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.14/clusterclass-template-upgrade-workload > $(E2E_OUT_DIR)/v1.14/cluster-template-upgrade-workload.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.14/clusterclass > $(E2E_OUT_DIR)/v1.14/clusterclass.yaml
 
 .PHONY: clusterclass-templates-v1.13
 clusterclass-templates-v1.13: $(KUSTOMIZE) ## Generate cluster templates
@@ -326,7 +356,7 @@ endif
 endif
 
 .PHONY: e2e-tests
-e2e-tests: CONTAINER_RUNTIME?=docker # Env variable can override this default
+e2e-tests: CONTAINER_RUNTIME=docker # Only using docker for e2e tests, as we are using vbmctl to create the virtual bare metal lab
 export CONTAINER_RUNTIME
 
 e2e-tests: $(GINKGO) e2e-substitutions cluster-templates # This target should be called from scripts/ci-e2e.sh
@@ -451,8 +481,16 @@ lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Lint codebase
 	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 	cd $(APIS_DIR) && $(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yaml $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 
+.PHONY: kube-api-lint
 kube-api-lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Run kube-api-linter on the codebase
 	cd $(APIS_DIR) && $(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yaml $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+
+.PHONY: golangci
+golangci: $(GOLANGCI_LINT) ## Run golangci-lint over all modules (CI)
+	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
@@ -606,6 +644,11 @@ docker-build-debug: ## Build the docker image for controller-manager with debug 
 	--build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
+
+.PHONY: docker-build-e2e
+docker-build-e2e: ## Build the CAPM3 controller image for e2e tests (loaded into the kind mgmt cluster by the test framework)
+	docker build --network=host \
+	--build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG):$(E2E_TAG)
 
 .PHONY: docker-build-fkas
 # Allow overriding this by setting CONTAINER_RUNTIME var
@@ -818,11 +861,65 @@ clean-generated-deepcopy: ## Remove files generated by conversion-gen from the m
 clean-generated-conversions: ## Remove files generated by conversion-gen from the mentioned dirs. Example SRC_DIRS="./api/v1beta1"
 	(IFS=','; for i in $(SRC_DIRS); do find $$i -type f -name 'zz_generated.conversion*' -exec rm -f {} \;; done)
 
-WORKING_DIR = /opt/metal3-dev-env
-M3_DEV_ENV_PATH ?= $(WORKING_DIR)/metal3-dev-env
-clean-e2e:
-	$(MAKE) clean -C $(M3_DEV_ENV_PATH)
+clean-e2e: ## Clean up e2e artifacts, kind clusters, and leftover resources
 	rm -rf $(E2E_OUT_DIR)
+	# Prefer vbmctl's own teardown: it removes exactly what "vbmctl create bml"
+	# created (VMs, networks, pool, veth pairs, containers). Only usable when a
+	# prior e2e run left the binary and generated config behind; the explicit
+	# virsh/docker commands below remain as a fallback so this target still
+	# recovers a dirty environment on a fresh checkout.
+	@if [ -x "$(ROOT_DIR)/_out/bin/vbmctl" ] && [ -f "$(ROOT_DIR)/_out/vbmctl.yaml" ]; then \
+		echo "Tearing down bare metal lab with 'vbmctl delete bml'..."; \
+		"$(ROOT_DIR)/_out/bin/vbmctl" -c "$(ROOT_DIR)/_out/vbmctl.yaml" delete bml || true; \
+	fi
+	# Destroy leftover VMs
+	@for vm in $$(sudo virsh list --all --name 2>/dev/null | grep -E '^node-[0-9]+$$' || true); do \
+		sudo virsh destroy $$vm 2>/dev/null || true; \
+		sudo virsh undefine $$vm --nvram 2>/dev/null || true; \
+	done
+	# Remove libvirt pool and networks
+	sudo virsh pool-destroy capm3-e2e 2>/dev/null || true
+	sudo virsh pool-undefine capm3-e2e 2>/dev/null || true
+	sudo virsh net-destroy $(PROVISIONING_NETWORK_NAME) 2>/dev/null || true
+	sudo virsh net-undefine $(PROVISIONING_NETWORK_NAME) 2>/dev/null || true
+	sudo virsh net-destroy $(EXTERNAL_NETWORK_NAME) 2>/dev/null || true
+	sudo virsh net-undefine $(EXTERNAL_NETWORK_NAME) 2>/dev/null || true
+	# Remove leftover libvirt pool storage directory
+	sudo rm -rf $(LIBVIRT_POOL_PATH)
+	# Remove vbmctl containers
+	docker rm -f vbmctl-image-server-e2e vbmctl-sushy-tools-e2e vbmctl-sushy-tools 2>/dev/null || true
+	# Remove the fake-ipa container used by the scalability (fake) scenario
+	docker rm -f fake-ipa 2>/dev/null || true
+	# Delete the management kind cluster created by this test suite only; do not
+	# touch other kind clusters that may be running on the host.
+	@if command -v kind &> /dev/null; then \
+		echo "Deleting management kind cluster: $(MANAGEMENT_CLUSTER_NAME)"; \
+		kind delete cluster --name="$(MANAGEMENT_CLUSTER_NAME)" || true; \
+	fi
+	# Force-remove any leftover node containers from this cluster. These can
+	# linger after an interrupted run even when "kind get clusters" no longer
+	# lists the cluster, causing "node(s) already exist for a cluster" on the
+	# next run.
+	@for node in $$(docker ps -aq --filter "label=io.x-k8s.kind.cluster=$(MANAGEMENT_CLUSTER_NAME)" 2>/dev/null); do \
+		docker rm -f "$$node" 2>/dev/null || true; \
+	done
+	# Remove leftover kubeconfig files
+	rm -f /tmp/e2e-kind*
+	# Remove leftover docker network
+	docker network rm kind 2>/dev/null || true
+	# Restore the tracked bmo-deployment/ironic-standalone-operator overlay
+	# files mutated in place by ci-e2e.sh (envsubst substitution, generated
+	# credentials/certs, kustomize image patches) from the snapshot taken
+	# before the run, rather than reverting with "git checkout" which would
+	# also discard unrelated uncommitted developer changes.
+	@if [ -d "$(ROOT_DIR)/_out/e2e-data-backup" ]; then \
+		echo "Restoring e2e data overlays from snapshot..."; \
+		cp -a "$(ROOT_DIR)/_out/e2e-data-backup/bmo-deployment/." "$(ROOT_DIR)/test/e2e/data/bmo-deployment/"; \
+		cp -a "$(ROOT_DIR)/_out/e2e-data-backup/ironic-standalone-operator/." "$(ROOT_DIR)/test/e2e/data/ironic-standalone-operator/"; \
+		cp -a "$(ROOT_DIR)/_out/e2e-data-backup/infrastructure-metal3-overlays-main/." "$(ROOT_DIR)/test/e2e/data/infrastructure-metal3/overlays/main/"; \
+	fi
+	# Clean artifacts and temp files
+	rm -rf $(ROOT_DIR)/_out $(ROOT_DIR)/_artifacts /tmp/cni.yaml /tmp/target_cluster_logs /tmp/source_cluster_logs /tmp/manifests
 
 .PHONY: verify
 verify: verify-boilerplate verify-modules

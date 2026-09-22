@@ -392,6 +392,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}))
+
+		result, err = checkReconcileError(baremetal.WithTerminalError(errors.New("failed")), "abc")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(Equal(ctrl.Result{}))
 	})
 
 })

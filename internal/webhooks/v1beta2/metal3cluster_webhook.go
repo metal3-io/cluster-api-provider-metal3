@@ -15,8 +15,10 @@ package webhooks
 
 import (
 	"context"
+	"fmt"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
+	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
@@ -85,6 +87,27 @@ func (webhook *Metal3Cluster) validate(_ *infrav1.Metal3Cluster, newM3C *infrav1
 				"is required",
 			),
 		)
+	}
+
+	if prefixStr, ok := newM3C.Annotations[baremetal.PrefixAnnotationKey]; ok {
+		prefixSet, err := baremetal.ParsePrefixAnnotation(prefixStr)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(
+				field.NewPath("metadata", "annotations").Key(baremetal.PrefixAnnotationKey),
+				prefixStr,
+				fmt.Sprintf("invalid prefix annotation: %v", err),
+			))
+		} else {
+			for prefix := range prefixSet {
+				if baremetal.IsReservedLabelPrefix(prefix) {
+					allErrs = append(allErrs, field.Invalid(
+						field.NewPath("metadata", "annotations").Key(baremetal.PrefixAnnotationKey),
+						prefix,
+						"prefix belongs to a Kubernetes-reserved domain (kubernetes.io, k8s.io) and cannot be synced",
+					))
+				}
+			}
+		}
 	}
 
 	if len(allErrs) == 0 {
