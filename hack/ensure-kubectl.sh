@@ -22,9 +22,8 @@ GOPATH_BIN="$(go env GOPATH)/bin/"
 MINIMUM_KUBECTL_VERSION=${KUBERNETES_VERSION:-"v1.37.0"}
 
 # Download the required kubectl version into the given target directory
-download_kubectl()
-{
-    local target_dir="$1"
+download_kubectl() {
+    local target_dir="${1}"
     local tmp arch
     tmp="$(mktemp)"
 
@@ -56,8 +55,7 @@ download_kubectl()
 
 # Install the required kubectl version, replacing the currently active binary
 # on PATH when present so the upgrade actually takes effect.
-install_kubectl()
-{
+install_kubectl() {
     if [[ "$(uname -s)" != "Linux" ]]; then
         echo "Automatic kubectl installation is only supported on Linux"
         echo "Please install ${MINIMUM_KUBECTL_VERSION} or later manually."
@@ -72,7 +70,7 @@ install_kubectl()
         target_dir="$(cd "$(dirname "${active_kubectl}")" && pwd)"
     else
         target_dir="${GOPATH_BIN%/}"
-        if ! [ -d "${target_dir}" ]; then
+        if ! [[ -d "${target_dir}" ]]; then
             mkdir -p "${target_dir}"
         fi
     fi
@@ -86,8 +84,7 @@ install_kubectl()
 }
 
 # Return the detected kubectl client version, or empty if it can't be determined
-get_kubectl_version()
-{
+get_kubectl_version() {
     local version
     version="$(kubectl version --client -o yaml 2>/dev/null | grep -F gitVersion | awk '{print $2}')" || true
     if [[ -z "${version}" ]]; then
@@ -98,8 +95,7 @@ get_kubectl_version()
 }
 
 # Ensure the kubectl tool exists and is a viable version, or installs it
-verify_kubectl_version()
-{
+verify_kubectl_version() {
     # Remove any broken kubectl binary in GOPATH/bin
     if [[ -f "${GOPATH_BIN}/kubectl" ]] && ! "${GOPATH_BIN}/kubectl" version --client &>/dev/null; then
         echo "Removing broken kubectl binary at ${GOPATH_BIN}/kubectl"

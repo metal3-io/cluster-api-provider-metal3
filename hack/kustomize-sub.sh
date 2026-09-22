@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright 2018 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,4 +18,4 @@ set -o nounset
 set -o pipefail
 
 root="$(dirname "${BASH_SOURCE[0]}")"
-"${root}/tools/bin/kustomize" build "$1" | "${root}/tools/bin/envsubst"
+"${root}/tools/bin/kustomize" build "${1}" | "${root}/tools/bin/envsubst"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright 2021 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,13 +57,13 @@ METAL3CRDS_GENERATED_FILE=${OUTPUT_DIR}/metal3crds.yaml
 OVERWRITE=0
 
 
-SCRIPT=$(basename "$0")
+SCRIPT=$(basename "${0}")
 while test $# -gt 0; do
-  case "$1" in
+  case "${1}" in
   -h | --help)
-    echo "$SCRIPT - generates input yaml files for Cluster API on metal3"
+    echo "${SCRIPT} - generates input yaml files for Cluster API on metal3"
     echo " "
-    echo "$SCRIPT [options]"
+    echo "${SCRIPT} [options]"
     echo " "
     echo "options:"
     echo "-h, --help                show brief help"
@@ -84,7 +84,7 @@ while test $# -gt 0; do
   esac
 done
 
-if [ $OVERWRITE -ne 1 ] && [ -d "$OUTPUT_DIR" ]; then
+if [[ ${OVERWRITE} -ne 1 && -d "${OUTPUT_DIR}" ]]; then
   echo "ERR: Folder ${OUTPUT_DIR} already exists. Delete it manually before running this script."
   exit 1
 fi
@@ -94,36 +94,36 @@ mkdir -p "${OUTPUT_DIR}"
 # Get enhanced envsubst version to evaluate expressions like ${VAR:=default}
 ENVSUBST="${SOURCE_DIR}/envsubst-go"
 curl --fail -Ss -L -o "${ENVSUBST}" https://github.com/a8m/envsubst/releases/download/v1.2.0/envsubst-"$(uname -s)"-"$(uname -m)"
-chmod +x "$ENVSUBST"
+chmod +x "${ENVSUBST}"
 
-if [ -n "${CLUSTER_TOPOLOGY:-}" ]; then
+if [[ -n "${CLUSTER_TOPOLOGY:-}" ]]; then
   # Generate clusterclass resources.
-  "$ENVSUBST" -i "${SOURCE_DIR}/templates/clusterclass.yaml" >"${CLUSTERCLASS_GENERATED_FILE}"
+  "${ENVSUBST}" -i "${SOURCE_DIR}/templates/clusterclass.yaml" >"${CLUSTERCLASS_GENERATED_FILE}"
   echo "Generated ${CLUSTERCLASS_GENERATED_FILE}"
 
   # Generate cluster resources.
-  "$ENVSUBST" -i "${SOURCE_DIR}/templates/cluster.yaml" >"${CLUSTER_GENERATED_FILE}"
+  "${ENVSUBST}" -i "${SOURCE_DIR}/templates/cluster.yaml" >"${CLUSTER_GENERATED_FILE}"
   echo "Generated ${CLUSTER_GENERATED_FILE}"
 else
   # Generate cluster resources.
-  "$KUSTOMIZE" build "${SOURCE_DIR}/cluster" | "$ENVSUBST" >"${CLUSTER_GENERATED_FILE}"
+  "${KUSTOMIZE}" build "${SOURCE_DIR}/cluster" | "${ENVSUBST}" >"${CLUSTER_GENERATED_FILE}"
   echo "Generated ${CLUSTER_GENERATED_FILE}"
 
   # Generate controlplane resources.
-  "$KUSTOMIZE" build "${SOURCE_DIR}/controlplane" | "$ENVSUBST" >"${CONTROLPLANE_GENERATED_FILE}"
+  "${KUSTOMIZE}" build "${SOURCE_DIR}/controlplane" | "${ENVSUBST}" >"${CONTROLPLANE_GENERATED_FILE}"
   echo "Generated ${CONTROLPLANE_GENERATED_FILE}"
 
   # Generate machinedeployment resources.
-  "$KUSTOMIZE" build "${SOURCE_DIR}/machinedeployment" | "$ENVSUBST" >>"${MACHINEDEPLOYMENT_GENERATED_FILE}"
+  "${KUSTOMIZE}" build "${SOURCE_DIR}/machinedeployment" | "${ENVSUBST}" >>"${MACHINEDEPLOYMENT_GENERATED_FILE}"
   echo "Generated ${MACHINEDEPLOYMENT_GENERATED_FILE}"
 fi
 
 # Generate metal3crds resources.
-"$KUSTOMIZE" build "${SOURCE_DIR}/metal3crds" | "$ENVSUBST" >"${METAL3CRDS_GENERATED_FILE}"
+"${KUSTOMIZE}" build "${SOURCE_DIR}/metal3crds" | "${ENVSUBST}" >"${METAL3CRDS_GENERATED_FILE}"
 echo "Generated ${METAL3CRDS_GENERATED_FILE}"
 
 # Generate metal3plane resources.
-"$KUSTOMIZE" build "${SOURCE_DIR}/metal3plane" | "$ENVSUBST" >"${METAL3PLANE_GENERATED_FILE}"
+"${KUSTOMIZE}" build "${SOURCE_DIR}/metal3plane" | "${ENVSUBST}" >"${METAL3PLANE_GENERATED_FILE}"
 echo "Generated ${METAL3PLANE_GENERATED_FILE}"
 
 # Get Cert-manager provider components file
@@ -131,21 +131,21 @@ curl --fail -Ss -L -o "${COMPONENTS_CERT_MANAGER_GENERATED_FILE}" https://github
 echo "Downloaded ${COMPONENTS_CERT_MANAGER_GENERATED_FILE}"
 
 # Generate Cluster API provider components file.
-"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=main" | "$ENVSUBST" >"${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+"${KUSTOMIZE}" build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=main" | "${ENVSUBST}" >"${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 
 # Generate Kubeadm Bootstrap Provider components file.
-"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/default/?ref=main" | "$ENVSUBST" >"${COMPONENTS_KUBEADM_GENERATED_FILE}"
+"${KUSTOMIZE}" build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/default/?ref=main" | "${ENVSUBST}" >"${COMPONENTS_KUBEADM_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_KUBEADM_GENERATED_FILE}"
 
 # Generate Kubeadm Controlplane components file.
-"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/default/?ref=main" | "$ENVSUBST" >"${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
+"${KUSTOMIZE}" build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/default/?ref=main" | "${ENVSUBST}" >"${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
 
 # Generate METAL3 Infrastructure Provider components file.
-"$KUSTOMIZE" build "${SOURCE_DIR}/../config/default" | "$ENVSUBST" >"${COMPONENTS_METAL3_GENERATED_FILE}"
+"${KUSTOMIZE}" build "${SOURCE_DIR}/../config/default" | "${ENVSUBST}" >"${COMPONENTS_METAL3_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_METAL3_GENERATED_FILE}"
 
 # Generate a single provider components file.
-"$KUSTOMIZE" build "${SOURCE_DIR}/provider-components" | "$ENVSUBST" >"${PROVIDER_COMPONENTS_GENERATED_FILE}"
+"${KUSTOMIZE}" build "${SOURCE_DIR}/provider-components" | "${ENVSUBST}" >"${PROVIDER_COMPONENTS_GENERATED_FILE}"
 echo "Generated ${PROVIDER_COMPONENTS_GENERATED_FILE}"
