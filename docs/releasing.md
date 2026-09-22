@@ -88,6 +88,10 @@ This makes sure that all the tags are accessible.
      Superseded section. This way the changes are acknowledged to be part of the
      release, but not overwhelming the important changes contained by the
      release.
+   - Leave the `@<IMAGE-SHA256-PLACEHOLDER>` part of the
+     "The image for this release is:" line untouched. The release workflow
+     replaces it with the digest of the released image, or removes it when no
+     digest is available.
 
 - Commit your changes, push the new branch and create a pull request:
    - The commit and PR title should be 🚀 Release v1.x.y:
@@ -104,20 +108,29 @@ Once PR is merged following GitHub actions are triggered:
    - GitHub job `push_release_tags` will create and push the tags. This action
      will also create release branch if its missing and release is `rc` or
      minor.
-   - GitHub job `create draft release` creates draft release. Don't publish the
-     release until release tag is visible in. Running actions are visible on the
-     [Actions](https://github.com/metal3-io/cluster-api-provider-metal3/actions)
-     page, and draft release will be visible on top of the
-     [Releases](https://github.com/metal3-io/cluster-api-provider-metal3/releases).
-     If the release you're making is not a new major release, new minor release,
-     or a new patch release from the latest release branch, uncheck the box for
-     latest release. If it is a release candidate (RC) or a beta or an alpha
-     release, tick pre-release box.
-   - GitHub job `build_CAPM3` builds release image with the release tag,
+   - GitHub job `build_capm3` builds release image with the release tag,
      and pushes it to Quay. Make sure the release tag is visible in
      [Quay tags page](https://quay.io/repository/metal3-io/cluster-api-provider-metal3?tab=tags).
      If the release tag build is not visible, check if the action has failed and
      retrigger as necessary.
+   - GitHub job `create draft release` creates draft release. This job depends
+     on `build_capm3` and therefore starts only after the release image has
+     been pushed to Quay. It needs the digest of that image to pin the manager
+     image in `infrastructure-components.yaml` and to complete the image line
+     in the release notes.
+      - If `build_capm3` fails, the draft release is not created at all. Fix
+        the cause and re-run the failed job; `create draft release` runs once
+        the image build succeeds.
+      - Don't publish the release until the release tag is visible in the
+        [Quay tags page](https://quay.io/repository/metal3-io/cluster-api-provider-metal3?tab=tags).
+        Running actions are visible on the
+        [Actions](https://github.com/metal3-io/cluster-api-provider-metal3/actions)
+        page, and draft release will be visible on top of the
+        [Releases](https://github.com/metal3-io/cluster-api-provider-metal3/releases).
+      - If the release you're making is not a new major release, new minor
+        release, or a new patch release from the latest release branch, uncheck
+        the box for latest release. If it is a release candidate (RC) or a beta
+        or an alpha release, tick pre-release box.
 
 ### Release artifacts
 
@@ -135,6 +148,13 @@ Git tags pushed:
 Container images at Quay registry:
 
 - [cluster-api-provider-metal3:v1.x.y](https://quay.io/repository/metal3-io/cluster-api-provider-metal3?tab=tags)
+
+The manager image in `infrastructure-components.yaml` is pinned by digest, for
+example
+`image: quay.io/metal3-io/cluster-api-provider-metal3:v1.x.y@sha256:<digest>`.
+The `create draft release` job runs `make verify-release-image-digest` and fails
+if the manifest is not digest-pinned, so a released manifest cannot point at
+a floating tag. The release notes show the same digest.
 
 Files included in the release page:
 
