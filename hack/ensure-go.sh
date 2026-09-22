@@ -19,8 +19,7 @@ set -o nounset
 set -o pipefail
 
 # Ensure the go tool exists and is a viable version.
-verify_go_version()
-{
+verify_go_version() {
     if [[ -z "$(command -v go)" ]]; then
         cat << EOF
 Can't find 'go' in PATH, please fix and retry.

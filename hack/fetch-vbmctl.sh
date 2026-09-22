@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Fetches the vbmctl binary from a BMO release. vbmctl has been published as a
 # release artifact since BMO v0.14.0, so we download it instead of building from
 # source. Sourced by ci-e2e.sh.

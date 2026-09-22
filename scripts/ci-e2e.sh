@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euxo pipefail
 
@@ -13,11 +13,11 @@ export CAPM3PATH="${REPO_ROOT}"
 # process, re-exec the script under `sg` so the group becomes active without
 # requiring a logout/login. The CAPM3_LIBVIRT_SG guard prevents infinite re-exec.
 
-# user_in_group_db succeeds if user $1 is a member of group $2 in the group
-# database; group_is_active succeeds if group $1 is one of the caller's current
+# user_in_group_db succeeds if user ${1} is a member of group ${2} in the group
+# database; group_is_active succeeds if group ${1} is one of the caller's current
 # effective groups. awk does the whole match, avoiding tr/grep pipelines.
 user_in_group_db() {
-  getent group "$2" 2>/dev/null | awk -F: -v u="$1" \
+  getent group "${2}" 2>/dev/null | awk -F: -v u="$1" \
     '{n=split($4, members, ","); for (i=1; i<=n; i++) if (members[i]==u) exit 0; exit 1}'
 }
 group_is_active() {
@@ -49,8 +49,8 @@ else
     export CAPI_RELEASE_PREFIX="v1.14."
 fi
 
-# Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
-CONFIG_FOLDER="${XDG_CONFIG_HOME:-$HOME/.config}"
+# Default CAPI_CONFIG_FOLDER to ${HOME}/.config folder if XDG_CONFIG_HOME not set
+CONFIG_FOLDER="${XDG_CONFIG_HOME:-${HOME}/.config}"
 export CAPI_CONFIG_FOLDER="${CONFIG_FOLDER}/cluster-api"
 
 # Default to the "basic" scenario when no focus is given, so running ci-e2e.sh
@@ -115,7 +115,7 @@ hash -r
 # Verify Go installation
 # shellcheck source=./hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
-PATH=$PATH:$(go env GOPATH)/bin
+PATH=${PATH}:$(go env GOPATH)/bin
 # shellcheck source=./hack/ensure-kind.sh
 source "${REPO_ROOT}/hack/ensure-kind.sh"
 # shellcheck source=./hack/ensure-kubectl.sh
@@ -219,9 +219,9 @@ done
 export IPA_BASEURI="http://${PROVISIONING_IP}"
 
 update_kustomize_image() {
-  local image_name="$1"
-  local env_var_name="$2"
-  local kustomize_dir="$3"
+  local image_name="${1}"
+  local env_var_name="${2}"
+  local kustomize_dir="${3}"
   local full_image="${!env_var_name}"
 
   if [[ -z "${full_image}" ]]; then
@@ -239,7 +239,7 @@ update_kustomize_image() {
 }
 
 yaml_envsubst() {
-  local dir="$1"
+  local dir="${1}"
   for file in "${dir}"/*.yaml; do
     if [[ -f "${file}" ]]; then
       local tmp_file
