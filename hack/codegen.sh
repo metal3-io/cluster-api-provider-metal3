@@ -9,6 +9,7 @@ set -eux
 IS_CONTAINER="${IS_CONTAINER:-false}"
 ARTIFACTS="${ARTIFACTS:-/tmp}"
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
+GIT_CONFIG_REQUIRED="${GIT_CONFIG_REQUIRED:-false}"
 
 if [ "${IS_CONTAINER}" != "false" ]; then
     export XDG_CACHE_HOME="/tmp/.cache"
@@ -18,6 +19,13 @@ if [ "${IS_CONTAINER}" != "false" ]; then
     # This script is a verification check only — generated output is not
     # written back to the host working tree.
     CODEGEN_DIR="$(mktemp -d -t codegen.XXXXXX)"
+
+    # Rootful containers require the source directory to be marked as safe in
+    # git config, otherwise git commands will fail with
+    # "fatal: detected dubious ownership in repository at <path>"
+    if [ "${GIT_CONFIG_REQUIRED}" != "false" ]; then
+        git config --global safe.directory "${CODEGEN_DIR}"
+    fi
 
     # This part could be run outside of a container and generated files
     # should be cleaned up just in case this is run locally and not in test
@@ -36,6 +44,7 @@ if [ "${IS_CONTAINER}" != "false" ]; then
 else
     "${CONTAINER_RUNTIME}" run --rm \
         --env IS_CONTAINER=TRUE \
+        --env GIT_CONFIG_REQUIRED=TRUE \
         --volume "${PWD}:/workdir:ro,z" \
         --entrypoint sh \
         --workdir /workdir \
