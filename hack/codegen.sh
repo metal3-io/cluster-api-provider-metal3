@@ -11,9 +11,20 @@ ARTIFACTS="${ARTIFACTS:-/tmp}"
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 
 if [ "${IS_CONTAINER}" != "false" ]; then
-    # we need to tell git its OK to use dir owned by someone else
-    git config --global safe.directory /workdir
     export XDG_CACHE_HOME="/tmp/.cache"
+
+    # Copy source to a writable temp directory so make generate can write
+    # generated files without requiring a read-write host mount.
+    # This script is a verification check only — generated output is not
+    # written back to the host working tree.
+    CODEGEN_DIR="$(mktemp -d -t codegen.XXXXXX)"
+
+    # This part could be run outside of a container and generated files
+    # should be cleaned up just in case this is run locally and not in test
+    # environment.
+    trap 'rm -rf "${CODEGEN_DIR}"' EXIT
+    cp -a . "${CODEGEN_DIR}"
+    cd "${CODEGEN_DIR}"
 
     INPUT_FILES="$(git ls-files config) $(git ls-files | grep zz_generated)"
     cksum ${INPUT_FILES} > "${ARTIFACTS}/lint.cksums.before"
@@ -25,7 +36,7 @@ if [ "${IS_CONTAINER}" != "false" ]; then
 else
     "${CONTAINER_RUNTIME}" run --rm \
         --env IS_CONTAINER=TRUE \
-        --volume "${PWD}:/workdir:rw,z" \
+        --volume "${PWD}:/workdir:ro,z" \
         --entrypoint sh \
         --workdir /workdir \
         docker.io/golang:1.26 \
