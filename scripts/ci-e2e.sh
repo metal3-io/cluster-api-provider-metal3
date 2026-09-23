@@ -346,7 +346,8 @@ cleanup() {
   fi
   if [[ -n "${VBMCTL:-}" && -n "${VBMCTL_CONFIG:-}" ]]; then
     echo "Cleaning up virtual bare metal lab..."
-    "${VBMCTL}" -c "${VBMCTL_CONFIG}" delete bml || true
+    # Match the sudo used to create the lab (veth teardown needs CAP_NET_ADMIN).
+    sudo "${VBMCTL}" -c "${VBMCTL_CONFIG}" delete bml || true
   fi
   echo "Deleting kind management cluster '${MANAGEMENT_CLUSTER_NAME}'..."
   kind delete cluster --name "${MANAGEMENT_CLUSTER_NAME}" || true

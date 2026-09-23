@@ -868,9 +868,12 @@ clean-e2e: ## Clean up e2e artifacts, kind clusters, and leftover resources
 	# prior e2e run left the binary and generated config behind; the explicit
 	# virsh/docker commands below remain as a fallback so this target still
 	# recovers a dirty environment on a fresh checkout.
+	# Run under sudo to match 'vbmctl create bml' (setup-bml.sh): teardown needs
+	# CAP_NET_ADMIN to remove the veth pairs, which the virsh/docker fallback does
+	# not cover.
 	@if [ -x "$(ROOT_DIR)/_out/bin/vbmctl" ] && [ -f "$(ROOT_DIR)/_out/vbmctl.yaml" ]; then \
 		echo "Tearing down bare metal lab with 'vbmctl delete bml'..."; \
-		"$(ROOT_DIR)/_out/bin/vbmctl" -c "$(ROOT_DIR)/_out/vbmctl.yaml" delete bml || true; \
+		sudo "$(ROOT_DIR)/_out/bin/vbmctl" -c "$(ROOT_DIR)/_out/vbmctl.yaml" delete bml || true; \
 	fi
 	# Destroy leftover VMs
 	@for vm in $$(sudo virsh list --all --name 2>/dev/null | grep -E '^node-[0-9]+$$' || true); do \

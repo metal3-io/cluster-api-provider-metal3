@@ -16,9 +16,11 @@ VBMCTL="${REPO_ROOT}/_out/bin/vbmctl"
 # it needs the libvirt daemon, client and qemu at runtime.
 if command -v apt-get &>/dev/null; then
   sudo apt-get update -qq
-  sudo apt-get install -y -qq libvirt-daemon-system libvirt-clients qemu-kvm libcap2-bin
+  sudo apt-get install -y -qq libvirt-daemon-system libvirt-clients qemu-kvm
 elif command -v dnf &>/dev/null; then
-  sudo dnf install -y libvirt-daemon libvirt-client qemu-kvm libcap
+  sudo dnf install -y libvirt-daemon libvirt-client qemu-kvm
+elif command -v zypper &>/dev/null; then
+  sudo zypper --non-interactive install libvirt libvirt-client qemu-kvm
 fi
 
 if [[ ! -f "${VBMCTL}" ]]; then
@@ -32,11 +34,4 @@ if [[ ! -f "${VBMCTL}" ]]; then
   mkdir -p "${REPO_ROOT}/_out/bin"
   curl -fsSL -o "${VBMCTL}" "${url}"
   chmod +x "${VBMCTL}"
-fi
-
-# Grant vbmctl network admin capabilities (needed for veth pair creation).
-if command -v setcap &>/dev/null; then
-  sudo setcap cap_net_admin+epi "${VBMCTL}" || echo "WARNING: setcap failed; vbmctl may require sudo for network operations"
-else
-  echo "WARNING: setcap not found; install libcap2-bin/libcap to avoid requiring sudo for vbmctl network operations"
 fi
