@@ -26,18 +26,60 @@ GOPATH_BIN="$(go env GOPATH)/bin"
 MINIMUM_KIND_VERSION=v0.20.0
 goarch="$(go env GOARCH)"
 goos="$(go env GOOS)"
+KIND_URL="https://github.com/kubernetes-sigs/kind/releases/download/${MINIMUM_KIND_VERSION}/kind-${goos}-${goarch}"
 
 # Ensure the kind tool exists and is a viable version, or installs it
 verify_kind_version()
 {
     # If kind is not available on the path, get it
-    if ! [ -x "$(command -v kind)" ]; then
-        if [ "${goos}" == "linux" ] || [ "${goos}" == "darwin" ]; then
-            echo 'kind not found, installing'
-            if ! [ -d "${GOPATH_BIN}" ]; then
+    if [[ ! -x "$(command -v kind)" ]]; then
+        if [[ "${goos}" == "linux" ]] || [[ "${goos}" == "darwin" ]]; then
+
+            local tmp_dir checksum expected_checksum
+
+            echo "kind not found, installing"
+
+            if ! command -v sha256sum &>/dev/null; then
+                echo "ERROR: sha256sum not found. On macOS, install coreutils: brew install coreutils" >&2
+                exit 1
+            fi
+
+            tmp_dir="$(mktemp -d)"
+
+            # shellcheck disable=SC2064 # Intentional: expand tmp_dir now since it's local
+            trap "rm -rf '${tmp_dir}'" RETURN EXIT
+
+            # Download the checksum for the kind binary
+            if ! curl --proto '=https' --tlsv1.3 -sSfL \
+                --retry 3 --retry-delay 5 --max-time 120 \
+                -o  "${tmp_dir}/kind.sha256sum" "${KIND_URL}.sha256sum"; then
+                echo >&2 "fatal: failed to download kind checksum from ${KIND_URL}.sha256sum"
+                return 1
+            fi
+
+            # Download the kind binary
+            if ! curl --proto '=https' --tlsv1.3 -sSfL \
+                --retry 3 --retry-delay 5 --max-time 120 \
+                -o  "${tmp_dir}/kind" "${KIND_URL}"; then
+                echo >&2 "fatal: failed to download kind from ${KIND_URL}"
+                return 1
+            fi
+
+            # Verify checksum before using
+            checksum="$(sha256sum "${tmp_dir}/kind" | awk '{print $1;}')"
+            expected_checksum="$(awk '{print $1;}' "${tmp_dir}/kind.sha256sum")"
+            if [[ "${checksum}" != "${expected_checksum}" ]]; then
+                echo >&2 "fatal: ${KIND_URL} checksum '${checksum}' differs from expected '${expected_checksum}'"
+                return 1
+            else
+                echo "kind checksum ${checksum} verified"
+            fi
+
+            # Install binary
+            if [[ ! -d "${GOPATH_BIN}" ]]; then
                 mkdir -p "${GOPATH_BIN}"
             fi
-            curl -sLo "${GOPATH_BIN}/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${MINIMUM_KIND_VERSION}/kind-${goos}-${goarch}"
+            mv "${tmp_dir}/kind" "${GOPATH_BIN}/kind"
             chmod +x "${GOPATH_BIN}/kind"
         else
             echo "Missing required binary in path: kind"
@@ -46,7 +88,7 @@ verify_kind_version()
     fi
 
     local kind_version
-    if [ -x "$(command -v kind)" ]; then
+    if [[ -x "$(command -v kind)" ]]; then
         kind_version="v$(kind version -q)"
     else
         echo "warning: GOPATH_BIN=${GOPATH_BIN} not in your path"
