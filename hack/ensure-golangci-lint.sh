@@ -18,10 +18,9 @@
 
 set -eux -o pipefail
 
-IPAM_DIR="$(cd "$(dirname "$0")/.." && pwd -P)"
+IPAM_DIR="$(cd "$(dirname "${0}")/.." && pwd -P)"
 
-download_and_install_golangci_lint()
-{
+download_and_install_golangci_lint() {
     local tmp_dir
     local bin_dir="${1:?Binary path missing}"
 
@@ -84,4 +83,4 @@ download_and_install_golangci_lint()
     rm -rf "${tmp_dir}"
 }
 
-download_and_install_golangci_lint "$1"
+download_and_install_golangci_lint "${1}"

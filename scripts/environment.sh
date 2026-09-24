@@ -1,16 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # File contains e2e var exports
 
-function os_check() {
+os_check() {
   # Check OS type and version
   # shellcheck disable=SC1091
   source /etc/os-release
   export DISTRO="${ID}${VERSION_ID%.*}"
   export OS="${ID}"
-  export OS_VERSION_ID=$VERSION_ID
+  export OS_VERSION_ID=${VERSION_ID}
   export SUPPORTED_DISTROS=(centos9 rhel9 centos10 rhel10 ubuntu20 ubuntu22 ubuntu24 opensuse-leap15)
 
-  if [[ ! "${SUPPORTED_DISTROS[*]}" =~ $DISTRO ]]; then
+  if [[ ! "${SUPPORTED_DISTROS[*]}" =~ ${DISTRO} ]]; then
     echo "Supported OS distros for the host are: CentOS Stream 9/10, or RHEL9/10, or Ubuntu20.04/22.04/24.04, or Opensuse Leap 15"
     exit 1
   fi
@@ -142,10 +142,10 @@ echo -e "INFO: NUM_NODES='${NUM_NODES:-}', CONTROL_PLANE_MACHINE_COUNT='${CONTRO
 
 # Exported to the cluster templates
 # Generate user ssh key
-if [ ! -f "${HOME}/.ssh/id_rsa" ]; then
+if [[ ! -f "${HOME}/.ssh/id_rsa" ]]; then
   ssh-keygen -f "${HOME}/.ssh/id_rsa" -P ""
 fi
-SSH_PUB_KEY_CONTENT=$(cat "$HOME/.ssh/id_rsa.pub")
+SSH_PUB_KEY_CONTENT=$(cat "${HOME}/.ssh/id_rsa.pub")
 export SSH_PUB_KEY_CONTENT
 # The host that serves provisioning images and the local e2e registry, in
 # URL-host format (e.g. IPv6 surrounded by brackets).
