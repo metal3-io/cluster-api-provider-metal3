@@ -962,6 +962,7 @@ func autoConvert_v1beta1_Image_To_v1beta2_Image(in *Image, out *v1beta2.Image, s
 	if err := v1.Convert_Pointer_string_To_string(&in.DiskFormat, &out.DiskFormat, s); err != nil {
 		return err
 	}
+	out.OCIAuthSecretName = (*string)(unsafe.Pointer(in.OCIAuthSecretName))
 	return nil
 }
 
@@ -976,6 +977,7 @@ func autoConvert_v1beta2_Image_To_v1beta1_Image(in *v1beta2.Image, out *Image, s
 	if err := v1.Convert_string_To_Pointer_string(&in.DiskFormat, &out.DiskFormat, s); err != nil {
 		return err
 	}
+	out.OCIAuthSecretName = (*string)(unsafe.Pointer(in.OCIAuthSecretName))
 	return nil
 }
 
