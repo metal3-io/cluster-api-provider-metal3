@@ -107,21 +107,26 @@ if [[ ${GINKGO_FOCUS:-} != "scalability" ]]; then
     export GINKGO_SKIP="${GINKGO_SKIP:-} scalability"
 fi
 
-# Ensure required tools are available.
-# shellcheck source=./hack/install-go.sh
-source "${REPO_ROOT}/hack/install-go.sh"
+# The CI image pre-installs the e2e tooling (Go, kind, kubectl, docker, vbmctl);
+# verify it is present instead of downloading it here, and fail early listing
+# whatever is missing.
+if ! command -v go >/dev/null 2>&1; then
+  echo "ERROR: 'go' is not installed or not on PATH." >&2
+  exit 1
+fi
+# kind/kubectl may live in GOPATH/bin depending on how they were installed.
+PATH="${PATH}:$(go env GOPATH)/bin"
 hash -r
 
-# Verify Go installation
-# shellcheck source=./hack/ensure-go.sh
-source "${REPO_ROOT}/hack/ensure-go.sh"
-PATH=$PATH:$(go env GOPATH)/bin
-# shellcheck source=./hack/ensure-kind.sh
-source "${REPO_ROOT}/hack/ensure-kind.sh"
-# shellcheck source=./hack/ensure-kubectl.sh
-source "${REPO_ROOT}/hack/ensure-kubectl.sh"
-# shellcheck source=./hack/ensure-docker.sh
-source "${REPO_ROOT}/hack/ensure-docker.sh"
+missing_tools=()
+for tool in kind kubectl docker vbmctl; do
+  command -v "${tool}" >/dev/null 2>&1 || missing_tools+=("${tool}")
+done
+if [[ ${#missing_tools[@]} -gt 0 ]]; then
+  echo "ERROR: required tool(s) not installed: ${missing_tools[*]}" >&2
+  echo "The CI image provides these; install them manually for local runs." >&2
+  exit 1
+fi
 
 if [[ -z "${CAPM3_DOCKER_SG:-}" ]] && getent group docker &>/dev/null \
    && user_in_group_db "${USER}" docker && ! group_is_active docker; then
