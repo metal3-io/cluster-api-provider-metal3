@@ -59,6 +59,11 @@ const (
 
 var (
 	EnableBMHNameBasedPreallocation bool
+	// EnableCAPIIPAddressClaims controls whether Metal3 IPPools use CAPI
+	// IPAddressClaims instead of Metal3 IPClaims for IP allocation. When true,
+	// the controller creates CAPI IPAddressClaims for Metal3 IPPool references,
+	// enabling the deprecation path from Metal3 IPClaim/IPAddress to CAPI variants.
+	EnableCAPIIPAddressClaims bool
 )
 
 // DataManagerInterface is an interface for a DataManager.
@@ -404,7 +409,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 
 	for pool, ref := range poolRefs {
 		var rc reconciledClaim
-		if isMetal3IPPoolRef(ref) {
+		if isMetal3IPPoolRef(ref) && !EnableCAPIIPAddressClaims {
 			rc, err = m.ensureM3IPClaim(ctx, ref)
 		} else {
 			rc, err = m.ensureIPClaim(ctx, ref)
@@ -546,7 +551,7 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context, m3dt infrav1
 	for pool, ref := range poolRefs {
 		m.Log.Info("Releasing address from IPPool", LogFieldPool, pool)
 		var err error
-		if isMetal3IPPoolRef(ref) {
+		if isMetal3IPPoolRef(ref) && !EnableCAPIIPAddressClaims {
 			err = m.releaseAddressFromM3Pool(ctx, ref)
 		} else {
 			err = m.releaseAddressFromPool(ctx, ref)
