@@ -33,7 +33,8 @@ In order to develop CAPM3 using Tilt, there is a requirement to have kind and
 Tilt installed.
 
 ```sh
-hack/ensure-kind.sh
+# Install kind (https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+go install sigs.k8s.io/kind@v0.20.0
 curl -fsSL \
 https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
 ```
