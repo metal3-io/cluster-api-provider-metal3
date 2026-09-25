@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -192,6 +193,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 	type TestCaseReconcile struct {
 		Objects                    []client.Object
 		TargetObjects              []runtime.Object
+		TargetClusterUnreachable   bool
 		ErrorExpected              bool
 		RequeueExpected            bool
 		ErrorReasonExpected        bool
@@ -223,6 +225,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 			mockCapiClientGetter := func(_ context.Context, _ client.Client, _ *clusterv1.Cluster) (
 				clientcorev1.CoreV1Interface, error,
 			) {
+				if tc.TargetClusterUnreachable {
+					return nil, errors.New("workload cluster unreachable")
+				}
 				return clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1(), nil
 			}
 
@@ -855,7 +860,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		),
 		//Given: metal3machine with annotation to a BMH provisioned, machine with
 		// bootstrap data, no target cluster node available
-		//Expected: no error, requeing. ProviderID should not be set.
+		//Expected: no error, requeing. Default ProviderID should be set.
 		Entry("Should requeue when patching an unavailable node",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -870,7 +875,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 				ExpectedRequeueDuration: requeueAfter,
 				ClusterInfraReady:       true,
 				CheckBMFinalizer:        true,
-				CheckBMProviderID:       false,
+				CheckBMState:            true,
+				CheckBMProviderID:       true,
 				CheckBootStrapReady:     true,
 				ConditionsExpected: []metav1.Condition{
 					{
@@ -878,6 +884,29 @@ var _ = Describe("Reconcile metal3machine", func() {
 						Status: metav1.ConditionTrue,
 					},
 				},
+			},
+		),
+		//Given: metal3machine with annotation to a BMH provisioned, machine with
+		// bootstrap data, target cluster not reachable
+		//Expected: no error, requeing. Default ProviderID should be set.
+		Entry("Should set default ProviderID when the target cluster is unreachable",
+			TestCaseReconcile{
+				Objects: []client.Object{
+					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), nil, nil, false),
+					machineWithBootstrap(),
+					newCluster(clusterName, nil, nil),
+					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
+					newBareMetalHost(baremetalhostName, nil, nil, nil, false),
+				},
+				TargetClusterUnreachable: true,
+				ErrorExpected:            false,
+				RequeueExpected:          true,
+				ExpectedRequeueDuration:  requeueAfter,
+				ClusterInfraReady:        true,
+				CheckBMFinalizer:         true,
+				CheckBMState:             true,
+				CheckBMProviderID:        true,
+				CheckBootStrapReady:      true,
 			},
 		),
 		//Given: metal3machine with annotation to a BMH provisioned, machine with
