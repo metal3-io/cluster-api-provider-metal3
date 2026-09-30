@@ -19,6 +19,7 @@ import (
 	"github.com/pkg/errors"
 	"gomodules.xyz/jsonpatch/v2"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -38,6 +39,7 @@ import (
 // +kubebuilder:rbac:groups=ipam.metal3.io,resources=ipclaims/status,verbs=get
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datas,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datas/status,verbs=get
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3dataclaims,verbs=get;list;watch
 
 const (
 	trueString                      = "true"
@@ -426,13 +428,16 @@ func (h *ExtensionHandlers) getMachineIP(ctx context.Context, machine *clusterv1
 
 	var m3Data *infrav1.Metal3Data
 	for i, m3d := range m3DataList.Items {
-		for _, owner := range m3d.OwnerReferences {
-			if owner.Name == metal3Machine.Name {
-				m3Data = &m3DataList.Items[i]
-				break
-			}
+		if m3d.Spec.Claim == nil || m3d.Spec.Claim.Name != metal3Machine.Name {
+			continue
 		}
-		if m3Data != nil {
+		dataClaim := &infrav1.Metal3DataClaim{}
+		claimKey := types.NamespacedName{Name: m3d.Spec.Claim.Name, Namespace: m3d.Namespace}
+		if getErr := h.client.Get(ctx, claimKey, dataClaim); getErr != nil {
+			return "", fmt.Errorf("couldn't get Metal3DataClaim %s/%s: %w", claimKey.Namespace, claimKey.Name, getErr)
+		}
+		if metal3DataClaimOwnedBy(dataClaim, metal3Machine) {
+			m3Data = &m3DataList.Items[i]
 			break
 		}
 	}
@@ -488,6 +493,19 @@ func (h *ExtensionHandlers) getMachineIP(ctx context.Context, machine *clusterv1
 	}
 
 	return string(IPAddress.Spec.Address), nil
+}
+
+func metal3DataClaimOwnedBy(dataClaim *infrav1.Metal3DataClaim, metal3Machine *infrav1.Metal3Machine) bool {
+	for _, ownerRef := range dataClaim.OwnerReferences {
+		gv, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+		if err != nil {
+			continue
+		}
+		if ownerRef.Kind == "Metal3Machine" && gv.Group == infrav1.GroupVersion.Group && ownerRef.Name == metal3Machine.Name {
+			return true
+		}
+	}
+	return false
 }
 
 //nolint:dupl // Similar logic to getObjectsFromCanUpdateMachineRequest but operates on different types
