@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# Extend the worker KubeadmConfigTemplate with a `contentFormat: Template` file
+# and a matching preKubeadmCommands step. The file content is rendered by the
+# KubeadmConfig controller as a Go text/template with `{{ .controlPlane.version }}`
+# resolved from the KubeadmControlPlane version (CAPI feature, requires CAPI v1.14+).
+#
+# This lets a worker that still boots the old image/kubelet fetch a kubeadm binary
+# matching the (already upgraded) control plane before `kubeadm join` runs, so the
+# join does not fail kubeadm's version-skew policy.
+patches:
+- target:
+    kind: KubeadmConfigTemplate
+    name: .*-workers
+  patch: |-
+    - op: add
+      path: /spec/template/spec/files/-
+      value:
+        path: /run/cluster-api/fetch-kubeadm.sh
+        owner: root:root
+        permissions: "0755"
+        contentFormat: Template
+        content: |
+          #!/bin/bash
+          set -euo pipefail
+          echo "Fetching kubeadm {{ .controlPlane.version }} to match control plane..."
+          curl -fsSL -o /usr/bin/kubeadm \
+          "https://dl.k8s.io/release/{{ .controlPlane.version }}/bin/linux/amd64/kubeadm"
+          chmod +x /usr/bin/kubeadm
+          kubeadm version
+    - op: add
+      path: /spec/template/spec/preKubeadmCommands/-
+      value: bash /run/cluster-api/fetch-kubeadm.sh
