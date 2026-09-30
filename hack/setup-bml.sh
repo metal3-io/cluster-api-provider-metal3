@@ -12,7 +12,8 @@
 #   IRONIC_DATA_DIR - Ironic data directory
 #
 # Exported for the caller and the Go tests:
-#   VBMCTL          - path to the vbmctl binary (set by fetch-vbmctl.sh)
+#   VBMCTL          - path to the vbmctl binary (resolved from PATH; override
+#                     by setting VBMCTL)
 #   VBMCTL_CONFIG   - generated vbmctl lab config (used by the cleanup trap)
 #   E2E_BMCS_CONFIG - generated BMC config consumed by the Go tests
 
@@ -28,9 +29,27 @@ export EXTERNAL_NETWORK_NAME="${EXTERNAL_NETWORK_NAME:-external-e2e}"
 export BMC_EMULATOR_PORT="${BMC_EMULATOR_PORT:-8000}"
 export BMC_EMULATOR_IMAGE="${BMC_EMULATOR_IMAGE:-quay.io/metal3-io/sushy-tools:latest}"
 
-# Fetch the vbmctl binary from a BMO release.
-# shellcheck source=./hack/fetch-vbmctl.sh
-source "${REPO_ROOT}/hack/fetch-vbmctl.sh"
+# vbmctl is pre-installed in the CI image; resolve it from PATH.
+VBMCTL="${VBMCTL:-$(command -v vbmctl || true)}"
+export VBMCTL
+if [[ -z "${VBMCTL}" ]]; then
+  echo "ERROR: 'vbmctl' is not installed or not on PATH." >&2
+  exit 1
+fi
+
+# vbmctl drives libvirt/qemu to create the lab VMs, so both must be present.
+lab_missing=()
+command -v virsh >/dev/null 2>&1 || lab_missing+=("libvirt (virsh)")
+if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
+   && ! command -v qemu-kvm >/dev/null 2>&1 \
+   && [[ ! -x /usr/libexec/qemu-kvm ]]; then
+  lab_missing+=("qemu-kvm")
+fi
+if [[ ${#lab_missing[@]} -gt 0 ]]; then
+  echo "ERROR: required lab dependencies not installed: ${lab_missing[*]}" >&2
+  echo "The CI image provides these; install them manually for local runs." >&2
+  exit 1
+fi
 
 # Number of bare metal nodes to create. Normally set by scripts/environment.sh
 # based on GINKGO_FOCUS; default here as a fallback so the script is safe to run
