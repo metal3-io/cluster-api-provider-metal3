@@ -27,6 +27,7 @@ spec:
         args:
         - "--webhook-port=9443"
         - "--enable-bmh-name-based-preallocation=${ENABLE_BMH_NAME_BASED_PREALLOCATION:=false}"
+        - "--enable-capi-ipaddress-claims=${ENABLE_CAPI_IPADDRESS_CLAIMS:=false}"
         - "--diagnostics-address=${CAPM3_DIAGNOSTICS_ADDRESS:=:8443}"
         - "--insecure-diagnostics=${CAPM3_INSECURE_DIAGNOSTICS:=false}"
         image: controller:latest
