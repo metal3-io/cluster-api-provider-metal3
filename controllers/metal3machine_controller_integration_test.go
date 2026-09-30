@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	k8stesting "k8s.io/client-go/testing"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
@@ -194,6 +195,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		Objects                    []client.Object
 		TargetObjects              []runtime.Object
 		TargetClusterUnreachable   bool
+		TargetNodeListFails        bool
 		ErrorExpected              bool
 		RequeueExpected            bool
 		ErrorReasonExpected        bool
@@ -228,7 +230,13 @@ var _ = Describe("Reconcile metal3machine", func() {
 				if tc.TargetClusterUnreachable {
 					return nil, errors.New("workload cluster unreachable")
 				}
-				return clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1(), nil
+				clientset := clientfake.NewSimpleClientset(tc.TargetObjects...)
+				if tc.TargetNodeListFails {
+					clientset.PrependReactor("list", "nodes", func(k8stesting.Action) (bool, runtime.Object, error) {
+						return true, nil, errors.New("unable to list nodes")
+					})
+				}
+				return clientset.CoreV1(), nil
 			}
 
 			r := &Metal3MachineReconciler{
@@ -860,7 +868,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		),
 		//Given: metal3machine with annotation to a BMH provisioned, machine with
 		// bootstrap data, no target cluster node available
-		//Expected: no error, requeing. Default ProviderID should be set.
+		//Expected: no error, requeuing. Default ProviderID should be set.
 		Entry("Should requeue when patching an unavailable node",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -888,7 +896,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		),
 		//Given: metal3machine with annotation to a BMH provisioned, machine with
 		// bootstrap data, target cluster not reachable
-		//Expected: no error, requeing. Default ProviderID should be set.
+		//Expected: no error, requeuing. Default ProviderID should be set.
 		Entry("Should set default ProviderID when the target cluster is unreachable",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -907,6 +915,29 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMState:             true,
 				CheckBMProviderID:        true,
 				CheckBootStrapReady:      true,
+			},
+		),
+		//Given: metal3machine with annotation to a BMH provisioned, machine with
+		// bootstrap data, listing target cluster nodes fails
+		//Expected: no error, requeuing. Default ProviderID should be set.
+		Entry("Should set default ProviderID when listing target cluster nodes fails",
+			TestCaseReconcile{
+				Objects: []client.Object{
+					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), nil, nil, false),
+					machineWithBootstrap(),
+					newCluster(clusterName, nil, nil),
+					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
+					newBareMetalHost(baremetalhostName, nil, nil, nil, false),
+				},
+				TargetNodeListFails:     true,
+				ErrorExpected:           false,
+				RequeueExpected:         true,
+				ExpectedRequeueDuration: requeueAfter,
+				ClusterInfraReady:       true,
+				CheckBMFinalizer:        true,
+				CheckBMState:            true,
+				CheckBMProviderID:       true,
+				CheckBootStrapReady:     true,
 			},
 		),
 		//Given: metal3machine with annotation to a BMH provisioned, machine with
