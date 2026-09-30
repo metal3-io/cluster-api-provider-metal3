@@ -200,6 +200,15 @@ spec:
                     - vmdk
                     - live-iso
                     type: string
+                  rootFSUUID:
+                    description: |-
+                      RootFSUUID identifies the root filesystem of a whole-disk image, by
+                      its filesystem UUID. Required by Ironic when deploying a whole-disk
+                      image onto a host with software RAID configured, so it can locate
+                      the root filesystem inside the assembled RAID array and correctly
+                      reinstall a RAID-aware bootloader. Not needed for plain (non-RAID)
+                      deploys, or for partition images.
+                    type: string
                   url:
                     description: URL is a location of an image to deploy.
                     type: string
@@ -730,6 +739,16 @@ spec:
                     - vdi
                     - vmdk
                     - live-iso
+                    type: string
+                  rootFSUUID:
+                    description: |-
+                      rootFSUUID identifies the root filesystem of a whole-disk image, by
+                      its filesystem UUID. Required by Ironic when deploying a whole-disk
+                      image onto a host with software RAID configured, so it can locate
+                      the root filesystem inside the assembled RAID array and correctly
+                      reinstall a RAID-aware bootloader. Not needed for plain (non-RAID)
+                      deploys, or for partition images.
+                    maxLength: 36
                     type: string
                   url:
                     description: url is a location of an image to deploy.
