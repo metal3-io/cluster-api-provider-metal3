@@ -92,7 +92,7 @@ jobs:
   release:
     name: create draft release
     runs-on: ubuntu-latest
-    needs: push_release_tags
+    needs: [ push_release_tags, build_capm3 ]
     permissions:
       contents: write
     steps:
@@ -116,12 +116,36 @@ jobs:
     - name: generate release artifacts
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        MANIFEST_DIGEST: ${{ needs.build_capm3.outputs.image-digest }}
       run: |
         make release
+        make verify-release-image-digest
     - name: get release notes
+      env:
+        MANIFEST_DIGEST: ${{ needs.build_capm3.outputs.image-digest }}
       run: |
         curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/main/releasenotes/${RELEASE_TAG}.md" \
         -o "${RELEASE_TAG}.md"
+
+        # When release notes are generated, the release image digest is
+        # not known yet, so the release notes may contain a placeholder
+        # for the digest. Replace the placeholder with the digest of the
+        # image built by build_capm3, or drop it entirely when no digest
+        # is available.
+        placeholder='@<IMAGE-SHA256-PLACEHOLDER>'
+        if ! grep -qF "${placeholder}" "${RELEASE_TAG}.md"; then
+          echo "Note: ${placeholder} not found in ${RELEASE_TAG}.md, release notes left as is"
+        elif [[ -n "${MANIFEST_DIGEST}" ]]; then
+          if [[ ! "${MANIFEST_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "MANIFEST_DIGEST '${MANIFEST_DIGEST}' is not a valid sha256 digest, exiting"
+            exit 1
+          fi
+          sed -i -e "s|${placeholder}|@${MANIFEST_DIGEST}|g" "${RELEASE_TAG}.md"
+          grep -F 'The image for this release is:' "${RELEASE_TAG}.md" || true
+        else
+          sed -i -e "s|${placeholder}||g" "${RELEASE_TAG}.md"
+          echo "Note: MANIFEST_DIGEST is empty"
+        fi
     - name: Release
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -138,7 +162,7 @@ jobs:
           --notes-file "${RELEASE_TAG}.md" \
           out/*
 
-  build_CAPM3:
+  build_capm3:
     permissions:
       contents: read
       id-token: write
@@ -157,7 +181,7 @@ jobs:
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
-  build_CAPM3_release_branch:
+  build_capm3_release_branch:
     permissions:
       contents: read
       id-token: write

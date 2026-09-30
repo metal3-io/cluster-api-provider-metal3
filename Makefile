@@ -678,10 +678,15 @@ docker-build-all: $(addprefix docker-build-,$(ALL_ARCH))
 docker-build-%:
 	$(MAKE) ARCH=$* docker-build
 
+# Optional image digest (e.g. sha256:abc...). When set, set-manifest-image pins the
+# manager image by digest. Empty by default so local/dev builds keep using tags.
+MANIFEST_DIGEST ?=
+MANIFEST_IMAGE_REF = $(MANIFEST_IMG):$(MANIFEST_TAG)$(if $(MANIFEST_DIGEST),@$(MANIFEST_DIGEST),)
+
 .PHONY: set-manifest-image
 set-manifest-image:
-	$(info Updating kustomize image patch file for manager resource)
-	sed -i'' -e 's@image: .*@image: \"'"${MANIFEST_IMG}:$(MANIFEST_TAG)"'\"@' ./config/default/capm3/manager_image_patch.yaml
+	$(info Updating kustomize image patch file for manager resource -> $(MANIFEST_IMAGE_REF))
+	sed -i'' -e 's|image: .*|image: \"'"$(MANIFEST_IMAGE_REF)"'\"|' ./config/default/capm3/manager_image_patch.yaml
 
 .PHONY: set-manifest-image-test-extension
 set-manifest-image-test-extension:
@@ -790,9 +795,14 @@ release:
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "You have uncommitted changes"; exit 1; fi
 	git checkout "${RELEASE_TAG}"
-	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(RELEASE_TAG) $(MAKE) set-manifest-image
+	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(RELEASE_TAG) MANIFEST_DIGEST=$(MANIFEST_DIGEST) $(MAKE) set-manifest-image
 	$(MAKE) release-manifests
 	$(MAKE) release-notes
+
+.PHONY: verify-release-image-digest
+verify-release-image-digest: ## Fail if the released manifest is not pinned by digest
+	@grep -qE 'image: .*@sha256:[0-9a-f]{64}' $(RELEASE_DIR)/infrastructure-components.yaml \
+		|| { echo "manager image in $(RELEASE_DIR)/infrastructure-components.yaml is not digest-pinned"; exit 1; }
 
 ## --------------------------------------
 ## Tilt / Kind
