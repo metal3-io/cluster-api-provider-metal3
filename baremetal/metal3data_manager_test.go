@@ -621,7 +621,6 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			expectRequeue: true,
 		}),
 		Entry("M3dt found", testCaseReleaseLeases{
 			m3d: &infrav1.Metal3Data{
@@ -6450,8 +6449,8 @@ var _ = Describe("Releasing claims for pools resolved from FromPoolAnnotation", 
 				claimKeys = append(claimKeys, key)
 			}
 
-			// By deletion time, the objects holding the annotations are gone.
-			for _, obj := range []client.Object{bmh, machine, m3m} {
+			// By deletion time, the template and the objects holding the annotations are gone.
+			for _, obj := range []client.Object{bmh, machine, m3m, m3dt} {
 				Expect(fc.Delete(context.TODO(), obj)).To(Succeed())
 			}
 

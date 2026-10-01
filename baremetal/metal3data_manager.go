@@ -329,22 +329,6 @@ func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 		m.Log.V(VerbosityLevelDebug).Info("No template specified, skipping lease release")
 		return nil
 	}
-	if m.Data.Spec.Template.Namespace == "" {
-		m.Data.Spec.Template.Namespace = m.Data.Namespace
-	}
-	// Fetch the Metal3DataTemplate object to get the templates
-	m3dt, err := fetchM3DataTemplate(ctx, m.Data.Spec.Template, m.client,
-		m.Log,
-	)
-	if err != nil {
-		return err
-	}
-	if m3dt == nil {
-		m.Log.V(VerbosityLevelDebug).Info("Metal3DataTemplate not found, skipping lease release")
-		return nil
-	}
-	m.Log.V(VerbosityLevelDebug).Info("Fetched Metal3DataTemplate for lease release",
-		LogFieldMetal3DataTemplate, m3dt.Name)
 
 	return m.releaseAddressesFromPool(ctx)
 }
