@@ -33,6 +33,7 @@ import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -543,7 +544,18 @@ func (m *DataManager) ownsClaim(claim client.Object) bool {
 		return false
 	}
 	for _, ownerRef := range claim.GetOwnerReferences() {
-		if ownerRef.UID == m.Data.UID {
+		aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+		if err != nil {
+			return false
+		}
+
+		bGV, err := schema.ParseGroupVersion(m.Data.APIVersion)
+		if err != nil {
+			return false
+		}
+		if ownerRef.Name == m.Data.Name &&
+			ownerRef.Kind == m.Data.Kind &&
+			aGV.Group == bGV.Group {
 			return true
 		}
 	}
@@ -559,7 +571,9 @@ func (m *DataManager) getClaimedPools(ctx context.Context) (map[string]infrav1.I
 
 	m3Claims := ipamv1.IPClaimList{}
 	if err := m.client.List(ctx, &m3Claims, opts...); err != nil {
-		return pools, err
+		if !meta.IsNoMatchError(err) {
+			return pools, err
+		}
 	}
 	for _, claim := range m3Claims.Items {
 		if m.ownsClaim(&claim) {
@@ -573,7 +587,9 @@ func (m *DataManager) getClaimedPools(ctx context.Context) (map[string]infrav1.I
 
 	claims := capipamv1.IPAddressClaimList{}
 	if err := m.client.List(ctx, &claims, opts...); err != nil {
-		return pools, err
+		if !meta.IsNoMatchError(err) {
+			return pools, err
+		}
 	}
 	for _, claim := range claims.Items {
 		if m.ownsClaim(&claim) {

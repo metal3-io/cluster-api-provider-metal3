@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -31,6 +33,7 @@ import (
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -49,6 +52,16 @@ type testCaseEnsureM3Claim struct {
 }
 
 const metal3DataUID = "metal3data-uid"
+
+// failList returns a List hook that fails with err for lists of type T.
+func failList[T client.ObjectList](err error) func(client.ObjectList) error {
+	return func(list client.ObjectList) error {
+		if _, ok := list.(T); ok {
+			return err
+		}
+		return nil
+	}
+}
 
 var _ = Describe("Metal3Data manager", func() {
 	DescribeTable("Test Finalizers",
@@ -1380,11 +1393,18 @@ var _ = Describe("Metal3Data manager", func() {
 		expectError   bool
 		expectRequeue bool
 		injectListErr bool
+		listErr       func(client.ObjectList) error
 	}
 
 	DescribeTable("Test releaseAddressesFromPool",
 		func(tc testCaseReleaseAddressesFromPool) {
-			ownerRefs := []metav1.OwnerReference{{UID: metal3DataUID}}
+			// The UID differs from the Metal3Data one, as it does after a pivot.
+			ownerRefs := []metav1.OwnerReference{{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       "Metal3Data",
+				Name:       metal3DataName,
+				UID:        "pre-pivot-uid",
+			}}
 			objects := make([]client.Object, 0, len(tc.m3IPClaims)+len(tc.ipClaims)+len(tc.foreignClaims))
 			for _, poolName := range tc.m3IPClaims {
 				objects = append(objects, &ipamv1.IPClaim{
@@ -1401,10 +1421,15 @@ var _ = Describe("Metal3Data manager", func() {
 			for _, claimName := range tc.foreignClaims {
 				objects = append(objects, &ipamv1.IPClaim{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:            claimName,
-						Namespace:       namespaceName,
-						Finalizers:      []string{infrav1.DataFinalizer},
-						OwnerReferences: []metav1.OwnerReference{{UID: "other-uid"}},
+						Name:       claimName,
+						Namespace:  namespaceName,
+						Finalizers: []string{infrav1.DataFinalizer},
+						OwnerReferences: []metav1.OwnerReference{{
+							APIVersion: infrav1.GroupVersion.String(),
+							Kind:       "Metal3Data",
+							Name:       "other-data",
+							UID:        metal3DataUID,
+						}},
 					},
 					Spec: ipamv1.IPClaimSpec{
 						Pool: *testObjectReference(claimName),
@@ -1438,11 +1463,18 @@ var _ = Describe("Metal3Data manager", func() {
 			fakeClient := &releaseAddressFromPoolFakeClient{
 				Client:        fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build(),
 				injectListErr: tc.injectListErr,
+				listErr:       tc.listErr,
 			}
 			dataMgr, err := NewDataManager(fakeClient, m3d,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
+
+			if !tc.expectError {
+				pools, poolsErr := dataMgr.getClaimedPools(context.TODO())
+				Expect(poolsErr).NotTo(HaveOccurred())
+				Expect(slices.Collect(maps.Keys(pools))).To(ConsistOf(slices.Concat(tc.m3IPClaims, tc.ipClaims)))
+			}
 
 			err = dataMgr.releaseAddressesFromPool(context.TODO())
 			if tc.expectError || tc.expectRequeue {
@@ -1516,6 +1548,26 @@ var _ = Describe("Metal3Data manager", func() {
 		Entry("List error", testCaseReleaseAddressesFromPool{
 			injectListErr: true,
 			expectError:   true,
+		}),
+		Entry("Missing CAPI IPAM CRDs", testCaseReleaseAddressesFromPool{
+			m3IPClaims: []string{
+				"abcd-1",
+			},
+			listErr: failList[*capipamv1.IPAddressClaimList](&meta.NoKindMatchError{
+				GroupKind: capipamv1.GroupVersion.WithKind("IPAddressClaim").GroupKind(),
+			}),
+		}),
+		Entry("Missing Metal3 IPAM CRDs", testCaseReleaseAddressesFromPool{
+			ipClaims: []string{
+				"v4",
+			},
+			listErr: failList[*ipamv1.IPClaimList](&meta.NoKindMatchError{
+				GroupKind: ipamv1.GroupVersion.WithKind("IPClaim").GroupKind(),
+			}),
+		}),
+		Entry("CAPI IPAM List error", testCaseReleaseAddressesFromPool{
+			listErr:     failList[*capipamv1.IPAddressClaimList](errors.New("failed to list")),
+			expectError: true,
 		}),
 	)
 
@@ -4784,6 +4836,7 @@ type releaseAddressFromPoolFakeClient struct {
 	client.Client
 	injectDeleteErr bool
 	injectListErr   bool
+	listErr         func(client.ObjectList) error
 }
 
 func (f *releaseAddressFromPoolFakeClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
@@ -4796,6 +4849,11 @@ func (f *releaseAddressFromPoolFakeClient) Delete(ctx context.Context, obj clien
 func (f *releaseAddressFromPoolFakeClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	if f.injectListErr {
 		return errors.New("failed to list for some weird reason")
+	}
+	if f.listErr != nil {
+		if err := f.listErr(list); err != nil {
+			return err
+		}
 	}
 	return f.Client.List(ctx, list, opts...)
 }
