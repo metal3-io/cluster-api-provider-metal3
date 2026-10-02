@@ -57,6 +57,8 @@ type APIEndpoint struct {
 type HostSelector struct {
 	// matchLabels specifies key/value pairs of labels that must exist on a chosen BareMetalHost
 	// +optional
+	// +kubebuilder:validation:MaxProperties=512
+	// +kubebuilder:validation:XValidation:rule="self.all(k, size(self[k]) <= 63)",message="matchLabels values at most 63 characters"
 	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 
 	// matchExpressions specifies match expressions that must be true on a chosen BareMetalHost
