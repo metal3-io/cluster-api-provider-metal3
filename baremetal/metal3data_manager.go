@@ -33,6 +33,7 @@ import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -328,24 +329,8 @@ func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 		m.Log.V(VerbosityLevelDebug).Info("No template specified, skipping lease release")
 		return nil
 	}
-	if m.Data.Spec.Template.Namespace == "" {
-		m.Data.Spec.Template.Namespace = m.Data.Namespace
-	}
-	// Fetch the Metal3DataTemplate object to get the templates
-	m3dt, err := fetchM3DataTemplate(ctx, m.Data.Spec.Template, m.client,
-		m.Log,
-	)
-	if err != nil {
-		return err
-	}
-	if m3dt == nil {
-		m.Log.V(VerbosityLevelDebug).Info("Metal3DataTemplate not found, skipping lease release")
-		return nil
-	}
-	m.Log.V(VerbosityLevelDebug).Info("Fetched Metal3DataTemplate for lease release",
-		LogFieldMetal3DataTemplate, m3dt.Name)
 
-	return m.releaseAddressesFromPool(ctx, *m3dt)
+	return m.releaseAddressesFromPool(ctx)
 }
 
 // AddressFromPool contains the elements coming from an IPPool.
@@ -537,9 +522,72 @@ func addressInPool(ip netip.Addr, p ipamv1.Pool) bool {
 	return true
 }
 
-// releaseAddressesFromPool releases all addresses allocated by a [Metal3DataTemplate] by deleting the IP claims.
-func (m *DataManager) releaseAddressesFromPool(ctx context.Context, m3dt infrav1.Metal3DataTemplate) error {
-	poolRefs, err := getReferencedPools(m3dt, nil, nil, nil)
+// ownsClaim reports whether the claim has an owner reference to the Metal3Data.
+func (m *DataManager) ownsClaim(claim client.Object) bool {
+	if m.Data.UID == "" {
+		return false
+	}
+	for _, ownerRef := range claim.GetOwnerReferences() {
+		aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+		if err != nil {
+			return false
+		}
+
+		bGV, err := schema.ParseGroupVersion(m.Data.APIVersion)
+		if err != nil {
+			return false
+		}
+		if ownerRef.Name == m.Data.Name &&
+			ownerRef.Kind == m.Data.Kind &&
+			aGV.Group == bGV.Group {
+			return true
+		}
+	}
+	return false
+}
+
+// getClaimedPools returns references to all pools with an IP claim owned by the Metal3Data.
+func (m *DataManager) getClaimedPools(ctx context.Context) (map[string]infrav1.IPPoolReference, error) {
+	pools := map[string]infrav1.IPPoolReference{}
+	opts := []client.ListOption{
+		client.InNamespace(m.Data.Namespace),
+	}
+
+	m3Claims := ipamv1.IPClaimList{}
+	if err := m.client.List(ctx, &m3Claims, opts...); err != nil {
+		if !meta.IsNoMatchError(err) {
+			return pools, err
+		}
+	}
+	for _, claim := range m3Claims.Items {
+		if m.ownsClaim(&claim) {
+			pools[claim.Spec.Pool.Name] = infrav1.IPPoolReference{
+				Name:     claim.Spec.Pool.Name,
+				APIGroup: IPPoolAPIGroup,
+				Kind:     IPPoolKind,
+			}
+		}
+	}
+
+	claims := capipamv1.IPAddressClaimList{}
+	if err := m.client.List(ctx, &claims, opts...); err != nil {
+		if !meta.IsNoMatchError(err) {
+			return pools, err
+		}
+	}
+	for _, claim := range claims.Items {
+		if m.ownsClaim(&claim) {
+			pools[claim.Spec.PoolRef.Name] = ConvertIPPoolReferenceToTypedLocalObjectReference(claim.Spec.PoolRef)
+		}
+	}
+
+	return pools, nil
+}
+
+// releaseAddressesFromPool releases all addresses allocated for the Metal3Data by deleting the IP claims.
+// Pools come from the owned claims, since annotation based pools are unknown once the source objects are gone.
+func (m *DataManager) releaseAddressesFromPool(ctx context.Context) error {
+	poolRefs, err := m.getClaimedPools(ctx)
 	if err != nil {
 		return err
 	}
@@ -601,7 +649,7 @@ func (p poolRefs) addName(name string) error {
 
 // addFromAnnotation resolves a pool reference from an annotation and adds it to the pool refs.
 // The annotation value should be a string containing the pool name.
-// If the annotation pointer is nil or objects are nil (e.g., during release), this function returns nil without error.
+// If the annotation is not set, this function returns nil without error.
 func (p poolRefs) addFromAnnotation(
 	fromPoolAnnotation infrav1.FromPoolAnnotation,
 	m3m *infrav1.Metal3Machine,
@@ -609,10 +657,6 @@ func (p poolRefs) addFromAnnotation(
 	bmh *bmov1alpha1.BareMetalHost,
 ) error {
 	if fromPoolAnnotation == (infrav1.FromPoolAnnotation{}) {
-		return nil
-	}
-
-	if m3m == nil && machine == nil && bmh == nil {
 		return nil
 	}
 

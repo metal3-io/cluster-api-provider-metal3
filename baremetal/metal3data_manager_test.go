@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -31,6 +33,7 @@ import (
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -46,6 +49,18 @@ type testCaseEnsureM3Claim struct {
 	expectError      bool
 	expectFetchAgain bool
 	expectClaim      bool
+}
+
+const metal3DataUID = "metal3data-uid"
+
+// failList returns a List hook that fails with err for lists of type T.
+func failList[T client.ObjectList](err error) func(client.ObjectList) error {
+	return func(list client.ObjectList) error {
+		if _, ok := list.(T); ok {
+			return err
+		}
+		return nil
+	}
 }
 
 var _ = Describe("Metal3Data manager", func() {
@@ -606,7 +621,6 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			expectRequeue: true,
 		}),
 		Entry("M3dt found", testCaseReleaseLeases{
 			m3d: &infrav1.Metal3Data{
@@ -1021,8 +1035,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			// No pool refs or claims expected when objects are nil
-			expectError: false,
+			// Annotation pools cannot be resolved without the referenced objects
+			expectError: true,
 		}),
 		Entry("IPv4 gateway with FromPoolAnnotation - objects not provided", testCaseGetAddressesFromPool{
 			m3dtSpec: infrav1.Metal3DataTemplateSpec{
@@ -1051,10 +1065,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3IPClaims: []string{
-				"pool-1",
-			},
-			expectRequeue: true,
+			expectError: true,
 		}),
 		Entry("IPv6 with FromPoolAnnotation - objects not provided", testCaseGetAddressesFromPool{
 			m3dtSpec: infrav1.Metal3DataTemplateSpec{
@@ -1074,8 +1085,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			// No pool refs or claims expected when objects are nil
-			expectError: false,
+			// Annotation pools cannot be resolved without the referenced objects
+			expectError: true,
 		}),
 		Entry("IPv6 gateway with FromPoolAnnotation - objects not provided", testCaseGetAddressesFromPool{
 			m3dtSpec: infrav1.Metal3DataTemplateSpec{
@@ -1104,10 +1115,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3IPClaims: []string{
-				"pool-ipv6",
-			},
-			expectRequeue: true,
+			expectError: true,
 		}),
 		Entry("IPv4 with FromPoolAnnotation - BareMetalHost annotation resolution", testCaseGetAddressesFromPool{
 			m3dtSpec: infrav1.Metal3DataTemplateSpec{
@@ -1378,58 +1386,96 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseReleaseAddressesFromPool struct {
-		m3dtSpec      infrav1.Metal3DataTemplateSpec
 		m3IPClaims    []string
 		ipClaims      []string
+		foreignClaims []string
 		expectError   bool
 		expectRequeue bool
+		injectListErr bool
+		listErr       func(client.ObjectList) error
 	}
 
 	DescribeTable("Test releaseAddressesFromPool",
 		func(tc testCaseReleaseAddressesFromPool) {
-			objects := make([]client.Object, 0, len(tc.m3IPClaims)+len(tc.ipClaims))
+			// The UID differs from the Metal3Data one, as it does after a pivot.
+			ownerRefs := []metav1.OwnerReference{{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       "Metal3Data",
+				Name:       metal3DataName,
+				UID:        "pre-pivot-uid",
+			}}
+			objects := make([]client.Object, 0, len(tc.m3IPClaims)+len(tc.ipClaims)+len(tc.foreignClaims))
 			for _, poolName := range tc.m3IPClaims {
 				objects = append(objects, &ipamv1.IPClaim{
-					ObjectMeta: testObjectMeta(metal3DataName+"-"+poolName, namespaceName, ""),
+					ObjectMeta: metav1.ObjectMeta{
+						Name:            metal3DataName + "-" + poolName,
+						Namespace:       namespaceName,
+						OwnerReferences: ownerRefs,
+					},
 					Spec: ipamv1.IPClaimSpec{
-						Pool: *testObjectReference("abc"),
+						Pool: *testObjectReference(poolName),
+					},
+				})
+			}
+			for _, claimName := range tc.foreignClaims {
+				objects = append(objects, &ipamv1.IPClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       claimName,
+						Namespace:  namespaceName,
+						Finalizers: []string{infrav1.DataFinalizer},
+						OwnerReferences: []metav1.OwnerReference{{
+							APIVersion: infrav1.GroupVersion.String(),
+							Kind:       "Metal3Data",
+							Name:       "other-data",
+							UID:        metal3DataUID,
+						}},
+					},
+					Spec: ipamv1.IPClaimSpec{
+						Pool: *testObjectReference(claimName),
 					},
 				})
 			}
 			for _, poolName := range tc.ipClaims {
 				objects = append(objects, &capipamv1.IPAddressClaim{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       metal3DataName + "-" + poolName,
-						Namespace:  namespaceName,
-						Finalizers: []string{infrav1.DataFinalizer},
+						Name:            metal3DataName + "-" + poolName,
+						Namespace:       namespaceName,
+						Finalizers:      []string{infrav1.DataFinalizer},
+						OwnerReferences: ownerRefs,
 					},
 					Spec: capipamv1.IPAddressClaimSpec{
 						PoolRef: capipamv1.IPPoolReference{
 							APIGroup: "ipam.cluster.x-k8s.io",
 							Kind:     "TestPool",
-							Name:     "test",
+							Name:     poolName,
 						},
 					},
 				})
 			}
 			m3d := &infrav1.Metal3Data{
-				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, metal3DataUID),
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
 					APIVersion: infrav1.GroupVersion.String(),
 				},
 			}
-			m3dt := infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta(metal3DataTemplateName+"-abc", "", ""),
-				Spec:       tc.m3dtSpec,
+			fakeClient := &releaseAddressFromPoolFakeClient{
+				Client:        fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build(),
+				injectListErr: tc.injectListErr,
+				listErr:       tc.listErr,
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(fakeClient, m3d,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = dataMgr.releaseAddressesFromPool(context.TODO(), m3dt)
+			if !tc.expectError {
+				pools, poolsErr := dataMgr.getClaimedPools(context.TODO())
+				Expect(poolsErr).NotTo(HaveOccurred())
+				Expect(slices.Collect(maps.Keys(pools))).To(ConsistOf(slices.Concat(tc.m3IPClaims, tc.ipClaims)))
+			}
+
+			err = dataMgr.releaseAddressesFromPool(context.TODO())
 			if tc.expectError || tc.expectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.expectRequeue {
@@ -1462,91 +1508,15 @@ var _ = Describe("Metal3Data manager", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(apierrors.IsNotFound(err)).To(BeTrue())
 			}
+			for _, claimName := range tc.foreignClaims {
+				claimNamespacedName := types.NamespacedName{
+					Name:      claimName,
+					Namespace: m3d.Namespace,
+				}
+				Expect(dataMgr.client.Get(context.TODO(), claimNamespacedName, &ipamv1.IPClaim{})).To(Succeed())
+			}
 		},
 		Entry("Metadata ok", testCaseReleaseAddressesFromPool{
-			m3dtSpec: infrav1.Metal3DataTemplateSpec{
-				MetaData: &infrav1.MetaData{
-					IPAddressesFromPool: []infrav1.FromPool{
-						{
-							Key:  "Address-1",
-							Name: "abcd-1",
-						},
-					},
-					PrefixesFromPool: []infrav1.FromPool{
-						{
-							Key:  "Prefix-1",
-							Name: "abcd-2",
-						},
-					},
-					GatewaysFromPool: []infrav1.FromPool{
-						{
-							Key:  "Gateway-1",
-							Name: "abcd-3",
-						},
-					},
-				},
-				NetworkData: &infrav1.NetworkData{
-					Networks: &infrav1.NetworkDataNetwork{
-						IPv4: []infrav1.NetworkDataIPv4{
-							{
-								IPAddressFromIPPool: "abcd-4",
-								Routes: []infrav1.NetworkDataRoutev4{
-									{
-										Gateway: infrav1.NetworkGatewayv4{
-											FromIPPool: "abcd-5",
-										},
-									},
-								},
-							},
-						},
-						IPv6: []infrav1.NetworkDataIPv6{
-							{
-								IPAddressFromIPPool: "abcd-6",
-								Routes: []infrav1.NetworkDataRoutev6{
-									{
-										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: "abcd-7",
-										},
-									},
-								},
-							},
-						},
-						IPv4DHCP: []infrav1.NetworkDataIPv4DHCP{
-							{
-								Routes: []infrav1.NetworkDataRoutev4{
-									{
-										Gateway: infrav1.NetworkGatewayv4{
-											FromIPPool: "abcd-8",
-										},
-									},
-								},
-							},
-						},
-						IPv6DHCP: []infrav1.NetworkDataIPv6DHCP{
-							{
-								Routes: []infrav1.NetworkDataRoutev6{
-									{
-										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: "abcd-9",
-										},
-									},
-								},
-							},
-						},
-						IPv6SLAAC: []infrav1.NetworkDataIPv6DHCP{
-							{
-								Routes: []infrav1.NetworkDataRoutev6{
-									{
-										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: "abcd-10",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
 			m3IPClaims: []string{
 				"abcd-1",
 				"abcd-2",
@@ -1561,27 +1531,42 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("CAPI IPAM", testCaseReleaseAddressesFromPool{
-			m3dtSpec: infrav1.Metal3DataTemplateSpec{
-				MetaData: &infrav1.MetaData{},
-				NetworkData: &infrav1.NetworkData{
-					Networks: &infrav1.NetworkDataNetwork{
-						IPv4: []infrav1.NetworkDataIPv4{
-							{
-								FromPoolRef: infrav1.IPPoolReference{APIGroup: "ipam.cluster.x-k8s.io", Kind: "TestPool", Name: "v4"},
-							},
-						},
-						IPv6: []infrav1.NetworkDataIPv6{
-							{
-								FromPoolRef: infrav1.IPPoolReference{APIGroup: "ipam.cluster.x-k8s.io", Kind: "TestPool", Name: "v6"},
-							},
-						},
-					},
-				},
-			},
 			ipClaims: []string{
 				"v4",
 				"v6",
 			},
+		}),
+		Entry("Claims owned by another Metal3Data are kept", testCaseReleaseAddressesFromPool{
+			m3IPClaims: []string{
+				"abcd-1",
+			},
+			foreignClaims: []string{
+				"other-data-abcd-1",
+			},
+		}),
+		Entry("List error", testCaseReleaseAddressesFromPool{
+			injectListErr: true,
+			expectError:   true,
+		}),
+		Entry("Missing CAPI IPAM CRDs", testCaseReleaseAddressesFromPool{
+			m3IPClaims: []string{
+				"abcd-1",
+			},
+			listErr: failList[*capipamv1.IPAddressClaimList](&meta.NoKindMatchError{
+				GroupKind: capipamv1.GroupVersion.WithKind("IPAddressClaim").GroupKind(),
+			}),
+		}),
+		Entry("Missing Metal3 IPAM CRDs", testCaseReleaseAddressesFromPool{
+			ipClaims: []string{
+				"v4",
+			},
+			listErr: failList[*ipamv1.IPClaimList](&meta.NoKindMatchError{
+				GroupKind: ipamv1.GroupVersion.WithKind("IPClaim").GroupKind(),
+			}),
+		}),
+		Entry("CAPI IPAM List error", testCaseReleaseAddressesFromPool{
+			listErr:     failList[*capipamv1.IPAddressClaimList](errors.New("failed to list")),
+			expectError: true,
 		}),
 	)
 
@@ -4850,6 +4835,7 @@ type releaseAddressFromPoolFakeClient struct {
 	client.Client
 	injectDeleteErr bool
 	injectListErr   bool
+	listErr         func(client.ObjectList) error
 }
 
 func (f *releaseAddressFromPoolFakeClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
@@ -4862,6 +4848,11 @@ func (f *releaseAddressFromPoolFakeClient) Delete(ctx context.Context, obj clien
 func (f *releaseAddressFromPoolFakeClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	if f.injectListErr {
 		return errors.New("failed to list for some weird reason")
+	}
+	if f.listErr != nil {
+		if err := f.listErr(list); err != nil {
+			return err
+		}
 	}
 	return f.Client.List(ctx, list, opts...)
 }
@@ -4973,14 +4964,14 @@ var _ = Describe("poolRefs map", func() {
 			Expect(refs).To(BeEmpty())
 		})
 
-		It("returns nil when all objects are nil (during release)", func() {
+		It("returns an error when the referenced object is nil", func() {
 			refs := poolRefs{}
 			annotation := infrav1.FromPoolAnnotation{
 				Object:     "baremetalhost",
 				Annotation: "test-annotation",
 			}
 
-			Expect(refs.addFromAnnotation(annotation, nil, nil, nil)).To(Succeed())
+			Expect(refs.addFromAnnotation(annotation, nil, nil, nil)).NotTo(Succeed())
 			Expect(refs).To(BeEmpty())
 		})
 
@@ -5367,7 +5358,7 @@ var _ = Describe("getReferencedPools", func() {
 		}))
 	})
 
-	It("handles nil objects when using FromPoolAnnotation", func() {
+	It("returns an error for FromPoolAnnotation when objects are nil", func() {
 		m3dt := infrav1.Metal3DataTemplate{
 			Spec: infrav1.Metal3DataTemplateSpec{
 				NetworkData: &infrav1.NetworkData{
@@ -5385,9 +5376,8 @@ var _ = Describe("getReferencedPools", func() {
 			},
 		}
 
-		pools, err := getReferencedPools(m3dt, nil, nil, nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(pools).To(BeEmpty())
+		_, err := getReferencedPools(m3dt, nil, nil, nil)
+		Expect(err).To(HaveOccurred())
 	})
 
 	It("resolves multiple pools from different sources", func() {
@@ -6358,4 +6348,314 @@ var _ = Describe("Metal3Data manager DNS from IPPool", func() {
 			expectedDNS: []ipamv1.IPAddressStr{"1.1.1.1"},
 		}),
 	)
+})
+
+var _ = Describe("Releasing claims for pools resolved from FromPoolAnnotation", func() {
+	DescribeTable("releases every claim after the annotated objects are gone",
+		func(preallocation bool, claimPrefix string) {
+			EnableBMHNameBasedPreallocation = preallocation
+			DeferCleanup(func() { EnableBMHNameBasedPreallocation = false })
+
+			bmh := &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "host-0",
+					Namespace:   namespaceName,
+					Annotations: map[string]string{"bmh-pool": "pool-from-bmh"},
+				},
+			}
+			machine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        machineName,
+					Namespace:   namespaceName,
+					Annotations: map[string]string{"machine-pool": "pool-from-machine"},
+				},
+			}
+			m3m := &infrav1.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3machineName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						HostAnnotation: namespaceName + "/" + bmh.Name,
+						"m3m-pool":     "pool-from-m3m",
+					},
+				},
+				Spec: infrav1.Metal3MachineSpec{
+					DataTemplate: &infrav1.Metal3ObjectRef{
+						Name:      metal3DataTemplateName,
+						Namespace: namespaceName,
+					},
+				},
+			}
+			m3dt := &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3DataTemplateName,
+					Namespace: namespaceName,
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					NetworkData: &infrav1.NetworkData{
+						Networks: &infrav1.NetworkDataNetwork{
+							IPv4: []infrav1.NetworkDataIPv4{{
+								FromPoolAnnotation: infrav1.FromPoolAnnotation{Object: "baremetalhost", Annotation: "bmh-pool"},
+								Routes: []infrav1.NetworkDataRoutev4{{
+									Gateway: infrav1.NetworkGatewayv4{
+										FromPoolAnnotation: infrav1.FromPoolAnnotation{Object: "machine", Annotation: "machine-pool"},
+									},
+								}},
+							}},
+							IPv6: []infrav1.NetworkDataIPv6{{
+								FromPoolAnnotation: infrav1.FromPoolAnnotation{Object: "metal3machine", Annotation: "m3m-pool"},
+							}},
+						},
+					},
+				},
+			}
+			m3dc := &infrav1.Metal3DataClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3DataClaimName,
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{{
+						APIVersion: infrav1.GroupVersion.String(),
+						Kind:       metal3MachineKind,
+						Name:       m3m.Name,
+					}},
+				},
+			}
+			m3d := &infrav1.Metal3Data{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3Data",
+				},
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, metal3DataUID),
+				Spec: infrav1.Metal3DataSpec{
+					Template: &infrav1.Metal3ObjectRef{Name: m3dt.Name, Namespace: namespaceName},
+					Claim:    &infrav1.Metal3ObjectRef{Name: m3dc.Name, Namespace: namespaceName},
+				},
+			}
+
+			fc := fake.NewClientBuilder().WithScheme(setupScheme()).
+				WithObjects(bmh, machine, m3m, m3dt, m3dc, m3d).Build()
+			dataMgr, err := NewDataManager(fc, m3d, logr.Discard())
+			Expect(err).NotTo(HaveOccurred())
+
+			// Claims are created from the annotations. They are not fulfilled, so the result is ignored.
+			_, _ = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+
+			claimKeys := make([]types.NamespacedName, 0, 3)
+			for _, pool := range []string{"pool-from-bmh", "pool-from-machine", "pool-from-m3m"} {
+				key := types.NamespacedName{Name: claimPrefix + "-" + pool, Namespace: namespaceName}
+				claim := &ipamv1.IPClaim{}
+				Expect(fc.Get(context.TODO(), key, claim)).To(Succeed())
+				Expect(claim.Finalizers).To(ContainElement(infrav1.DataFinalizer))
+				claimKeys = append(claimKeys, key)
+			}
+
+			// By deletion time, the template and the objects holding the annotations are gone.
+			for _, obj := range []client.Object{bmh, machine, m3m, m3dt} {
+				Expect(fc.Delete(context.TODO(), obj)).To(Succeed())
+			}
+
+			Expect(dataMgr.ReleaseLeases(context.TODO())).To(Succeed())
+
+			for _, key := range claimKeys {
+				err = fc.Get(context.TODO(), key, &ipamv1.IPClaim{})
+				Expect(apierrors.IsNotFound(err)).To(BeTrue(), "claim %s should be released", key)
+			}
+		},
+		Entry("with Metal3Data based claim names", false, metal3DataName),
+		Entry("with BMH name based preallocation", true, "host-0"),
+	)
+})
+
+// Claims leaked before annotation based pools were released are only recovered when the Metal3Data name is reused.
+var _ = Describe("Recovery of IPClaims leaked by FromPoolAnnotation", func() {
+	const (
+		leakedPool = "pool-from-bmh"
+		otherPool  = "other-pool-from-bmh"
+		oldUID     = "old-metal3data-uid"
+		newUID     = "new-metal3data-uid"
+	)
+
+	var (
+		bmh     *bmov1alpha1.BareMetalHost
+		machine *clusterv1.Machine
+		m3m     *infrav1.Metal3Machine
+		m3dt    *infrav1.Metal3DataTemplate
+		m3dc    *infrav1.Metal3DataClaim
+	)
+
+	// newData returns a Metal3Data with the given name and UID for the shared template and claim.
+	newData := func(name, uid string) *infrav1.Metal3Data {
+		return &infrav1.Metal3Data{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       "Metal3Data",
+			},
+			ObjectMeta: testObjectMeta(name, namespaceName, uid),
+			Spec: infrav1.Metal3DataSpec{
+				Template: &infrav1.Metal3ObjectRef{Name: m3dt.Name, Namespace: namespaceName},
+				Claim:    &infrav1.Metal3ObjectRef{Name: m3dc.Name, Namespace: namespaceName},
+			},
+		}
+	}
+
+	// leakedClaim returns the state left behind by the bug, a claim of a deleted Metal3Data
+	// that the garbage collector marked for deletion while the Data finalizer was still on it.
+	leakedClaim := func(dataName string) *ipamv1.IPClaim {
+		now := metav1.Now()
+		return &ipamv1.IPClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              dataName + "-" + leakedPool,
+				Namespace:         namespaceName,
+				Finalizers:        []string{infrav1.DataFinalizer},
+				DeletionTimestamp: &now,
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3Data",
+					Name:       dataName,
+					UID:        oldUID,
+				}},
+			},
+			Spec: ipamv1.IPClaimSpec{
+				Pool: *testObjectReference(leakedPool),
+			},
+		}
+	}
+
+	BeforeEach(func() {
+		bmh = &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "host-0",
+				Namespace:   namespaceName,
+				Annotations: map[string]string{"bmh-pool": leakedPool},
+			},
+		}
+		machine = &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{Name: machineName, Namespace: namespaceName},
+		}
+		m3m = &infrav1.Metal3Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        metal3machineName,
+				Namespace:   namespaceName,
+				Annotations: map[string]string{HostAnnotation: namespaceName + "/" + bmh.Name},
+			},
+			Spec: infrav1.Metal3MachineSpec{
+				DataTemplate: &infrav1.Metal3ObjectRef{Name: metal3DataTemplateName, Namespace: namespaceName},
+			},
+		}
+		m3dt = &infrav1.Metal3DataTemplate{
+			ObjectMeta: metav1.ObjectMeta{Name: metal3DataTemplateName, Namespace: namespaceName},
+			Spec: infrav1.Metal3DataTemplateSpec{
+				NetworkData: &infrav1.NetworkData{
+					Networks: &infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{{
+							FromPoolAnnotation: infrav1.FromPoolAnnotation{Object: "baremetalhost", Annotation: "bmh-pool"},
+						}},
+					},
+				},
+			},
+		}
+		m3dc = &infrav1.Metal3DataClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      metal3DataClaimName,
+				Namespace: namespaceName,
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       metal3MachineKind,
+					Name:       m3m.Name,
+				}},
+			},
+		}
+	})
+
+	// leakedClaimState reports whether the leaked claim still exists and whether it still holds the Data finalizer.
+	leakedClaimState := func(fc client.Client, name string) (bool, bool) {
+		claim := &ipamv1.IPClaim{}
+		err := fc.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespaceName}, claim)
+		if apierrors.IsNotFound(err) {
+			return false, false
+		}
+		Expect(err).NotTo(HaveOccurred())
+		return true, claim.DeletionTimestamp != nil &&
+			len(claim.Finalizers) == 1 && claim.Finalizers[0] == infrav1.DataFinalizer
+	}
+
+	It("is recovered by addressFromM3Claim when a new Metal3Data with the same name resolves the same pool", func() {
+		stale := leakedClaim(metal3DataName)
+		m3d := newData(metal3DataName, newUID)
+		fc := fake.NewClientBuilder().WithScheme(setupScheme()).
+			WithObjects(bmh, machine, m3m, m3dt, m3dc, m3d, stale).Build()
+		dataMgr, err := NewDataManager(fc, m3d, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+		Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
+
+		exists, stuck := leakedClaimState(fc, stale.Name)
+		Expect(exists).To(BeFalse(), "finalizer removed, so the terminating claim is gone")
+		Expect(stuck).To(BeFalse())
+
+		// The next reconcile creates a fresh claim owned by the new Metal3Data.
+		_, _ = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+		fresh := &ipamv1.IPClaim{}
+		Expect(fc.Get(context.TODO(), types.NamespacedName{Name: stale.Name, Namespace: namespaceName}, fresh)).To(Succeed())
+		Expect(fresh.DeletionTimestamp).To(BeNil())
+		Expect(fresh.OwnerReferences).To(ContainElement(HaveField("UID", types.UID(newUID))))
+	})
+
+	It("stays stuck when the annotation now resolves a different pool", func() {
+		stale := leakedClaim(metal3DataName)
+		bmh.Annotations["bmh-pool"] = otherPool
+		m3d := newData(metal3DataName, newUID)
+		fc := fake.NewClientBuilder().WithScheme(setupScheme()).
+			WithObjects(bmh, machine, m3m, m3dt, m3dc, m3d, stale).Build()
+		dataMgr, err := NewDataManager(fc, m3d, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		_, _ = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+		_, _ = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+
+		exists, stuck := leakedClaimState(fc, stale.Name)
+		Expect(exists).To(BeTrue())
+		Expect(stuck).To(BeTrue(), "nothing looks up the old pool, so the finalizer stays")
+	})
+
+	It("stays stuck when the new Metal3Data has a different name", func() {
+		stale := leakedClaim(metal3DataName)
+		m3d := newData(metal3DataName+"-other-index", newUID)
+		fc := fake.NewClientBuilder().WithScheme(setupScheme()).
+			WithObjects(bmh, machine, m3m, m3dt, m3dc, m3d, stale).Build()
+		dataMgr, err := NewDataManager(fc, m3d, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		_, _ = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+		_, _ = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+
+		exists, stuck := leakedClaimState(fc, stale.Name)
+		Expect(exists).To(BeTrue())
+		Expect(stuck).To(BeTrue(), "the claim name never matches, so the finalizer stays")
+	})
+
+	It("is released by ReleaseLeases of a Metal3Data with the same name", func() {
+		stale := leakedClaim(metal3DataName)
+		m3d := newData(metal3DataName, newUID)
+		fc := fake.NewClientBuilder().WithScheme(setupScheme()).
+			WithObjects(m3dt, m3d, stale).Build()
+		dataMgr, err := NewDataManager(fc, m3d, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(dataMgr.ReleaseLeases(context.TODO())).To(Succeed())
+
+		exists, _ := leakedClaimState(fc, stale.Name)
+		Expect(exists).To(BeFalse(), "owner matched by name, kind and group, so the claim is released")
+	})
+
+	It("only ever resolves annotation pools to Metal3 IPPools", func() {
+		pools, err := getReferencedPools(*m3dt, m3m, machine, bmh)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveKeyWithValue(leakedPool, infrav1.IPPoolReference{
+			Name:     leakedPool,
+			APIGroup: IPPoolAPIGroup,
+			Kind:     IPPoolKind,
+		}))
+	})
 })
