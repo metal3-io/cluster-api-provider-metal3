@@ -6465,3 +6465,197 @@ var _ = Describe("Releasing claims for pools resolved from FromPoolAnnotation", 
 		Entry("with BMH name based preallocation", true, "host-0"),
 	)
 })
+
+// Claims leaked before annotation based pools were released are only recovered when the Metal3Data name is reused.
+var _ = Describe("Recovery of IPClaims leaked by FromPoolAnnotation", func() {
+	const (
+		leakedPool = "pool-from-bmh"
+		otherPool  = "other-pool-from-bmh"
+		oldUID     = "old-metal3data-uid"
+		newUID     = "new-metal3data-uid"
+	)
+
+	var (
+		bmh     *bmov1alpha1.BareMetalHost
+		machine *clusterv1.Machine
+		m3m     *infrav1.Metal3Machine
+		m3dt    *infrav1.Metal3DataTemplate
+		m3dc    *infrav1.Metal3DataClaim
+	)
+
+	// newData returns a Metal3Data with the given name and UID for the shared template and claim.
+	newData := func(name, uid string) *infrav1.Metal3Data {
+		return &infrav1.Metal3Data{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       "Metal3Data",
+			},
+			ObjectMeta: testObjectMeta(name, namespaceName, uid),
+			Spec: infrav1.Metal3DataSpec{
+				Template: &infrav1.Metal3ObjectRef{Name: m3dt.Name, Namespace: namespaceName},
+				Claim:    &infrav1.Metal3ObjectRef{Name: m3dc.Name, Namespace: namespaceName},
+			},
+		}
+	}
+
+	// leakedClaim returns the state left behind by the bug, a claim of a deleted Metal3Data
+	// that the garbage collector marked for deletion while the Data finalizer was still on it.
+	leakedClaim := func(dataName string) *ipamv1.IPClaim {
+		now := metav1.Now()
+		return &ipamv1.IPClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              dataName + "-" + leakedPool,
+				Namespace:         namespaceName,
+				Finalizers:        []string{infrav1.DataFinalizer},
+				DeletionTimestamp: &now,
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3Data",
+					Name:       dataName,
+					UID:        oldUID,
+				}},
+			},
+			Spec: ipamv1.IPClaimSpec{
+				Pool: *testObjectReference(leakedPool),
+			},
+		}
+	}
+
+	BeforeEach(func() {
+		bmh = &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "host-0",
+				Namespace:   namespaceName,
+				Annotations: map[string]string{"bmh-pool": leakedPool},
+			},
+		}
+		machine = &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{Name: machineName, Namespace: namespaceName},
+		}
+		m3m = &infrav1.Metal3Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        metal3machineName,
+				Namespace:   namespaceName,
+				Annotations: map[string]string{HostAnnotation: namespaceName + "/" + bmh.Name},
+			},
+			Spec: infrav1.Metal3MachineSpec{
+				DataTemplate: &infrav1.Metal3ObjectRef{Name: metal3DataTemplateName, Namespace: namespaceName},
+			},
+		}
+		m3dt = &infrav1.Metal3DataTemplate{
+			ObjectMeta: metav1.ObjectMeta{Name: metal3DataTemplateName, Namespace: namespaceName},
+			Spec: infrav1.Metal3DataTemplateSpec{
+				NetworkData: &infrav1.NetworkData{
+					Networks: &infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{{
+							FromPoolAnnotation: infrav1.FromPoolAnnotation{Object: "baremetalhost", Annotation: "bmh-pool"},
+						}},
+					},
+				},
+			},
+		}
+		m3dc = &infrav1.Metal3DataClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      metal3DataClaimName,
+				Namespace: namespaceName,
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       metal3MachineKind,
+					Name:       m3m.Name,
+				}},
+			},
+		}
+	})
+
+	// leakedClaimState reports whether the leaked claim still exists and whether it still holds the Data finalizer.
+	leakedClaimState := func(fc client.Client, name string) (bool, bool) {
+		claim := &ipamv1.IPClaim{}
+		err := fc.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespaceName}, claim)
+		if apierrors.IsNotFound(err) {
+			return false, false
+		}
+		Expect(err).NotTo(HaveOccurred())
+		return true, claim.DeletionTimestamp != nil &&
+			len(claim.Finalizers) == 1 && claim.Finalizers[0] == infrav1.DataFinalizer
+	}
+
+	It("is recovered by addressFromM3Claim when a new Metal3Data with the same name resolves the same pool", func() {
+		stale := leakedClaim(metal3DataName)
+		m3d := newData(metal3DataName, newUID)
+		fc := fake.NewClientBuilder().WithScheme(setupScheme()).
+			WithObjects(bmh, machine, m3m, m3dt, m3dc, m3d, stale).Build()
+		dataMgr, err := NewDataManager(fc, m3d, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+		Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
+
+		exists, stuck := leakedClaimState(fc, stale.Name)
+		Expect(exists).To(BeFalse(), "finalizer removed, so the terminating claim is gone")
+		Expect(stuck).To(BeFalse())
+
+		// The next reconcile creates a fresh claim owned by the new Metal3Data.
+		_, _ = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+		fresh := &ipamv1.IPClaim{}
+		Expect(fc.Get(context.TODO(), types.NamespacedName{Name: stale.Name, Namespace: namespaceName}, fresh)).To(Succeed())
+		Expect(fresh.DeletionTimestamp).To(BeNil())
+		Expect(fresh.OwnerReferences).To(ContainElement(HaveField("UID", types.UID(newUID))))
+	})
+
+	It("stays stuck when the annotation now resolves a different pool", func() {
+		stale := leakedClaim(metal3DataName)
+		bmh.Annotations["bmh-pool"] = otherPool
+		m3d := newData(metal3DataName, newUID)
+		fc := fake.NewClientBuilder().WithScheme(setupScheme()).
+			WithObjects(bmh, machine, m3m, m3dt, m3dc, m3d, stale).Build()
+		dataMgr, err := NewDataManager(fc, m3d, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		_, _ = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+		_, _ = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+
+		exists, stuck := leakedClaimState(fc, stale.Name)
+		Expect(exists).To(BeTrue())
+		Expect(stuck).To(BeTrue(), "nothing looks up the old pool, so the finalizer stays")
+	})
+
+	It("stays stuck when the new Metal3Data has a different name", func() {
+		stale := leakedClaim(metal3DataName)
+		m3d := newData(metal3DataName+"-other-index", newUID)
+		fc := fake.NewClientBuilder().WithScheme(setupScheme()).
+			WithObjects(bmh, machine, m3m, m3dt, m3dc, m3d, stale).Build()
+		dataMgr, err := NewDataManager(fc, m3d, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		_, _ = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+		_, _ = dataMgr.getAddressesFromPool(context.TODO(), *m3dt, m3m, machine, bmh)
+
+		exists, stuck := leakedClaimState(fc, stale.Name)
+		Expect(exists).To(BeTrue())
+		Expect(stuck).To(BeTrue(), "the claim name never matches, so the finalizer stays")
+	})
+
+	It("is released by ReleaseLeases of a Metal3Data with the same name", func() {
+		stale := leakedClaim(metal3DataName)
+		m3d := newData(metal3DataName, newUID)
+		fc := fake.NewClientBuilder().WithScheme(setupScheme()).
+			WithObjects(m3dt, m3d, stale).Build()
+		dataMgr, err := NewDataManager(fc, m3d, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(dataMgr.ReleaseLeases(context.TODO())).To(Succeed())
+
+		exists, _ := leakedClaimState(fc, stale.Name)
+		Expect(exists).To(BeFalse(), "owner matched by name, kind and group, so the claim is released")
+	})
+
+	It("only ever resolves annotation pools to Metal3 IPPools", func() {
+		pools, err := getReferencedPools(*m3dt, m3m, machine, bmh)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveKeyWithValue(leakedPool, infrav1.IPPoolReference{
+			Name:     leakedPool,
+			APIGroup: IPPoolAPIGroup,
+			Kind:     IPPoolKind,
+		}))
+	})
+})
