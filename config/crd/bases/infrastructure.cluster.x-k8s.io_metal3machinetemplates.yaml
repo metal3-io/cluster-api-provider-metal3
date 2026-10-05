@@ -172,7 +172,11 @@ spec:
                               type: string
                             description: Key/value pairs of labels that must exist
                               on a chosen BareMetalHost
+                            maxProperties: 512
                             type: object
+                            x-kubernetes-validations:
+                            - message: matchLabels values at most 63 characters
+                              rule: self.all(k, size(self[k]) <= 63)
                         type: object
                       image:
                         description: Image is the image to be provisioned.
@@ -438,7 +442,11 @@ spec:
                               type: string
                             description: matchLabels specifies key/value pairs of
                               labels that must exist on a chosen BareMetalHost
+                            maxProperties: 512
                             type: object
+                            x-kubernetes-validations:
+                            - message: matchLabels values at most 63 characters
+                              rule: self.all(k, size(self[k]) <= 63)
                         type: object
                       image:
                         description: |-
