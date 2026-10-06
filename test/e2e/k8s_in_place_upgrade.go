@@ -2,9 +2,14 @@ package e2e
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -12,6 +17,78 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const (
+	// testExtensionNamespace is the namespace the runtime extension is deployed
+	// into. It must match the namespace in test/extension/config/default and the
+	// clientConfig.service of the ExtensionConfig.
+	testExtensionNamespace = "test-extension-system"
+	// testExtensionDeploymentName is the extension deployment, i.e. the
+	// "controller-manager" of test/extension/config/default with its namePrefix.
+	testExtensionDeploymentName = "test-extension-controller-manager"
+	// testExtensionSSHSecretName is the secret holding the private key the
+	// extension uses to reach the nodes. It is mounted at
+	// /home/nonroot/.ssh/id_rsa by test/extension/config/default/manager_ssh_patch.yaml.
+	testExtensionSSHSecretName = "ssh-key"
+)
+
+// DeployTestExtensionInput provides input for DeployTestExtension().
+type DeployTestExtensionInput struct {
+	E2EConfig             *clusterctl.E2EConfig
+	BootstrapClusterProxy framework.ClusterProxy
+	SpecName              string
+	LogFolder             string
+}
+
+// DeployTestExtension deploys the in-place update runtime extension to the
+// bootstrap cluster. The extension upgrades Kubernetes over SSH, so it needs the
+// private key matching SSH_PUB_KEY_CONTENT (the key provisioned onto the nodes)
+// available as a secret. Namespace and secret are created here rather than in
+// scripts/ci-e2e.sh because the bootstrap cluster only exists once the test
+// framework has created it.
+func DeployTestExtension(ctx context.Context, inputGetter func() DeployTestExtensionInput) {
+	input := inputGetter()
+	c := input.BootstrapClusterProxy.GetClient()
+
+	By("Ensure the test-extension namespace exists")
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testExtensionNamespace}}
+	err := c.Create(ctx, ns)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		Expect(err).ToNot(HaveOccurred(), "Failed to create namespace %s", testExtensionNamespace)
+	}
+
+	By("Create the ssh-key secret the test-extension uses to reach the nodes")
+	home, err := os.UserHomeDir()
+	Expect(err).ToNot(HaveOccurred(), "Failed to resolve the home directory")
+	keyPath := filepath.Join(filepath.Clean(home), ".ssh", "id_rsa")
+	privateKey, err := os.ReadFile(keyPath) //#nosec G304:gosec
+	Expect(err).ToNot(HaveOccurred(), "Failed to read the ssh private key from %s", keyPath)
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testExtensionSSHSecretName,
+			Namespace: testExtensionNamespace,
+		},
+		Data: map[string][]byte{"id_rsa": privateKey},
+	}
+	// Recreate the secret so a regenerated key is always picked up.
+	err = c.Delete(ctx, secret)
+	if err != nil && !apierrors.IsNotFound(err) {
+		Expect(err).ToNot(HaveOccurred(), "Failed to delete the existing %s secret", testExtensionSSHSecretName)
+	}
+	Expect(c.Create(ctx, secret)).To(Succeed(), "Failed to create the %s secret", testExtensionSSHSecretName)
+
+	By("Deploy the test-extension components")
+	Expect(BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
+		Kustomization:       input.E2EConfig.MustGetVariable("TEST_EXTENSION_KUSTOMIZATION"),
+		ClusterProxy:        input.BootstrapClusterProxy,
+		WaitForDeployment:   true,
+		WatchDeploymentLogs: true,
+		DeploymentName:      testExtensionDeploymentName,
+		DeploymentNamespace: testExtensionNamespace,
+		LogPath:             input.LogFolder,
+		WaitIntervals:       input.E2EConfig.GetIntervals(input.SpecName, "wait-deployment"),
+	})).To(Succeed(), "Failed to deploy the test-extension")
+}
 
 type InPlaceUpgradeInput struct {
 	E2EConfig             *clusterctl.E2EConfig

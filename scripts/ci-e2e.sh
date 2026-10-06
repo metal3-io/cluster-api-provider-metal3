@@ -135,16 +135,6 @@ if [[ "${GINKGO_FOCUS:-}" == "scalability" ]]; then
   FKAS_TAG=ci make docker-build-fkas
 fi
 
-# If running in-place-upgrade tests, ensure extension namespace and ssh key secret exist
-if [[ "${GINKGO_FOCUS:-}" == "in-place-upgrade" ]]; then
-  EXT_NS="test-extension-system"
-  kubectl get ns "${EXT_NS}" >/dev/null 2>&1 || kubectl create ns "${EXT_NS}"
-  # Recreate the secret to ensure freshest key is used
-  kubectl -n "${EXT_NS}" delete secret ssh-key >/dev/null 2>&1 || true
-  kubectl -n "${EXT_NS}" create secret generic ssh-key \
-    --from-file=id_rsa="${HOME}/.ssh/id_rsa"
-fi
-
 # Ensure kustomize + envsubst (tooling used below)
 make kustomize envsubst
 export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
@@ -279,6 +269,7 @@ mkdir -p "${E2E_DATA_BACKUP_DIR}"
 cp -a "${REPO_ROOT}/test/e2e/data/bmo-deployment" "${E2E_DATA_BACKUP_DIR}/bmo-deployment"
 cp -a "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator" "${E2E_DATA_BACKUP_DIR}/ironic-standalone-operator"
 cp -a "${REPO_ROOT}/test/e2e/data/infrastructure-metal3/overlays/main" "${E2E_DATA_BACKUP_DIR}/infrastructure-metal3-overlays-main"
+cp -a "${REPO_ROOT}/test/extension/config/default" "${E2E_DATA_BACKUP_DIR}/test-extension-config-default"
 
 # Update BMO image in overlays
 case "${REPO_NAME:-}" in
@@ -296,6 +287,18 @@ update_kustomize_image quay.io/metal3-io/baremetal-operator BARE_METAL_OPERATOR_
 export CAPM3_E2E_IMAGE="${REGISTRY}/localimages/cluster-api-provider-metal3:${E2E_TAG}"
 "${REPO_ROOT}/hack/build-e2e-image.sh"
 update_kustomize_image quay.io/metal3-io/cluster-api-provider-metal3 CAPM3_E2E_IMAGE "${REPO_ROOT}/test/e2e/data/infrastructure-metal3/overlays/main"
+
+# Build the runtime extension image used by the in-place upgrade test. It only
+# runs on the kind management cluster, which loads it from the local docker
+# daemon (test/e2e/config/e2e_conf.yaml images: tryLoad), so no registry push is
+# needed. The extension namespace, its ssh-key secret and the components
+# themselves are created by the test once the bootstrap cluster exists (see
+# DeployTestExtension in test/e2e/k8s_in_place_upgrade.go).
+if [[ "${GINKGO_FOCUS:-}" == "in-place-upgrade" ]]; then
+  export TEST_EXTENSION_E2E_IMAGE="${REGISTRY}/localimages/test-extension:${E2E_TAG}"
+  make docker-build-test-extension TEST_EXTENSION_IMG="${TEST_EXTENSION_E2E_IMAGE}"
+  update_kustomize_image quay.io/metal3-io/test-extension TEST_EXTENSION_E2E_IMAGE "${REPO_ROOT}/test/extension/config/default"
+fi
 
 # Apply envsubst to kustomization.yaml files in BMO and Ironic overlays
 yaml_envsubst "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
