@@ -52,6 +52,16 @@ func (webhook *Metal3Data) ValidateCreate(_ context.Context, obj *infrav1.Metal3
 		)
 	}
 
+	if obj.Spec.Template != nil && obj.Spec.Template.Namespace != "" && obj.Spec.Template.Namespace != obj.Namespace {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "template", "namespace"),
+				obj.Spec.Template.Namespace,
+				"must be empty or match the Metal3Data namespace; cross-namespace template references are not allowed",
+			),
+		)
+	}
+
 	if obj.Spec.Index != nil && *obj.Spec.Index < int32(0) {
 		allErrs = append(allErrs,
 			field.Invalid(
