@@ -2261,19 +2261,22 @@ func (m *MachineManager) getMetal3MachineTemplate(ctx context.Context) (*infrav1
 		return nil, nil //nolint:nilnil,nilerr
 	}
 
-	m3mtNamespace, _, _ := unstructured.NestedString(cpObj.Object, "spec", "machineTemplate", "spec", "infrastructureRef", "namespace")
-	if m3mtNamespace == "" {
-		m3mtNamespace = m.Machine.Namespace
-	}
-
 	// Get Metal3MachineTemplate.
 	m3mt := &infrav1.Metal3MachineTemplate{}
 	m3mtKey := client.ObjectKey{
 		Name:      m3mtName,
-		Namespace: m3mtNamespace,
+		Namespace: m.Machine.Namespace,
 	}
 	if err := m.client.Get(ctx, m3mtKey, m3mt); err != nil {
 		if apierrors.IsNotFound(err) {
+			// Cross-namespace references are not supported, the template is always looked up
+			// in the machine namespace. If the control plane requested another namespace,
+			// it is possible that the search failed for this reason, and thus log a warning.
+			requestedNamespace, _, _ := unstructured.NestedString(cpObj.Object, "spec", "machineTemplate", "spec", "infrastructureRef", "namespace")
+			if requestedNamespace != "" && requestedNamespace != m.Machine.Namespace {
+				m.Log.Info("Warning: ignored cross-namespace infrastructureRef.namespace in control plane object",
+					LogFieldMetal3MachineTemplate, m3mtName, "requestedNamespace", requestedNamespace, "machineNamespace", m.Machine.Namespace)
+			}
 			return nil, nil //nolint:nilnil
 		}
 		return nil, fmt.Errorf("failed to get Metal3MachineTemplate from control plane %s: %w", objRef.Kind, err)
