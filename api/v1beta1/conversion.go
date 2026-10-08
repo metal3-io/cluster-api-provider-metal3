@@ -892,10 +892,17 @@ func Convert_v1beta2_Metal3MachineSpec_To_v1beta1_Metal3MachineSpec(in *infrav1.
 		if len(in.HostSelector.MatchExpressions) > 0 {
 			out.HostSelector.MatchExpressions = make([]HostSelectorRequirement, len(in.HostSelector.MatchExpressions))
 			for i, expr := range in.HostSelector.MatchExpressions {
+				// v1beta1 requires values to be present, and a nil slice would
+				// marshal to null and be pruned, so normalize nil to an empty
+				// slice. v1beta2 treats nil and empty as equivalent.
+				values := expr.Values
+				if values == nil {
+					values = []string{}
+				}
 				out.HostSelector.MatchExpressions[i] = HostSelectorRequirement{
 					Key:      expr.Key,
 					Operator: expr.Operator,
-					Values:   expr.Values,
+					Values:   values,
 				}
 			}
 		}
