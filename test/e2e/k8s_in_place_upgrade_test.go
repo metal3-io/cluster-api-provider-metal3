@@ -20,6 +20,18 @@ var _ = Describe("When testing in-place k8s upgrade", Label("in-place-upgrade"),
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
 
+		// The runtime extension has to be running before the ExtensionConfig is
+		// applied, otherwise CAPI cannot discover its hooks.
+		By("Deploying the test-extension runtime extension")
+		DeployTestExtension(ctx, func() DeployTestExtensionInput {
+			return DeployTestExtensionInput{
+				E2EConfig:             e2eConfig,
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				SpecName:              specName,
+				LogFolder:             filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName(), "test-extension-logs"),
+			}
+		})
+
 		// Apply ExtensionConfig for in-place upgrade test
 		By("Applying ExtensionConfig for test-extension")
 		extensionConfigPath := e2eConfig.MustGetVariable("IN_PLACE_UPGRADE_EXTENSION_CONFIG_PATH")

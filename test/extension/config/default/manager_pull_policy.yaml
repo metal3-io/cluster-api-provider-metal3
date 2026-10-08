@@ -8,4 +8,8 @@ spec:
     spec:
       containers:
       - name: manager
-        imagePullPolicy: Always
+        # The e2e run builds the image from this tree and loads it straight into
+        # the kind management cluster (test/e2e/config/e2e_conf.yaml images:
+        # tryLoad) rather than pushing it to a registry, so it must not be
+        # re-pulled. Matches config/default/capm3/manager_pull_policy_patch.yaml.
+        imagePullPolicy: IfNotPresent

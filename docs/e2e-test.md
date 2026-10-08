@@ -289,6 +289,19 @@ the actual upgrade via SSH.
 See [test/extension/handlers/inplaceupdate/handlers.go](../test/extension/handlers/inplaceupdate/handlers.go)
 for the detailed implementation.
 
+**How the extension is deployed:**
+
+`scripts/ci-e2e.sh` builds the extension image from this tree, points
+[test/extension/config/default](../test/extension/config/default) at it, and the
+test framework loads it into the kind management cluster. The test itself then
+deploys the extension into the bootstrap cluster (namespace, `ssh-key` secret
+and the components) and only after that applies the `ExtensionConfig`, so the
+hooks are discoverable. The `ssh-key` secret carries `~/.ssh/id_rsa`, the
+counterpart of the public key provisioned onto the nodes, and is mounted at
+`/home/nonroot/.ssh/id_rsa` in the extension pod. All of this happens after the
+bootstrap cluster is created by the test framework, which is why it lives in
+the test rather than in the shell script.
+
 **Handling version-managed KubeadmConfig changes:**
 
 When the `CanUpdateMachine`/`CanUpdateMachineSet` hooks are called, the extension

@@ -15,6 +15,9 @@ images:
   loadBehavior: mustLoad
 - name: quay.io/metal3-io/metal3-fkas:ci
   loadBehavior: tryLoad
+# Only built by scripts/ci-e2e.sh for the in-place-upgrade scenario, hence tryLoad.
+- name: ${REGISTRY}/localimages/test-extension:${E2E_TAG}
+  loadBehavior: tryLoad
 
 providers:
 - name: cluster-api
@@ -313,6 +316,7 @@ variables:
   IRONIC_IMAGE_TAG: "${IRONIC_IMAGE_TAG:-main}"
   UPGRADED_BMO_IMAGE_TAG: "${UPGRADED_BMO_IMAGE_TAG:-main}"
   IN_PLACE_UPGRADE_EXTENSION_CONFIG_PATH: "../extension/handlers/inplaceupdate/extensionconfig.yaml"
+  TEST_EXTENSION_KUSTOMIZATION: "../extension/config/default"
 
   PROVIDER_ID_FORMAT: "metal3://{{ ds.meta_data.providerid }}"
   CNI_PROVIDER: "${CNI_PROVIDER:-calico}"
