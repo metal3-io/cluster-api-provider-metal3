@@ -739,6 +739,15 @@ spec:
                     - vmdk
                     - live-iso
                     type: string
+                  ociAuthSecretName:
+                    description: |-
+                      ociAuthSecretName optionally names a Docker-config secret containing
+                      registry credentials for oci:// images. Must be in the same namespace
+                      as the BareMetalHost. Allowed types: kubernetes.io/dockerconfigjson|dockercfg.
+                      Only used when url has the oci:// scheme.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
                   url:
                     description: url is a location of an image to deploy.
                     format: uri
