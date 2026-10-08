@@ -165,6 +165,17 @@ func hubMetal3MachineSpec(in *infrav1.Metal3MachineSpec, c randfill.Continue) {
 		in.HostSelector = nil
 	}
 
+	// Normalize MatchExpressions Values: nil → empty slice. v1beta1 requires
+	// values to be present, so conversion down emits an empty slice for nil,
+	// making nil and empty indistinguishable across a round trip.
+	if in.HostSelector != nil {
+		for i := range in.HostSelector.MatchExpressions {
+			if in.HostSelector.MatchExpressions[i].Values == nil {
+				in.HostSelector.MatchExpressions[i].Values = []string{}
+			}
+		}
+	}
+
 	// Normalize empty DataTemplate to nil
 	if in.DataTemplate != nil && in.DataTemplate.Name == "" && in.DataTemplate.Namespace == "" {
 		in.DataTemplate = nil
@@ -220,6 +231,14 @@ func spokeMetal3MachineSpec(in *Metal3MachineSpec, c randfill.Continue) {
 	// Normalize MatchLabels: empty map → nil (JSON omitempty behavior)
 	if len(in.HostSelector.MatchLabels) == 0 {
 		in.HostSelector.MatchLabels = nil
+	}
+
+	// Normalize MatchExpressions Values: nil → empty slice, matching the
+	// conversion from v1beta2, which never produces a nil values slice.
+	for i := range in.HostSelector.MatchExpressions {
+		if in.HostSelector.MatchExpressions[i].Values == nil {
+			in.HostSelector.MatchExpressions[i].Values = []string{}
+		}
 	}
 
 	// Normalize CustomDeploy: empty Method → nil
