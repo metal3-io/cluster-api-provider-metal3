@@ -1882,8 +1882,11 @@ spec:
                               pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                               type: string
                             parameters:
-                              description: parameters blob passed without any validation/modifications
-                                into cloud-init config
+                              description: |-
+                                parameters blob passed without any validation/modifications into cloud-init config
+                                Bond parameters are optional cloud-init extras, and were optional in
+                                v1beta1, so neither field presence nor a minimum item count can be
+                                required without rejecting existing bond links that set none.
                               items:
                                 description: NetworkDataLinkBondParam represents a
                                   single bond parameter.
@@ -1901,7 +1904,6 @@ spec:
                                 - name
                                 type: object
                               maxItems: 512
-                              minItems: 1
                               type: array
                               x-kubernetes-list-map-keys:
                               - name
@@ -1910,7 +1912,6 @@ spec:
                           - bondMode
                           - id
                           - macAddress
-                          - parameters
                           type: object
                         maxItems: 512
                         minItems: 1
