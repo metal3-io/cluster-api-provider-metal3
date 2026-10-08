@@ -28,13 +28,13 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 		name      string
 		dataName  string
 		expectErr bool
-		template  infrav1.Metal3ObjectRef
+		template  *infrav1.Metal3ObjectRef
 	}{
 		{
 			name:      "should succeed when values and templates correct",
 			expectErr: false,
 			dataName:  "abc-1",
-			template: infrav1.Metal3ObjectRef{
+			template: &infrav1.Metal3ObjectRef{
 				Name: "abc",
 			},
 		},
@@ -42,7 +42,7 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 			name:      "should fail when Name does not match datatemplate",
 			expectErr: true,
 			dataName:  "abcd-1",
-			template: infrav1.Metal3ObjectRef{
+			template: &infrav1.Metal3ObjectRef{
 				Name: "abc",
 			},
 		},
@@ -50,8 +50,41 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 			name:      "should fail when Name does not match index",
 			expectErr: true,
 			dataName:  "abc-0",
-			template: infrav1.Metal3ObjectRef{
+			template: &infrav1.Metal3ObjectRef{
 				Name: "abc",
+			},
+		},
+		{
+			name:      "should succeed when namespace is empty",
+			expectErr: false,
+			dataName:  "abc-1",
+			template: &infrav1.Metal3ObjectRef{
+				Name:      "abc",
+				Namespace: "",
+			},
+		},
+		{
+			name:      "should succeed when namespace matches datatemplate",
+			expectErr: false,
+			dataName:  "abc-1",
+			template: &infrav1.Metal3ObjectRef{
+				Name:      "abc",
+				Namespace: "foo",
+			},
+		},
+		{
+			name:      "should succeed when no template is provided",
+			expectErr: false,
+			dataName:  "abc-1",
+			template:  nil,
+		},
+		{
+			name:      "should fail when namespace does not match datatemplate",
+			expectErr: true,
+			dataName:  "abc-1",
+			template: &infrav1.Metal3ObjectRef{
+				Name:      "abc",
+				Namespace: "bar",
 			},
 		},
 	}
@@ -67,7 +100,7 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 					Name:      tt.dataName,
 				},
 				Spec: infrav1.Metal3DataSpec{
-					Template: &tt.template,
+					Template: tt.template,
 					Index:    ptr.To(int32(1)),
 				},
 			}
