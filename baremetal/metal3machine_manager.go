@@ -1683,7 +1683,12 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 	m.Log.V(VerbosityLevelTrace).Info("Setting ProviderID from Node label")
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
-		return false, fmt.Errorf("error creating a remote client: %w", err)
+		// The workload cluster may not be reachable yet, e.g. when the control
+		// plane provider needs the Machine addresses before it can bootstrap it.
+		// Fall through to let the controller set the default ProviderID.
+		m.Log.Info("unable to create a remote client, skipping ProviderID lookup by Node label",
+			LogFieldError, err.Error())
+		return false, nil
 	}
 	bmhUID, err := m.getBmhUIDFromM3Machine(ctx)
 	if err != nil {
@@ -1695,16 +1700,21 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 	nodeLabel := fmt.Sprintf("%s=%s", ProviderLabelPrefix, bmhUID)
 	nodes, countNodesWithLabel, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
 	if err != nil {
-		errMessage := fmt.Sprintf("error retrieving node with label %s, requeuing", nodeLabel)
-		m.Log.Info(errMessage)
-		return false, WithTransientError(fmt.Errorf("%s: %w", errMessage, err), requeueAfter)
+		// The workload cluster API may not be available yet.
+		// Fall through to let the controller set the default ProviderID.
+		m.Log.Info("unable to retrieve Nodes, skipping ProviderID lookup by Node label",
+			LogFieldLabel, nodeLabel, LogFieldError, err.Error())
+		return false, nil
 	}
-	if countNodesWithLabel == 0 && m.Machine.Spec.Bootstrap.ConfigRef.IsDefined() {
-		// The node could either be still running cloud-init or have been
-		// deleted manually. TODO: handle a manual deletion case.
-		errMessage := "requeuing, could not find node with label: " + nodeLabel
-		m.Log.Info(errMessage)
-		return false, WithTransientError(errors.New(errMessage), requeueAfter)
+	if countNodesWithLabel == 0 {
+		// The Node may not have joined yet or the bootstrap provider does not
+		// set the label. Fall through to let the controller set the default
+		// ProviderID, so that CAPI can proceed (e.g. populate the Machine
+		// addresses) before the Node joins. The ProviderID is set on the Node
+		// once it joins, by hostname or by label.
+		m.Log.Info("no Node found with label, skipping ProviderID lookup by Node label",
+			LogFieldLabel, nodeLabel)
+		return false, nil
 	}
 	if countNodesWithLabel > 1 {
 		return false, fmt.Errorf("found multiple target nodes with the same label: (%s): %w", nodeLabel, err)
@@ -2261,7 +2271,11 @@ func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, client
 		LogFieldMetal3Machine, m.Metal3Machine.Name)
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
-		return fmt.Errorf("error creating a remote client: %w", err)
+		// The workload cluster may not be reachable yet, keep retrying until
+		// the Node has joined and got the ProviderID.
+		errMessage := "error creating a remote client"
+		m.Log.Info(errMessage, LogFieldError, err.Error())
+		return WithTransientError(fmt.Errorf("%s: %w", errMessage, err), requeueAfter)
 	}
 
 	metal3MachineHostnames := m.getMetal3MachineHostnames()
