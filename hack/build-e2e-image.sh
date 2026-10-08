@@ -12,23 +12,18 @@
 #
 # Can be run standalone or from scripts/ci-e2e.sh. Honored env vars:
 #   REGISTRY             - registry host:port to publish to
-#                          (default ${PROVISIONING_URL_HOST}:${REGISTRY_PORT})
+#                          (default ${PROVISIONING_URL_HOST}:5000)
 #   PROVISIONING_URL_HOST- provisioning-network host serving the registry
-#   REGISTRY_PORT        - registry port (default 5000)
-#   E2E_TAG              - image tag to build/push (default e2e)
-#   CAPM3_E2E_IMAGE      - full image ref (default ${REGISTRY}/localimages/cluster-api-provider-metal3:${E2E_TAG})
+#   CAPM3_E2E_IMAGE      - full image ref (default ${REGISTRY}/localimages/cluster-api-provider-metal3:e2e)
 
 set -euxo pipefail
 
 REPO_ROOT=$(realpath "$(dirname "$(realpath "${BASH_SOURCE[0]}")")"/..)
 
 PROVISIONING_URL_HOST="${PROVISIONING_URL_HOST:-172.22.0.1}"
-REGISTRY_PORT="${REGISTRY_PORT:-5000}"
-REGISTRY="${REGISTRY:-${PROVISIONING_URL_HOST}:${REGISTRY_PORT}}"
-E2E_TAG="${E2E_TAG:-e2e}"
+REGISTRY="${REGISTRY:-${PROVISIONING_URL_HOST}:5000}"
 REGISTRY_PORT="${REGISTRY##*:}"
-CAPM3_LOCAL_REPO="${REGISTRY}/localimages/cluster-api-provider-metal3"
-CAPM3_E2E_IMAGE="${CAPM3_E2E_IMAGE:-${CAPM3_LOCAL_REPO}:${E2E_TAG}}"
+CAPM3_E2E_IMAGE="${CAPM3_E2E_IMAGE:-${REGISTRY}/localimages/cluster-api-provider-metal3:e2e}"
 
 # Start a throwaway local registry if one is not already running, bound on all
 # interfaces so the bare metal nodes reach it via ${REGISTRY}.
@@ -41,11 +36,10 @@ if [[ -z "$(docker ps -q -f name="^registry$")" ]]; then
 fi
 
 make -C "${REPO_ROOT}" docker-build-e2e \
-  CONTROLLER_IMG="${CAPM3_LOCAL_REPO}" \
-  E2E_TAG="${E2E_TAG}"
+  CONTROLLER_IMG="${REGISTRY}/localimages/cluster-api-provider-metal3"
 
 # Push through localhost so the Docker daemon treats the registry as insecure
 # (loopback is insecure by default) without editing daemon.json; the target
 # nodes pull the identical blob via ${REGISTRY}.
-docker tag "${CAPM3_E2E_IMAGE}" "localhost:${REGISTRY_PORT}/localimages/cluster-api-provider-metal3:${E2E_TAG}"
-docker push "localhost:${REGISTRY_PORT}/localimages/cluster-api-provider-metal3:${E2E_TAG}"
+docker tag "${CAPM3_E2E_IMAGE}" "localhost:${REGISTRY_PORT}/localimages/cluster-api-provider-metal3:e2e"
+docker push "localhost:${REGISTRY_PORT}/localimages/cluster-api-provider-metal3:e2e"
