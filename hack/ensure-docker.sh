@@ -7,6 +7,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
 ensure_docker() {
     if command -v docker &>/dev/null && docker version &>/dev/null; then
         echo "Docker is already installed and running: $(docker --version)"
