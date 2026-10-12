@@ -152,6 +152,8 @@ unit: $(SETUP_ENVTEST) ## Run unit test
 	$(GO) test ./... \
 		$(GO_TEST_FLAGS) \
 		-coverprofile ./cover.out
+	# Run fuzz tests as part of the unit test
+	$(MAKE) fuzz-run FUZZ_TIME=15s
 
 unit-cover: unit
 	$(GO) tool cover -func=./api/cover.out
@@ -176,13 +178,19 @@ fuzz: ## Run fuzz tests with seed corpus (no fuzzing, regression test only)
 .PHONY: fuzz-run
 fuzz-run: ## Run all fuzz tests sequentially with fuzzing enabled (use FUZZ_TIME=duration)
 	@echo "Discovering fuzz tests..."
-	@cd test/fuzz && ( \
-		while read -r fuzz_test; do \
-			echo "Running $$fuzz_test for $(FUZZ_TIME)..."; \
-			$(GO) test -fuzz=$$fuzz_test -fuzztime='$(FUZZ_TIME)' || exit 1; \
-		done < <($(GO) test -list='Fuzz.*' ./... | grep '^Fuzz') \
-	)
-	@echo "All fuzz tests completed successfully!"
+	@cd test/fuzz ; \
+	summary="" fail=0; \
+	for fuzz_test in $$($(GO) test -list='Fuzz.*' ./... | grep '^Fuzz'); do \
+		echo "Running $$fuzz_test for $(FUZZ_TIME)..."; \
+		if $(GO) test -run=^$$ -fuzz=$$fuzz_test -fuzztime='$(FUZZ_TIME)' ./...; then \
+			summary="$$summary\n  PASS  $$fuzz_test"; \
+		else \
+			summary="$$summary\n  FAIL  $$fuzz_test"; fail=1; \
+		fi; \
+	done; \
+	printf "\n===== Fuzz Test Summary ($(FUZZ_TIME) each) =====\n"; \
+	printf '%b\n' "$$summary"; \
+	if [ "$$fail" -eq 0 ]; then printf "\nAll fuzz tests passed!\n"; else printf "\nSome fuzz tests failed.\n"; exit 1; fi
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests with capi e2e testing framework
