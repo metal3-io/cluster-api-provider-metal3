@@ -223,6 +223,27 @@ func bmhObjectMetaWithValidCAPM3PausedAnnotations() *metav1.ObjectMeta {
 	}
 }
 
+// testRemediationUID is the Metal3Remediation UID used to build the power off
+// annotation key in tests.
+const testRemediationUID = "8f1c0e3a-0a1b-4f5e-9c2d-7b6a5e4d3c21"
+
+// bmhObjectMetaWithRemediationPowerOffAnnotation returns BMH metadata carrying a
+// remediation power off annotation, plus an unrelated reboot-style annotation
+// that must survive deletion.
+func bmhObjectMetaWithRemediationPowerOffAnnotation() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            baremetalhostName,
+		Namespace:       namespaceName,
+		OwnerReferences: []metav1.OwnerReference{},
+		Annotations: map[string]string{
+			PowerOffAnnotationPrefix + testRemediationUID: `{"mode":"hard"}`,
+			// Belongs to someone else. Must not be collateral damage.
+			"reboot.metal3.io/some-other-requester": `{"mode":"soft"}`,
+			"example.com/keep-me":                   "yes",
+		},
+	}
+}
+
 func bmhObjectMetaWithValidEmptyPausedAnnotations() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            baremetalhostName,
@@ -2421,16 +2442,23 @@ var _ = Describe("Metal3Machine manager", func() {
 		ExpectSecretDeleted             bool
 		ExpectClusterLabelDeleted       bool
 		ExpectedPausedAnnotationDeleted bool
-		NodeReuseEnabled                bool
-		MachineIsControlPlane           bool
-		MachineIsNotControlPlane        bool
-		ExpectedBMHOnlineStatus         bool
-		capm3fasttrack                  string
-		Cluster                         *clusterv1.Cluster
-		Metal3MachineTemplate           *infrav1.Metal3MachineTemplate
-		MachineSet                      *clusterv1.MachineSet
-		ExpectedNodeReuseValue          string
-		FailingResource                 *client.ObjectKey
+		// ExpectedRemediationAnnotationDeleted asserts that any
+		// reboot.metal3.io/metal3-remediation-* annotation left behind by the
+		// remediation controller is stripped from the BMH on Machine deletion.
+		ExpectedRemediationAnnotationDeleted bool
+		// ExpectedRetainedAnnotations are annotations that must still be present
+		// on the BMH afterwards, to prove the cleanup is not over-broad.
+		ExpectedRetainedAnnotations map[string]string
+		NodeReuseEnabled            bool
+		MachineIsControlPlane       bool
+		MachineIsNotControlPlane    bool
+		ExpectedBMHOnlineStatus     bool
+		capm3fasttrack              string
+		Cluster                     *clusterv1.Cluster
+		Metal3MachineTemplate       *infrav1.Metal3MachineTemplate
+		MachineSet                  *clusterv1.MachineSet
+		ExpectedNodeReuseValue      string
+		FailingResource             *client.ObjectKey
 	}
 
 	DescribeTable("Test Delete function",
@@ -2546,6 +2574,30 @@ var _ = Describe("Metal3Machine manager", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedHost.Annotations[bmov1alpha1.PausedAnnotation]).NotTo(Equal(PausedAnnotationKey))
+			}
+
+			if tc.ExpectedRemediationAnnotationDeleted || len(tc.ExpectedRetainedAnnotations) > 0 {
+				savedHost := bmov1alpha1.BareMetalHost{}
+				err = fakeClient.Get(context.TODO(),
+					client.ObjectKey{
+						Name:      tc.Host.Name,
+						Namespace: tc.Host.Namespace,
+					},
+					&savedHost,
+				)
+				Expect(err).NotTo(HaveOccurred())
+
+				if tc.ExpectedRemediationAnnotationDeleted {
+					for key := range savedHost.Annotations {
+						Expect(key).NotTo(HavePrefix(PowerOffAnnotationPrefix),
+							"remediation power off annotation must not survive Machine deletion, "+
+								"otherwise the host stays held powered off forever")
+					}
+				}
+				for key, value := range tc.ExpectedRetainedAnnotations {
+					Expect(savedHost.Annotations).To(HaveKeyWithValue(key, value),
+						"unrelated annotations must not be removed")
+				}
 			}
 
 			if tc.ExpectClusterLabelDeleted {
@@ -2799,6 +2851,32 @@ var _ = Describe("Metal3Machine manager", func() {
 			BMCSecret:                       newBMCSecret("mycredentials", false),
 			ExpectSecretDeleted:             true,
 			ExpectedPausedAnnotationDeleted: true,
+		}),
+		// Regression guard: if the owning Machine is deleted while a
+		// Metal3Remediation is in PhaseRunning, the remediation CR is garbage
+		// collected and RemovePowerOffAnnotation is never reached, so Delete()
+		// is the last chance to drop the annotation. Leaving it behind holds the
+		// BareMetalHost powered off indefinitely.
+		Entry("Orphaned remediation power off annotation should be removed", testCaseDelete{
+			Machine:   newMachine(machineName, nil),
+			M3Machine: newMetal3Machine(metal3machineName, m3mSpecAll(), m3mSecretStatus(), m3mObjectMetaWithValidAnnotations()),
+			Host: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaWithRemediationPowerOffAnnotation(),
+				Spec:       *bmhSpecBMC(),
+				Status: bmov1alpha1.BareMetalHostStatus{
+					Provisioning: bmov1alpha1.ProvisionStatus{
+						State: bmov1alpha1.StateNone,
+					},
+					PoweredOn: false,
+				},
+			},
+			BMCSecret:                            newBMCSecret("mycredentials", false),
+			ExpectSecretDeleted:                  true,
+			ExpectedRemediationAnnotationDeleted: true,
+			ExpectedRetainedAnnotations: map[string]string{
+				"reboot.metal3.io/some-other-requester": `{"mode":"soft"}`,
+				"example.com/keep-me":                   "yes",
+			},
 		}),
 		Entry("No clusterLabel in BMH or BMC Secret so this is a no-op ", testCaseDelete{
 			Machine:                   newMachine(machineName, nil),

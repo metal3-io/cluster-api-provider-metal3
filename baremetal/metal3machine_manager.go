@@ -828,6 +828,19 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			delete(host.Annotations, bmov1alpha1.PausedAnnotation)
 		}
 
+		// Remove any power off annotation left behind by the remediation
+		// controller. If the owning Machine is deleted mid-remediation, the
+		// Metal3Remediation is garbage collected and the remediation controller
+		// never gets to call RemovePowerOffAnnotation, which would leave the host
+		// held powered off forever and unusable for future provisioning.
+		for key := range host.Annotations {
+			if strings.HasPrefix(key, PowerOffAnnotationPrefix) {
+				m.Log.Info("Removing orphaned remediation power off annotation",
+					LogFieldHost, host.Name, "annotation", key)
+				delete(host.Annotations, key)
+			}
+		}
+
 		// Update the BMH object, if the errors are NotFound, do not return the
 		// errors.
 		if err := patchIfFound(ctx, helper, host); err != nil {

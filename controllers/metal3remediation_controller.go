@@ -40,6 +40,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -119,10 +120,30 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Fetch the Machine.
 	remediationLog.V(baremetal.VerbosityLevelTrace).Info("Fetching owner Machine")
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, metal3Remediation.ObjectMeta)
-	if err != nil {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, fmt.Errorf("metal3Remediation's owner Machine could not be retrieved: %w", err)
 	}
-	if capiMachine == nil {
+	if err != nil || capiMachine == nil {
+		// The owner Machine is either not referenced at all or no longer exists.
+		// Either way this remediation can never make progress: without it there is
+		// no path to the Metal3Machine, the BareMetalHost or the workload cluster.
+		//
+		// If the remediation is also being deleted - which is exactly what happens
+		// when the owner Machine is deleted mid-remediation and garbage collection
+		// cascades here - returning an error would never release the finalizer and
+		// the object would sit in Terminating forever. Release it instead.
+		//
+		// The BareMetalHost power off annotation is cleaned up separately by
+		// MachineManager.Delete() on the Metal3Machine deletion path.
+		if !metal3Remediation.DeletionTimestamp.IsZero() {
+			if controllerutil.RemoveFinalizer(metal3Remediation, infrav1.RemediationFinalizer) {
+				remediationLog.Info("Releasing finalizer of orphaned Metal3Remediation being deleted")
+			}
+			return ctrl.Result{}, nil
+		}
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("metal3Remediation's owner Machine could not be retrieved: %w", err)
+		}
 		remediationLog.Info("metal3Remediation's owner Machine not set")
 		return ctrl.Result{}, errors.New("metal3Remediation's owner Machine not set")
 	}

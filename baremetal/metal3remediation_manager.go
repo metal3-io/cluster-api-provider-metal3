@@ -42,7 +42,11 @@ import (
 )
 
 const (
-	powerOffAnnotation              = "reboot.metal3.io/metal3-remediation-%s"
+	// PowerOffAnnotationPrefix is the prefix of the BareMetalHost reboot
+	// annotation used by the remediation controller to hold a host powered off.
+	// The full key is suffixed with the Metal3Remediation UID.
+	PowerOffAnnotationPrefix        = "reboot.metal3.io/metal3-remediation-"
+	powerOffAnnotation              = PowerOffAnnotationPrefix + "%s"
 	nodeAnnotationsBackupAnnotation = "remediation.metal3.io/node-annotations-backup"
 	nodeLabelsBackupAnnotation      = "remediation.metal3.io/node-labels-backup"
 	defaultTimeout                  = int32(600)
