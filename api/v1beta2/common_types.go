@@ -82,7 +82,11 @@ type HostSelectorRequirement struct {
 	Operator selection.Operator `json:"operator,omitempty"`
 
 	// values is an array of string of required values.
-	// +required
+	// An empty list is valid and required for operators that take no values,
+	// such as "exists" and "!". Field presence is therefore not required: an
+	// empty slice is dropped by omitempty, and a nil slice would marshal to
+	// null and be pruned, so requiring presence would reject valid selectors.
+	// +optional
 	// +listType=set
 	// +kubebuilder:validation:MaxItems=512
 	// +kubebuilder:validation:items:MinLength=1

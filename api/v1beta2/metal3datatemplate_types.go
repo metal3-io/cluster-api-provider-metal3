@@ -438,11 +438,13 @@ type NetworkDataLinkBond struct {
 	MACAddress *NetworkLinkEthernetMac `json:"macAddress,omitempty"`
 
 	// parameters blob passed without any validation/modifications into cloud-init config
+	// Bond parameters are optional cloud-init extras, and were optional in
+	// v1beta1, so neither field presence nor a minimum item count can be
+	// required without rejecting existing bond links that set none.
 	// +listType=map
 	// +listMapKey=name
-	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=512
-	// +required
+	// +optional
 	Parameters []NetworkDataLinkBondParam `json:"parameters,omitempty"`
 
 	// bondLinks is the list of links that are part of the bond.
