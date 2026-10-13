@@ -39,6 +39,11 @@ const failureDomainControlPlaneCount = 3
 // the larger features node profile. The "failure-domain" label lets it be
 // singled out within a features run via GINKGO_FOCUS/GINKGO_SKIP.
 var _ = Describe("When testing failure domains", Label("failure-domain", "features"), func() {
+	// Test is written for v1beta2 and will fail on v1beta1.
+	if capm3APIVersion == "v1beta1" {
+		return
+	}
+
 	BeforeEach(func() {
 		osType = strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
