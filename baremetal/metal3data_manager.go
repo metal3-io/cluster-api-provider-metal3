@@ -109,7 +109,7 @@ func (m *DataManager) clearError(_ context.Context) {
 
 // setError sets error message to Metal3Data status.
 func (m *DataManager) setError(_ context.Context, msg string) {
-	m.Data.Status.ErrorMessage = msg
+	m.Data.Status.ErrorMessage = truncateMessage(msg, maxErrorMessageLength)
 }
 
 // Reconcile handles Metal3Data events.

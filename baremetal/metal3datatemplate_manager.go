@@ -483,7 +483,7 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 	} else {
 		errMsg := "failed to retrieve Metal3Data object because it was not found or for other unknown reason"
 		persistentErrMsg += errMsg
-		dataClaim.Status.ErrorMessage = persistentErrMsg
+		dataClaim.Status.ErrorMessage = truncateMessage(persistentErrMsg, maxErrorMessageLength)
 		m.Log.Error(errors.New(errMsg), "error added to Metal3DataClaim status", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldMetal3DataTemplate, m.DataTemplate.Name, LogFieldMetal3Data, dataName)
 	}
 
