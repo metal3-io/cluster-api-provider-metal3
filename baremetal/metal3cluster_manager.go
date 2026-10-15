@@ -184,7 +184,7 @@ func (s *ClusterManager) setError(message string, reason capierrors.ClusterStatu
 	if s.Metal3Cluster.Status.Deprecated.V1Beta1 == nil {
 		s.Metal3Cluster.Status.Deprecated.V1Beta1 = &infrav1.Metal3ClusterV1Beta1DeprecatedStatus{}
 	}
-	s.Metal3Cluster.Status.Deprecated.V1Beta1.FailureMessage = &message
+	s.Metal3Cluster.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(truncateMessage(message, maxFailureMessageLength))
 	s.Metal3Cluster.Status.Deprecated.V1Beta1.FailureReason = &reason
 }
 
