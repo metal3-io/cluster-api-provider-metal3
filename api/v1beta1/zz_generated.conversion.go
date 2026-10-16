@@ -2048,6 +2048,7 @@ func autoConvert_v1beta2_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus(in *
 	} else {
 		out.Conditions = nil
 	}
+	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
@@ -2182,6 +2183,7 @@ func autoConvert_v1beta2_Metal3MachineTemplateSpec_To_v1beta1_Metal3MachineTempl
 	if err := v1.Convert_Pointer_bool_To_bool(&in.NodeReuse, &out.NodeReuse, s); err != nil {
 		return err
 	}
+	// WARNING: in.FailureDomainDataTemplates requires manual conversion: does not exist in peer-type
 	return nil
 }
 

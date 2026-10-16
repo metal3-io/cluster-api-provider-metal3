@@ -199,6 +199,7 @@ type Metal3MachineSpec struct {
 
 // Metal3MachineStatus defines the observed state of Metal3Machine.
 type Metal3MachineStatus struct {
+
 	// conditions represents the observations of a Metal3Machine's current state.
 	// Known condition types are Ready, AssociateBareMetalHost, AssociateMetal3MachineMetaData, Metal3DataReady and Paused.
 	// +optional
@@ -206,6 +207,15 @@ type Metal3MachineStatus struct {
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// failureDomain is the unique identifier of the failure domain where this
+	// Machine has been placed in, derived from the failure-domain label of the
+	// associated BareMetalHost. Empty when the machine has no associated host
+	// or the host carries no failure-domain label.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	FailureDomain string `json:"failureDomain,omitempty"`
 
 	// lastUpdated identifies when this status was last observed.
 	// +optional
