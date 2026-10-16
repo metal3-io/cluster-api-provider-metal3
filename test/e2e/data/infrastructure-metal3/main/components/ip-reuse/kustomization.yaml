@@ -6,7 +6,35 @@ kind: Component
 # configured on an interface (enp1s0), instead of only being present in metaData.
 # This enables the IP reuse e2e test to resolve the provisioning IPAddress
 # and validate it is part of the IPPool allocations.
+#
+# Adding the provisioning IP on enp1s0 means every node now has two routable
+# IPv4 addresses (provisioning 172.22.0.x and baremetalv4 192.168.111.x), and
+# Ironic inspection records both NIC IPs (plus stale inspection-time DHCP
+# leases) on the BareMetalHost. CAPM3's nodeAddresses() emits a Machine
+# InternalIP for every BMH NIC IP with no ordering, so Machine.status.addresses
+# can end up advertising only the unroutable provisioning IP. KCP then has no
+# routable address for its per-member etcd/kubelet :10250 health checks and the
+# control-plane upgrade deadlocks with "no route to host".
+#
+# To make the Machine's InternalIP deterministic and routable, we render an
+# "InternalIP" metaData key sourced from the baremetalv4 pool. CAPM3's
+# addressOverridesFromMetaData reads the case-sensitive "InternalIP" key from
+# the metaData secret and, when present, uses it in place of the BMH NIC IPs
+# (see baremetal/metal3machine_manager.go: MetaDataInternalIPKey and
+# nodeAddresses). This pins Machine.status.addresses to 192.168.111.x without
+# touching kubelet flags.
+#
+# All patches are JSON6902 "add ... /-" appends against lists the base templates
+# already define, so existing entries (provisioningIP, ...) are preserved.
+# Strategic-merge is intentionally avoided: kustomize has no schema for these
+# CRDs and would treat the +listType=map fields as atomic and replace them.
+#
+# This single component is shared by the v1beta2 templates (under main/, metaData
+# field "ipAddressesFromPool") and the v1beta1 template (under main-v1beta1/,
+# metaData field "ipAddressesFromIPPool"), so the metaData append is split per
+# apiVersion to target the correct field name.
 patches:
+# --- networkData: add the provisioning IP on enp1s0 (both versions) ---
 - target:
     kind: Metal3DataTemplate
     name: .*-workers-template
@@ -27,3 +55,33 @@ patches:
         id: provisioning
         ipAddressFromIPPool: provisioning-pool
         link: enp1s0
+
+# --- metaData: pin Machine InternalIP to the baremetalv4 address (v1beta2) ---
+- target:
+    group: infrastructure.cluster.x-k8s.io
+    version: v1beta2
+    kind: Metal3DataTemplate
+    name: .*-(workers|controlplane)-template
+  patch: |-
+    - op: add
+      path: /spec/metaData/ipAddressesFromPool/-
+      value:
+        key: InternalIP
+        name: baremetalv4-pool
+        apiGroup: ipam.metal3.io
+        kind: IPPool
+
+# --- metaData: pin Machine InternalIP to the baremetalv4 address (v1beta1) ---
+- target:
+    group: infrastructure.cluster.x-k8s.io
+    version: v1beta1
+    kind: Metal3DataTemplate
+    name: .*-(workers|controlplane)-template
+  patch: |-
+    - op: add
+      path: /spec/metaData/ipAddressesFromIPPool/-
+      value:
+        key: InternalIP
+        name: baremetalv4-pool
+        apiGroup: ipam.metal3.io
+        kind: IPPool
