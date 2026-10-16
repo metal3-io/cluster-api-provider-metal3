@@ -976,6 +976,7 @@ func autoConvert_v1beta2_Image_To_v1beta1_Image(in *v1beta2.Image, out *Image, s
 	if err := v1.Convert_string_To_Pointer_string(&in.DiskFormat, &out.DiskFormat, s); err != nil {
 		return err
 	}
+	// WARNING: in.OCIAuthSecretName requires manual conversion: does not exist in peer-type
 	return nil
 }
 
