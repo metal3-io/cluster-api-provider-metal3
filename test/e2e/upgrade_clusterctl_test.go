@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -28,12 +29,19 @@ var (
 	providerCAPIPrefix    = "cluster-api:v%s"
 	providerKubeadmPrefix = "kubeadm:v%s"
 	providerMetal3Prefix  = "metal3:v%s"
-	ironicGoproxy         = "https://proxy.golang.org/github.com/metal3-io/ironic-image/@v/list"
-	bmoGoproxy            = "https://proxy.golang.org/github.com/metal3-io/baremetal-operator/@v/list"
 
 	k8sVersion                 string
 	managementClusterNamespace string
 	workloadClusterProxy       framework.ClusterProxy
+
+	// managementClusterCacheCancel stops the controller-runtime cache backing the
+	// management cluster proxy. That cache is shared (via GetCache's sync.Once) by
+	// every pod-log watcher set up on the proxy, including CAPI's own controller
+	// log watchers. We pre-warm it with a cancelable context in preInitFunc so that
+	// preCleanupManagementCluster can stop it before the cluster is deleted;
+	// otherwise the informer keeps trying to sync with the gone API server and
+	// spams the console with "failed to list/watch *v1.Pod" errors.
+	managementClusterCacheCancel context.CancelFunc
 )
 
 // Ironic 37.0 -> latest image tag.
@@ -135,6 +143,98 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 	bmoToRelease := "main"
 	ironicToRelease := "main"
 	testName := "v1-12-to-current"
+
+	// Use the .99 versions available in the local artifact repository (built from
+	// release branch kustomize overlays in e2e_conf.yaml). The old clusterctl binary
+	// resolves provider components from the local repo, which only has .99 versions —
+	// not the actual released patch versions. Core CAPI providers work because
+	// clusterctl has built-in GitHub URLs for them.
+	capm3InitVersion := minorVersion + ".99"
+	ipamInitVersion := minorVersion + ".99"
+	var capiStableRelease string
+
+	BeforeEach(func() {
+		k8sVersion = "v1.37.0"
+		validateGlobals(specName)
+		imageURL, imageChecksum := EnsureImage(e2eConfig, k8sVersion)
+		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
+		os.Setenv("IMAGE_RAW_URL", imageURL)
+		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
+
+		var err error
+		capiStableRelease, err = capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
+		Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
+	})
+
+	AfterEach(func() {
+		By("Collecting logs from the bootstrap cluster after clusterctl upgrade test (v1.13=>current)")
+		err := FetchClusterLogs(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-logs"))
+		if err != nil {
+			Logf("Error fetching logs: %v", err)
+		}
+		err = FetchManifests(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-manifests"))
+		if err != nil {
+			Logf("Error fetching manifests: %v", err)
+		}
+
+		By("Collecting logs from the management cluster")
+		if workloadClusterProxy != nil {
+			err = FetchClusterLogs(workloadClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-logs"))
+			if err != nil {
+				Logf("Error fetching management cluster logs: %v", err)
+			}
+			err = FetchManifests(workloadClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-manifests"))
+			if err != nil {
+				Logf("Error fetching management cluster manifests: %v", err)
+			}
+		}
+	})
+
+	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
+		return capi_e2e.ClusterctlUpgradeSpecInput{
+			E2EConfig:                       e2eConfig,
+			ClusterctlConfigPath:            clusterctlConfigPath,
+			BootstrapClusterProxy:           bootstrapClusterProxy,
+			ArtifactFolder:                  artifactFolder,
+			SkipCleanup:                     skipCleanup,
+			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
+			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
+			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
+			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3InitVersion)},
+			InitWithIPAMProviders:           []string{fmt.Sprintf(providerMetal3Prefix, ipamInitVersion)},
+			InitWithKubernetesVersion:       k8sVersion,
+			WorkloadKubernetesVersion:       k8sVersion,
+			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
+			PreInit: func(clusterProxy framework.ClusterProxy) {
+				preInitFunc(clusterProxy, bmoFromRelease, ironicFromRelease, testName)
+				// Override capi/capm3 versions exported in preInit
+				os.Setenv("CAPI_VERSION", capiContract)
+				os.Setenv("CAPM3_VERSION", capm3Contract)
+				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
+			},
+			PostNamespaceCreated: func(clusterProxy framework.ClusterProxy, clusterNamespace string) {
+				postClusterctlUpgradeNamespaceCreated(clusterProxy, clusterNamespace, testName)
+			},
+			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
+				preUpgrade(clusterProxy, bmoToRelease, ironicToRelease, testName)
+			},
+			PreCleanupManagementCluster: func(clusterProxy framework.ClusterProxy) {
+				preCleanupManagementCluster(clusterProxy, testName)
+			},
+			MgmtFlavor:     osType,
+			WorkloadFlavor: osType,
+		}
+	})
+})
+
+// Ironic 33.0 -> 35.0.
+var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", Label("clusterctl-upgrade"), func() {
+	minorVersion := "1.12"
+	bmoFromRelease := "0.12"
+	ironicFromRelease := "33.0"
+	bmoToRelease := "0.13"
+	ironicToRelease := "35.0"
+	testName := "v1-11-to-current"
 
 	// Use the .99 versions available in the local artifact repository (built from
 	// release branch kustomize overlays in e2e_conf.yaml). The old clusterctl binary
@@ -337,6 +437,15 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	if err != nil {
 		Logf("Error fetching logs for workload cluster: %v", err)
 	}
+	// Pre-warm the management cluster proxy's controller-runtime cache with a
+	// context we own, before any log watcher (ours via InstallBMO/InstallIRSO, or
+	// CAPI's InitManagementClusterAndWatchControllerLogs) triggers GetCache and
+	// binds the shared cache to the uncancelable suite context. Owning the context
+	// lets preCleanupManagementCluster stop the cache before the cluster is torn
+	// down, which is the only way to silence the informer's reflector spam.
+	cacheCtx, cancel := context.WithCancel(ctx)
+	managementClusterCacheCancel = cancel
+	clusterProxy.GetCache(cacheCtx)
 
 	By("Fetch manifest for bootstrap cluster")
 	err = FetchManifests(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "preInit-manifest"))
@@ -432,6 +541,17 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	os.Setenv("IPAM_PROVISIONING_POOL_RANGE_END", "172.22.0.240")
 }
 
+// upgradeReleaseTag maps an upgrade-to release identifier to the suffix used by
+// the IRSO_IRONIC_* / BMO_RELEASE_* e2e config variables. "main"/"latest" are
+// upper-cased (e.g. IRSO_IRONIC_MAIN); pinned minor versions such as "35.0" are
+// used as-is (e.g. IRSO_IRONIC_35.0).
+func upgradeReleaseTag(release string) string {
+	if strings.EqualFold(release, "main") || strings.EqualFold(release, "latest") {
+		return strings.ToUpper(release)
+	}
+	return release
+}
+
 // preUpgrade hook should be called from ClusterctlUpgradeSpec before upgrading the management cluster
 // it upgrades Ironic and BMO before upgrading the providers.
 func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string, ironicUpgradeToRelease string, testName string) {
@@ -445,12 +565,14 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 		Logf("Error fetching logs for workload cluster: %v", err)
 	}
 
-	ironicTag, err := GetLatestPatchRelease(ironicGoproxy, ironicUpgradeToRelease)
-	Expect(err).ToNot(HaveOccurred(), "Failed to fetch ironic version for release %s", ironicUpgradeToRelease)
+	// The IRSO_IRONIC_* / BMO_RELEASE_* e2e config variables are keyed by the
+	// release identifier itself (e.g. "35.0", "0.13", or "MAIN"), matching the
+	// overlay directories. Resolve the tag from the release directly, the same
+	// way preInitFunc does, instead of looking up a patch version.
+	ironicTag := upgradeReleaseTag(ironicUpgradeToRelease)
 	Logf("Ironic Tag %s\n", ironicTag)
 
-	bmoTag, err := GetLatestPatchRelease(bmoGoproxy, bmoUpgradeToRelease)
-	Expect(err).ToNot(HaveOccurred(), "Failed to fetch bmo version for release %s", bmoUpgradeToRelease)
+	bmoTag := upgradeReleaseTag(bmoUpgradeToRelease)
 	Logf("Bmo Tag %s\n", bmoTag)
 
 	Byf("Upgrade IRSO with ironic version %s in the target management cluster: %s", ironicTag, clusterProxy.GetName())
@@ -515,6 +637,29 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, testName s
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
 	os.Unsetenv("KUBECONFIG_BOOTSTRAP")
 	bmoIronicNamespace := e2eConfig.MustGetVariable(ironicNamespace)
+
+	// Stop the shared controller-runtime cache on the management cluster proxy
+	// before the cluster is torn down. Every pod-log watcher on this proxy (BMO,
+	// Ironic and CAPI's own controller log watchers) uses this single cache;
+	// cancelling the context we pre-warmed it with in preInitFunc makes the
+	// informers stop cleanly instead of endlessly retrying against the deleted
+	// API server and spamming the console with "failed to list/watch *v1.Pod".
+	By("Stop the management cluster proxy cache to shut down log watchers")
+	if managementClusterCacheCancel != nil {
+		managementClusterCacheCancel()
+		managementClusterCacheCancel = nil
+	}
+
+	// Remove BMO so it is actually gone before the cluster is deleted.
+	By("Remove BMO deployment from the management cluster")
+	RemoveDeployment(ctx, func() RemoveDeploymentInput {
+		return RemoveDeploymentInput{
+			ClusterProxy: clusterProxy,
+			Namespace:    bmoIronicNamespace,
+			Name:         e2eConfig.MustGetVariable(NamePrefix) + "-controller-manager",
+		}
+	})
+
 	// Reinstall ironic
 	reInstallIronic := func() {
 		By("ReInstall IRSO in the bootstrap cluster")
