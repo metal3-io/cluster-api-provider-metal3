@@ -322,15 +322,27 @@ func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, e2econfi
 		log.Printf("Resolved CAPIRELEASE from goproxy: %s", capiRelease)
 	}
 
+	var runtimeExtensionProviders []string
+	if os.Getenv("GINKGO_FOCUS") == inPlaceUpgradeFocus {
+		runtimeExtensionProviders = e2econfig.GetProviderLatestVersionsByContract("*", testExtensionProviderName)
+		Expect(runtimeExtensionProviders).ToNot(BeEmpty(), "No %s provider version found in the e2e config", testExtensionProviderName)
+
+		// clusterctl init waits for every provider deployment to become
+		// available, and the extension pod mounts this secret, so it has to
+		// exist before init rather than be created by the test.
+		CreateTestExtensionSSHKeySecret(context.TODO(), bootstrapClusterProxy)
+	}
+
 	clusterctl.InitManagementClusterAndWatchControllerLogs(context.TODO(), clusterctl.InitManagementClusterAndWatchControllerLogsInput{
-		ClusterProxy:            bootstrapClusterProxy,
-		ClusterctlConfigPath:    clusterctlConfig,
-		CoreProvider:            config.ClusterAPIProviderName + ":" + capiRelease,
-		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + capiRelease},
-		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + capiRelease},
-		InfrastructureProviders: []string{config.Metal3ProviderName + ":" + os.Getenv("CAPM3RELEASE")},
-		IPAMProviders:           []string{config.Metal3IPAMProviderName + ":" + os.Getenv("IPAMRELEASE")},
-		LogFolder:               filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
+		ClusterProxy:              bootstrapClusterProxy,
+		ClusterctlConfigPath:      clusterctlConfig,
+		CoreProvider:              config.ClusterAPIProviderName + ":" + capiRelease,
+		BootstrapProviders:        []string{config.KubeadmBootstrapProviderName + ":" + capiRelease},
+		ControlPlaneProviders:     []string{config.KubeadmControlPlaneProviderName + ":" + capiRelease},
+		InfrastructureProviders:   []string{config.Metal3ProviderName + ":" + os.Getenv("CAPM3RELEASE")},
+		IPAMProviders:             []string{config.Metal3IPAMProviderName + ":" + os.Getenv("IPAMRELEASE")},
+		RuntimeExtensionProviders: runtimeExtensionProviders,
+		LogFolder:                 filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
 	}, e2econfig.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
 

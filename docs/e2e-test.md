@@ -290,6 +290,20 @@ the actual upgrade via SSH.
 See [test/extension/handlers/inplaceupdate/handlers.go](../test/extension/handlers/inplaceupdate/handlers.go)
 for the detailed implementation.
 
+**How the extension is deployed:**
+
+`scripts/ci-e2e.sh` builds the extension image from this tree, points
+[test/extension/config/default](../test/extension/config/default) at it, and the
+test framework loads it into the kind management cluster. The extension is
+declared as the `test-extension` `RuntimeExtensionProvider` in
+`test/e2e/config/e2e_conf.yaml` and, only when `GINKGO_FOCUS=in-place-upgrade`,
+installed by `clusterctl init` together with the other providers. Right before
+that init, the `test-extension-system` namespace and the `ssh-key` secret are
+created; the secret carries `~/.ssh/id_rsa`, the counterpart of the public key
+provisioned onto the nodes, and is mounted at `/home/nonroot/.ssh/id_rsa` in
+the extension pod. The test then applies the `ExtensionConfig` so CAPI
+discovers the hooks.
+
 **Handling version-managed KubeadmConfig changes:**
 
 When the `CanUpdateMachine`/`CanUpdateMachineSet` hooks are called, the extension
