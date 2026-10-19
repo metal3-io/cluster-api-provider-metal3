@@ -23,6 +23,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	// comment for go-lint.
 	"github.com/go-logr/logr"
@@ -43,6 +44,10 @@ const (
 	metal3SecretType corev1.SecretType = "infrastructure.cluster.x-k8s.io/secret"
 	// metal3MachineKind is the Kind of the Metal3Machine.
 	metal3MachineKind = "Metal3Machine"
+
+	// Must match the MaxLength markers on the corresponding v1beta2 status fields.
+	maxErrorMessageLength   = 512
+	maxFailureMessageLength = 1024
 
 	// Logging verbosity levels follow the Kubernetes logging conventions:
 	// - Level 0 (Info): Always logged - errors, warnings, important state changes
@@ -134,6 +139,15 @@ func RootCause(err error) error {
 		err = errors.Unwrap(err)
 	}
 	return err
+}
+
+// truncateMessage shortens msg to at most maxLen characters, as counted by CRD MaxLength validation.
+func truncateMessage(msg string, maxLen int) string {
+	if utf8.RuneCountInString(msg) <= maxLen {
+		return msg
+	}
+	ellipsis := "..."
+	return string([]rune(msg)[:maxLen-len(ellipsis)]) + ellipsis
 }
 
 // NotFoundError represents that an object was not found.

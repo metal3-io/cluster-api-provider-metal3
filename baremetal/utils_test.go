@@ -18,6 +18,8 @@ package baremetal
 
 import (
 	"context"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
@@ -78,6 +80,20 @@ var _ = Describe("Metal3 manager utils", func() {
 			Expect(err.Error()).To(Equal("Object not found"))
 		})
 	})
+
+	DescribeTable("Test truncateMessage",
+		func(msg string, maxLen int, expected string) {
+			result := truncateMessage(msg, maxLen)
+			Expect(result).To(Equal(expected))
+			Expect(utf8.RuneCountInString(result)).To(BeNumerically("<=", maxLen))
+		},
+		Entry("empty", "", 10, ""),
+		Entry("shorter than limit", "abc", 10, "abc"),
+		Entry("exactly at limit", "abcdefghij", 10, "abcdefghij"),
+		Entry("longer than limit", "abcdefghijk", 10, "abcdefg..."),
+		Entry("multi-byte runes", strings.Repeat("é", 12), 10, strings.Repeat("é", 7)+"..."),
+		Entry("error message limit", strings.Repeat("x", 600), maxErrorMessageLength, strings.Repeat("x", maxErrorMessageLength-3)+"..."),
+	)
 
 	type testCaseUpdate struct {
 		TestObject     *infrav1.Metal3Machine
