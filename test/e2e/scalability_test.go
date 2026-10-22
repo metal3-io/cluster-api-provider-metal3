@@ -94,8 +94,9 @@ var _ = Describe("When testing scalability with fakeIPA and FKAS", Label("scalab
 	AfterEach(func() {
 		// Collect the host lab container logs before teardown; these run as docker
 		// containers (not pods) and are invisible to the in-cluster log collection.
-		CollectVbmctlContainerLogs(ctx, filepath.Join(artifactFolder, "vbmctl-container-logs"))
-		collectFakeIPAContainerLogs(filepath.Join(artifactFolder, "vbmctl-container-logs"))
+		containerLogFolder := filepath.Join(specArtifactFolder(artifactFolder, specName, "afterEach"), "vbmctl-container-logs")
+		CollectVbmctlContainerLogs(ctx, containerLogFolder)
+		collectFakeIPAContainerLogs(containerLogFolder)
 		removeFakeIPA()
 		FKASKustomization := e2eConfig.MustGetVariable("FKAS_RELEASE_LATEST")
 		By(fmt.Sprintf("Removing FKAS from kustomization %s from the bootsrap cluster", FKASKustomization))

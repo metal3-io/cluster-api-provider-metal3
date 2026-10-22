@@ -167,13 +167,17 @@ func DumpSpecResourcesAndCleanup(ctx context.Context,
 
 	bootstrapClusterProxy.CollectWorkloadClusterLogs(ctx, namespace, clusterName, artifactFolder)
 
+	// Logs and manifests go to <artifactFolder>/<test label>/afterEach, so that
+	// the specs of one run do not overwrite the artifacts of the other specs.
+	afterEachFolder := specArtifactFolder(artifactFolder, specName, "afterEach")
+
 	By("Fetch logs from target cluster")
 	if targetClusterProxy != nil {
-		err := FetchClusterLogs(targetClusterProxy, filepath.Join(artifactFolder, targetClusterProxy.GetName(), "logs"))
+		err := FetchClusterLogs(targetClusterProxy, afterEachFolder)
 		if err != nil {
 			Logf("Error: %v", err)
 		}
-		err = FetchManifests(targetClusterProxy, filepath.Join(artifactFolder, targetClusterProxy.GetName(), "manifests"))
+		err = FetchManifests(targetClusterProxy, afterEachFolder)
 		if err != nil {
 			Logf("Error fetching manifests for target cluster: %v", err)
 		}
@@ -181,17 +185,17 @@ func DumpSpecResourcesAndCleanup(ctx context.Context,
 		Logf("Skipping target cluster log collection: targetClusterProxy is nil")
 	}
 
-	err := FetchClusterLogs(bootstrapClusterProxy, filepath.Join(artifactFolder, bootstrapClusterProxy.GetName(), "logs"))
+	err := FetchClusterLogs(bootstrapClusterProxy, afterEachFolder)
 	if err != nil {
 		Logf("Error: %v", err)
 	}
-	err = FetchManifests(bootstrapClusterProxy, filepath.Join(artifactFolder, bootstrapClusterProxy.GetName(), "manifests"))
+	err = FetchManifests(bootstrapClusterProxy, afterEachFolder)
 	if err != nil {
-		Logf("Error fetching manifests for target cluster: %v", err)
+		Logf("Error fetching manifests for bootstrap cluster: %v", err)
 	}
 
 	By("Collecting logs from the vbmctl-managed lab containers")
-	CollectVbmctlContainerLogs(ctx, filepath.Join(artifactFolder, "vbmctl-container-logs"))
+	CollectVbmctlContainerLogs(ctx, filepath.Join(afterEachFolder, "vbmctl-container-logs"))
 
 	// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 	By(fmt.Sprintf("Dumping all the Cluster API resources in the %q namespace", namespace))
@@ -1045,23 +1049,19 @@ func BuildAndApplyKustomization(ctx context.Context, input *BuildAndApplyKustomi
 		},
 	}
 
+	// Start the log watcher before the wait. If the deployment does not become
+	// available, for example because its pods crash, the logs of all the
+	// crashed containers are then in the artifacts.
+	if input.WatchDeploymentLogs {
+		watchDeploymentLogs(ctx, clusterProxy, deployment, input.LogPath)
+	}
+
 	if input.WaitForDeployment {
 		// Wait for the deployment to become available
 		framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
 			Getter:     clusterProxy.GetClient(),
 			Deployment: deployment,
 		}, input.WaitIntervals...)
-	}
-
-	if input.WatchDeploymentLogs {
-		// Set up log watcher
-		framework.WatchDeploymentLogsByName(ctx, framework.WatchDeploymentLogsByNameInput{
-			GetLister:  clusterProxy.GetClient(),
-			Cache:      clusterProxy.GetCache(ctx),
-			ClientSet:  clusterProxy.GetClientSet(),
-			Deployment: deployment,
-			LogPath:    input.LogPath,
-		})
 	}
 	return nil
 }
@@ -1539,7 +1539,30 @@ func InstallIRSO(ctx context.Context, input InstallIRSOInput) error {
 		Logf("Ironic CR successfully created")
 	}, input.E2EConfig.GetIntervals("default", "wait-deployment")...).Should(Succeed())
 
+	watchIronicDeploymentLogs(ctx, input)
+
 	return nil
+}
+
+// watchIronicDeploymentLogs streams the logs of the Ironic Deployment that IRSO
+// creates from the Ironic CR, to <LogPath>/ironic-service.
+func watchIronicDeploymentLogs(ctx context.Context, input InstallIRSOInput) {
+	ironicDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ironic-service",
+			Namespace: input.IronicNamespace,
+		},
+	}
+	By("Watching the logs of the Ironic deployment")
+	found := NewGomega(func(message string, _ ...int) {
+		Logf("Not watching the logs of the Ironic deployment: %s", message)
+	}).Eventually(func() error {
+		return input.ClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(ironicDeployment), &appsv1.Deployment{})
+	}, input.E2EConfig.GetIntervals("default", "wait-deployment")...).Should(Succeed())
+	if !found {
+		return
+	}
+	watchDeploymentLogs(ctx, input.ClusterProxy, ironicDeployment, input.LogPath)
 }
 
 // WaitForIronicReady waits until the given Ironic resource has Ready condition = True.
