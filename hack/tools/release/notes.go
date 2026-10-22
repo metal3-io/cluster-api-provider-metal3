@@ -31,6 +31,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/google/go-github/github"
+	"github.com/saschagrunert/go-modiff/pkg/modiff"
 	"golang.org/x/oauth2"
 )
 
@@ -138,9 +139,20 @@ func run() int {
 		log.Fatalf("Failed to get lastTag: %v", err)
 	}
 
-	commitHash, err := getCommitHashFromNewTag(latestTag)
+	client, err := newGitHubClient()
+	if err != nil {
+		log.Printf("Failed to create GitHub client: %v", err)
+		return 1
+	}
+	commitHash, err := getCommitHashFromNewTag(latestTag, client)
 	if err != nil {
 		log.Fatalf("Failed to get commit hash from latestTag %s: %v", latestTag, err)
+	}
+
+	dependencies, err := generateDependencies(context.Background(), lastTag, commitHash, modiff.Run)
+	if err != nil {
+		log.Printf("Failed to generate dependency changes: %v", err)
+		return 1
 	}
 
 	cmd := exec.Command("git", "rev-list", lastTag+".."+commitHash, "--merges", "--pretty=format:%B") // #nosec G204:gosec
@@ -180,7 +192,24 @@ func run() int {
 
 	for _, c := range commits {
 		body := strings.TrimSpace(c.body)
-		var key, prNumber, fork string
+		var key, fork string
+		var number int
+		if !strings.HasPrefix(c.merge, "Merge pull request #") {
+			continue
+		}
+		_, err := fmt.Sscanf(c.merge, "Merge pull request #%d from %s", &number, &fork)
+		if err != nil {
+			log.Printf("Error parsing merge commit message: %v", err)
+			return 1
+		}
+		pr, _, err := client.PullRequests.Get(context.Background(), repoOwner, repoName, number)
+		if err != nil {
+			log.Printf("Failed to get PR #%d: %v", number, err)
+			return 1
+		}
+		if isDependencyPR(pr) {
+			continue
+		}
 		switch {
 		case strings.HasPrefix(body, ":sparkles:"), strings.HasPrefix(body, "✨"):
 			key = features
@@ -198,11 +227,6 @@ func run() int {
 			key = other
 			body = strings.TrimPrefix(body, ":seedling:")
 			body = strings.TrimPrefix(body, "🌱")
-		case strings.HasPrefix(body, ":running:"), strings.HasPrefix(body, "🏃"):
-			// This has been deprecated in favor of :seedling:
-			key = other
-			body = strings.TrimPrefix(body, ":running:")
-			body = strings.TrimPrefix(body, "🏃")
 		case strings.HasPrefix(body, ":warning:"), strings.HasPrefix(body, "⚠️"):
 			key = warning
 			body = strings.TrimPrefix(body, ":warning:")
@@ -219,12 +243,7 @@ func run() int {
 		}
 		body = fmt.Sprintf("- %s", body)
 
-		_, err := fmt.Sscanf(c.merge, "Merge pull request %s from %s", &prNumber, &fork)
-		if err != nil {
-			log.Fatalf("Error parsing merge commit message: %v", err)
-		}
-
-		merges[key] = append(merges[key], formatMerge(body, prNumber))
+		merges[key] = append(merges[key], formatMerge(body, fmt.Sprintf("#%d", number)))
 	}
 
 	// Add empty superseded section, if not alpha/beta/rc, we don't cleanup those notes
@@ -265,6 +284,8 @@ func run() int {
 		}
 	}
 
+	fmt.Printf("%s\n", dependencies)
+
 	// then close the details if we had it open
 	if isAlpha(latestTag) || isBeta(latestTag) || isRC(latestTag) {
 		fmt.Printf("</details>\n\n")
@@ -291,25 +312,8 @@ func formatMerge(line, prNumber string) string {
 // getCommitHashFromNewTag returns the latest commit hash for the specified tag.
 // For minor and pre releases, it returns the main branch's latest commit.
 // For patch releases, it returns the latest commit on the corresponding release branch.
-func getCommitHashFromNewTag(newTag string) (string, error) {
-	token := *githubToken
-	if token == "" {
-		token = os.Getenv("GITHUB_TOKEN")
-		if token != "" {
-			log.Println("WARNING: Using GITHUB_TOKEN from environment variable. Please use --githubToken flag instead for better security.")
-		}
-	}
-	if token == "" {
-		return "", errors.New("Github token is required (use --githubToken flag or set GITHUB_TOKEN environment variable)")
-	}
-
+func getCommitHashFromNewTag(newTag string, client *github.Client) (string, error) {
 	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
-
 	branch := "main"
 	if !isAlpha(newTag) || !isBeta(newTag) {
 		branch = getReleaseBranchFromTag(newTag)
@@ -323,10 +327,71 @@ func getCommitHashFromNewTag(newTag string) (string, error) {
 
 	ref, _, err := client.Git.GetRef(ctx, repoOwner, repoName, "refs/heads/"+branch)
 	if err != nil {
-		log.Fatalf("Error fetching ref: %v", err)
+		return "", fmt.Errorf("fetching ref for branch %s: %w", branch, err)
 	}
 	commitHash := ref.GetObject().GetSHA()
 	return commitHash, nil
+}
+
+func newGitHubClient() (*github.Client, error) {
+	token := *githubToken
+	if token == "" {
+		token = os.Getenv("GITHUB_TOKEN")
+		if token != "" {
+			log.Println("WARNING: Using GITHUB_TOKEN from environment variable. Please use --githubToken flag instead for better security.")
+		}
+	}
+	if token == "" {
+		return nil, errors.New("Github token is required (use --githubToken flag or set GITHUB_TOKEN environment variable)")
+	}
+
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	return github.NewClient(tc), nil
+}
+
+func isDependencyPR(pr *github.PullRequest) bool {
+	if pr.GetUser().GetLogin() == "dependabot[bot]" {
+		return true
+	}
+	for _, label := range pr.Labels {
+		switch strings.ToLower(label.GetName()) {
+		case "dependencies", "kind/dependencies", "area/dependency":
+			return true
+		}
+	}
+
+	title := strings.TrimSpace(pr.GetTitle())
+	if strings.HasPrefix(title, "[release-") {
+		if end := strings.Index(title, "]"); end != -1 {
+			title = strings.TrimSpace(title[end+1:])
+		}
+	}
+	for _, prefix := range []string{":seedling:", "🌱", ":bug:", "🐛", ":sparkles:", "✨", ":warning:", "⚠️"} {
+		title = strings.TrimSpace(strings.TrimPrefix(title, prefix))
+	}
+	title = strings.ToLower(title)
+	return strings.HasPrefix(title, "bump ") ||
+		strings.HasPrefix(title, "uplift ") ||
+		strings.HasPrefix(title, "update dependencies") ||
+		strings.HasPrefix(title, "update go dependencies")
+}
+
+func generateDependencies(ctx context.Context, from, to string, diff func(context.Context, *modiff.Config) (string, error)) (string, error) {
+	// Use the same dependency diff engine and heading level as Cluster API.
+	config := modiff.NewConfig("github.com/"+repoOwner+"/"+repoName, from, to, true, 2)
+	dependencies, err := diff(ctx, config)
+	if err != nil {
+		return "", fmt.Errorf("comparing dependencies from %s to %s: %w", from, to, err)
+	}
+	return strings.NewReplacer(
+		"\n### Added\n", "\n### Added\n\n",
+		"\n### Changed\n", "\n### Changed\n\n",
+		"\n### Removed\n", "\n### Removed\n\n",
+	).Replace(dependencies), nil
 }
 
 func trimPrereleasePrefix(version string) string {
