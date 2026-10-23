@@ -6,6 +6,8 @@ kind: Component
 # configured on an interface (enp1s0), instead of only being present in metaData.
 # This enables the IP reuse e2e test to resolve the provisioning IPAddress
 # and validate it is part of the IPPool allocations.
+# pin kubelet --node-ip to the baremetalv4 (enp2s0) address so the Node
+# advertises only the routable 192.168.111.x address.
 patches:
 - target:
     kind: Metal3DataTemplate
@@ -27,3 +29,28 @@ patches:
         id: provisioning
         ipAddressFromIPPool: provisioning-pool
         link: enp1s0
+
+# --- kubelet --node-ip pinned to the enp2s0 (baremetalv4) address ---
+# A preKubeadmCommand writes a kubelet systemd drop-in that sets --node-ip to the
+# IPv4 address currently configured on enp2s0, before kubelet/kubeadm start.
+- target:
+    kind: KubeadmControlPlane
+  patch: |-
+    - op: add
+      path: /spec/kubeadmConfigSpec/preKubeadmCommands/0
+      value: >-
+        mkdir -p /etc/systemd/system/kubelet.service.d &&
+        NODEIP="$(ip -4 -o addr show dev enp2s0 | awk '{print $4}' | cut -d/ -f1 | head -n1)" &&
+        printf '[Service]\nEnvironment="KUBELET_EXTRA_ARGS=--node-ip=%s"\n' "$NODEIP"
+        > /etc/systemd/system/kubelet.service.d/20-node-ip.conf
+- target:
+    kind: KubeadmConfigTemplate
+    name: .*-workers
+  patch: |-
+    - op: add
+      path: /spec/template/spec/preKubeadmCommands/0
+      value: >-
+        mkdir -p /etc/systemd/system/kubelet.service.d &&
+        NODEIP="$(ip -4 -o addr show dev enp2s0 | awk '{print $4}' | cut -d/ -f1 | head -n1)" &&
+        printf '[Service]\nEnvironment="KUBELET_EXTRA_ARGS=--node-ip=%s"\n' "$NODEIP"
+        > /etc/systemd/system/kubelet.service.d/20-node-ip.conf
