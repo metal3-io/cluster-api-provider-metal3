@@ -111,6 +111,9 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 	if ok && restored.Spec.Image.Checksum == nil {
 		dst.Spec.Image.Checksum = nil
 	}
+	if ok {
+		dst.Spec.Image.OCIAuthSecretName = restored.Spec.Image.OCIAuthSecretName
+	}
 	return nil
 }
 
@@ -143,6 +146,7 @@ func (src *Metal3MachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.Template.Spec.Image.Checksum == nil {
 		dst.Spec.Template.Spec.Image.Checksum = nil
 	}
+	dst.Spec.Template.Spec.Image.OCIAuthSecretName = restored.Spec.Template.Spec.Image.OCIAuthSecretName
 
 	return nil
 }

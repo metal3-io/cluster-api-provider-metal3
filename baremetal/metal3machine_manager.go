@@ -1243,6 +1243,9 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 				ChecksumType: bmov1alpha1.ChecksumType(m.Metal3Machine.Spec.Image.ChecksumType),
 				DiskFormat:   &m.Metal3Machine.Spec.Image.DiskFormat,
 			}
+			if m.Metal3Machine.Spec.Image.OCIAuthSecretName != "" {
+				host.Spec.Image.OCIAuthSecretName = &m.Metal3Machine.Spec.Image.OCIAuthSecretName
+			}
 		}
 		if customDeployConfigured {
 			host.Spec.CustomDeploy = &bmov1alpha1.CustomDeploy{
