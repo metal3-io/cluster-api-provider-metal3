@@ -57,6 +57,7 @@ var _ = Describe("When testing in-place k8s upgrade", Label("in-place-upgrade"),
 				SpecName:              specName,
 				ClusterName:           clusterName,
 				Namespace:             namespace,
+				ArtifactFolder:        artifactFolder,
 			}
 		})
 	})

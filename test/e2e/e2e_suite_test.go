@@ -116,7 +116,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// Before all ParallelNodes.
 
 	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config should be an existing file.")
-	Expect(os.RemoveAll(artifactFolder)).To(Succeed())
 	Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder)
 
 	By("Initializing a runtime.Scheme with all the GVK relevant for this test")
@@ -219,6 +218,7 @@ var _ = SynchronizedAfterSuite(func() {
 	// After each ParallelNode.
 }, func() {
 	// After all ParallelNodes.
+	CollectAfterSuiteArtifacts(bootstrapClusterProxy)
 	By("Tearing down the management cluster")
 	if !skipCleanup {
 		TearDown(bootstrapClusterProvider, bootstrapClusterProxy)
@@ -334,18 +334,27 @@ func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, e2econfi
 	}, e2econfig.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
 
+// CollectAfterSuiteArtifacts collects the logs and manifests of the bootstrap
+// cluster after all the specs, in <artifactFolder>/afterSuite.
+func CollectAfterSuiteArtifacts(bootstrapClusterProxy framework.ClusterProxy) {
+	if bootstrapClusterProxy == nil {
+		return
+	}
+	afterSuiteFolder := filepath.Join(artifactFolder, "afterSuite")
+	By("Fetch manifest for bootstrap cluster")
+	err := FetchManifests(bootstrapClusterProxy, afterSuiteFolder)
+	if err != nil {
+		Logf("Error fetching manifests for bootstrap cluster: %v", err)
+	}
+	By("Fetch logs for bootstrap cluster")
+	err = FetchClusterLogs(bootstrapClusterProxy, afterSuiteFolder)
+	if err != nil {
+		Logf("Error fetching logs for bootstrap cluster: %v", err)
+	}
+}
+
 func TearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClusterProxy framework.ClusterProxy) {
 	if bootstrapClusterProxy != nil {
-		By("Fetch manifest for bootstrap cluster")
-		err := FetchManifests(bootstrapClusterProxy, artifactFolder)
-		if err != nil {
-			Logf("Error fetching manifests for bootstrap cluster: %v", err)
-		}
-		By("Fetch logs for bootstrap cluster")
-		err = FetchClusterLogs(bootstrapClusterProxy, artifactFolder)
-		if err != nil {
-			Logf("Error fetching logs for bootstrap cluster: %v", err)
-		}
 		bootstrapClusterProxy.Dispose(context.TODO())
 	}
 	if bootstrapClusterProvider != nil {
