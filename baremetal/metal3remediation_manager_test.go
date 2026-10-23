@@ -33,6 +33,9 @@ import (
 	storagev1client "k8s.io/client-go/kubernetes/typed/storage/v1"
 	k8stesting "k8s.io/client-go/testing"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -1127,6 +1130,55 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Expect(storageClientGetterCalled).To(BeTrue())
 			Expect(listedVolumeAttachments).To(BeTrue())
 			Expect(drained).To(BeFalse())
+		})
+	})
+
+	Describe("Test SetOwnerRemediatedConditionNew", func() {
+		It("should hand the Machine over to its owner via v1beta1 and v1beta2 conditions", func() {
+			capiMachine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: namespaceName,
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: []metav1.Condition{{
+						Type:               clusterv1.MachineHealthCheckSucceededCondition,
+						Status:             metav1.ConditionFalse,
+						Reason:             clusterv1.MachineHealthCheckUnhealthyNodeReason,
+						LastTransitionTime: metav1.Now(),
+					}},
+				},
+			}
+			remediation := &infrav1.Metal3Remediation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{{
+						APIVersion: clusterv1.GroupVersion.String(),
+						Kind:       "Machine",
+						Name:       capiMachine.Name,
+					}},
+				},
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).
+				WithObjects(capiMachine, remediation).
+				WithStatusSubresource(&clusterv1.Machine{}).
+				Build()
+
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, remediation, nil, nil, logr.Discard())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(remediationMgr.SetOwnerRemediatedConditionNew(context.TODO())).To(Succeed())
+
+			updated := &clusterv1.Machine{}
+			Expect(fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(capiMachine), updated)).To(Succeed())
+
+			Expect(deprecatedv1beta1conditions.IsFalse(updated, clusterv1.MachineOwnerRemediatedV1Beta1Condition)).To(BeTrue())
+			ownerRemediated := conditions.Get(updated, clusterv1.MachineOwnerRemediatedCondition)
+			Expect(ownerRemediated).NotTo(BeNil())
+			Expect(ownerRemediated.Status).To(Equal(metav1.ConditionFalse))
+			Expect(ownerRemediated.Reason).To(Equal(clusterv1.MachineOwnerRemediatedWaitingForRemediationReason))
+			Expect(collections.IsUnhealthyAndOwnerRemediated(updated)).To(BeTrue(),
+				"MachineSet and KubeadmControlPlane must select the Machine for remediation")
 		})
 	})
 })

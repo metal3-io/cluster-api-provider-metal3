@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -432,6 +433,12 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 		clusterv1.WaitingForRemediationV1Beta1Reason,
 		clusterv1.ConditionSeverityWarning,
 		"")
+	conditions.Set(capiMachine, metav1.Condition{
+		Type:    clusterv1.MachineOwnerRemediatedCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationReason,
+		Message: "Waiting for remediation",
+	})
 	err = machineHelper.Patch(ctx, capiMachine)
 	if err != nil {
 		r.Log.Info("Unable to patch Machine",
