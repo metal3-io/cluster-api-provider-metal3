@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -32,6 +33,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,6 +47,7 @@ type reconcileNormalTestCase struct {
 	BootstrapNotReady                  bool
 	Annotated                          bool
 	AssociateFails                     bool
+	AssociateFailsWaitingForFD         bool
 	AssociateReason                    string
 	AnnotatedAfterAssociate            bool
 	GetProviderIDFails                 bool
@@ -95,6 +98,20 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	// Bootstrap data is ready and node is not annotated, i.e. not associated
 	m.EXPECT().HasAnnotation().Return(tc.Annotated)
 	if !tc.Annotated {
+		if tc.AssociateFailsWaitingForFD {
+			m.EXPECT().Associate(context.TODO()).Return("", baremetal.WithTransientError(
+				fmt.Errorf("%w %q", baremetal.ErrNoAvailableHostInFailureDomain, "fd-1"), time.Second))
+			m.EXPECT().GetMetal3Machine().Return(&infrav1.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "m3m-fd", Namespace: "test-ns"},
+			})
+			m.EXPECT().SetV1Beta1ConditionToFalse(infrav1.AssociateBMHV1Beta1Condition,
+				infrav1.AssociateBMHFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", gomock.Any())
+			m.EXPECT().SetCondition(infrav1.AssociateBareMetalHostCondition,
+				metav1.ConditionFalse, infrav1.WaitingForBareMetalHostInFailureDomainReason, gomock.Any())
+			m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
+			m.EXPECT().Update(context.TODO()).MaxTimes(0)
+			return m
+		}
 		// if associate fails, we do not go further
 		if tc.AssociateFails {
 			m.EXPECT().Associate(context.TODO()).Return("", errors.New("failed"))
@@ -233,6 +250,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Log:              logr.Discard(),
 				CapiClientGetter: nil,
 				WatchFilterValue: "",
+				Recorder:         record.NewFakeRecorder(8),
 			}
 		})
 
@@ -254,6 +272,15 @@ var _ = Describe("Metal3Machine manager", func() {
 					Expect(res.Requeue).To(BeTrue())
 				} else {
 					Expect(res.Requeue).To(BeFalse())
+				}
+				if tc.AssociateFailsWaitingForFD {
+					fakeRecorder, ok := bmReconcile.Recorder.(*record.FakeRecorder)
+					Expect(ok).To(BeTrue())
+					Eventually(fakeRecorder.Events).Should(Receive(And(
+						ContainSubstring("Warning"),
+						ContainSubstring(infrav1.WaitingForBareMetalHostInFailureDomainReason),
+						ContainSubstring("fd-1"),
+					)))
 				}
 			},
 			Entry("Provisioned", reconcileNormalTestCase{
@@ -299,6 +326,11 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectRequeue:  false,
 				Annotated:      false,
 				AssociateFails: true,
+			}),
+			Entry("Associate waits for a host in the failure domain", reconcileNormalTestCase{
+				ExpectError:                false,
+				ExpectRequeue:              true,
+				AssociateFailsWaitingForFD: true,
 			}),
 			Entry("Annotated", reconcileNormalTestCase{
 				ExpectError:            false,
@@ -367,6 +399,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Log:              logr.Discard(),
 				CapiClientGetter: nil,
 				WatchFilterValue: "",
+				Recorder:         record.NewFakeRecorder(8),
 			}
 		})
 

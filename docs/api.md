@@ -694,6 +694,37 @@ spec:
       name: m3dt-rack2
 ```
 
+#### Failure domain host selection and the fallback flag
+
+Host selection honours `Metal3Machine.spec.failureDomain` by matching the
+`infrastructure.cluster.x-k8s.io/failure-domain` label on BareMetalHosts.
+Historically, when no available host carried a matching label, CAPM3 picked
+any available host instead. This contradicts the Cluster API InfraMachine
+contract, which requires the InfraMachine to be placed in the failure domain
+set on the Machine, and it would render the wrong network data when
+`failureDomainDataTemplates` is used.
+
+The behaviour is now controlled by the manager flag
+`--enable-failure-domain-fallback`:
+
+- `true` (current default): keep the historical behaviour. A machine that
+  falls back to a host in another failure domain still receives the
+  dataTemplate of its **assigned** failure domain.
+- `false`: the Metal3Machine waits until a host in its failure domain becomes
+  available, in the same way an unmatched `hostSelector` does.
+  While it waits, the `AssociateBareMetalHost` condition is `False` with
+  reason `WaitingForBareMetalHostInFailureDomain` and a message naming the
+  requested failure domain, and a Warning Event with the same reason is
+  recorded on the Metal3Machine. `kubectl describe metal3machine <name>` shows
+  both. Node reuse keeps its precedence: when fallback is disabled and the
+  only hosts carrying the machine's node-reuse label are outside its failure
+  domain, the machine waits even if a free host without the label exists
+  inside the domain.
+
+Set `ENABLE_FAILURE_DOMAIN_FALLBACK=false` before using
+`failureDomainDataTemplates`. The default will change to `false` in the next
+release and the flag will be removed afterwards.
+
 ## Metal3DataTemplate
 
 ```yaml

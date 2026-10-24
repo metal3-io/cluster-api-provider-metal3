@@ -32,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
@@ -63,6 +64,8 @@ type Metal3MachineReconciler struct {
 	Log              logr.Logger
 	CapiClientGetter baremetal.ClientGetter
 	WatchFilterValue string
+	// Recorder emits Kubernetes Events on Metal3Machines. Optional, nil disables Events.
+	Recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines,verbs=get;list;watch;create;update;patch;delete
@@ -546,8 +549,16 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 				baremetal.LogFieldError, err.Error())
 			machineMgr.SetV1Beta1ConditionToFalse(infrav1.AssociateBMHV1Beta1Condition, infrav1.AssociateBMHFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 			metrics.RecordBMHAssociation(namespace, clusterName, associationStart, err)
+			reason := infrav1.AssociateBareMetalHostFailedReason
+			if errors.Is(err, baremetal.ErrNoAvailableHostInFailureDomain) {
+				reason = infrav1.WaitingForBareMetalHostInFailureDomainReason
+				if r.Recorder != nil {
+					r.Recorder.Event(machineMgr.GetMetal3Machine(), corev1.EventTypeWarning,
+						infrav1.WaitingForBareMetalHostInFailureDomainReason, err.Error())
+				}
+			}
 			return checkMachineError(machineMgr, err,
-				infrav1.AssociateBareMetalHostCondition, infrav1.AssociateBareMetalHostFailedReason,
+				infrav1.AssociateBareMetalHostCondition, reason,
 				"failed to associate the Metal3Machine to a BareMetalHost")
 		}
 

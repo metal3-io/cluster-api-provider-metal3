@@ -90,6 +90,27 @@ const (
 )
 
 var (
+	// EnableFailureDomainFallback controls what pickHost does when the
+	// Metal3Machine has a failure domain assigned but no available host
+	// carries a matching failure-domain label. When true (the default for
+	// now) any available host is chosen, preserving the historical behavior.
+	// When false the machine is left unassociated and keeps requeueing until
+	// a host in its failure domain becomes available, which is the behavior
+	// required by the Cluster API InfraMachine contract.
+	//
+	// This flag is transitional: the default changes to false in the next
+	// release and the flag is removed afterwards.
+	EnableFailureDomainFallback = true
+
+	// ErrNoAvailableHostInFailureDomain is returned (wrapped in a transient
+	// ReconcileError) when the Metal3Machine has a failure domain assigned,
+	// EnableFailureDomainFallback is false and no available host carries a
+	// matching failure-domain label. Callers use errors.Is to surface the
+	// wait on the Metal3Machine.
+	ErrNoAvailableHostInFailureDomain = errors.New("no available host in failure domain")
+)
+
+var (
 	// Capm3FastTrack is the variable fetched from the CAPM3_FAST_TRACK environment variable.
 	Capm3FastTrack    = os.Getenv("CAPM3_FAST_TRACK")
 	associateBMHMutex sync.Mutex
@@ -468,6 +489,19 @@ func (m *MachineManager) Associate(ctx context.Context) (string, error) {
 			return "", err
 		}
 		if host == nil {
+			if !EnableFailureDomainFallback && m.Metal3Machine.Spec.FailureDomain != "" {
+				m.Log.Info("No available BareMetalHost in the assigned failure domain and fallback is disabled, requeuing",
+					LogFieldMetal3Machine, m.Metal3Machine.Name,
+					LogFieldNamespace, m.Metal3Machine.Namespace,
+					LogFieldFailureDomain, m.Metal3Machine.Spec.FailureDomain)
+				return "", WithTransientError(
+					fmt.Errorf("%w %q, waiting for a host with label %s=%s",
+						ErrNoAvailableHostInFailureDomain,
+						m.Metal3Machine.Spec.FailureDomain,
+						FailureDomainLabelName,
+						m.Metal3Machine.Spec.FailureDomain),
+					requeueAfter)
+			}
 			m.Log.Info("No available BareMetalHost found for Metal3Machine, requeuing",
 				LogFieldMetal3Machine, m.Metal3Machine.Name,
 				LogFieldNamespace, m.Metal3Machine.Namespace)
@@ -1029,12 +1063,14 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 			// If host is found in `Ready` state, pick it
 			if len(hostsInAvailableStateWithNodeReuse) != 0 {
 				m.Log.Info("Found host(s) with nodeReuseLabelName in Ready/Available state, choosing the host", "availabeHostCount", len(hostsInAvailableStateWithNodeReuse), LogFieldHost, host.Name)
-				chosenHost, err = m.pickHost(hostsInAvailableStateWithNodeReuse)
+				var picked *bmov1alpha1.BareMetalHost
+				picked, err = m.pickHost(hostsInAvailableStateWithNodeReuse)
 				if err != nil {
 					m.Log.Error(err, "Failed to choose host, not choosing host")
 					return nil, nil, "", err
 				}
-				if chosenHost != nil {
+				if picked != nil {
+					chosenHost = picked
 					chooseHostReason = infrav1.AssociateBareMetalHostViaNodeReuseSuccessReason
 				}
 			} else if len(hostsInNotAvailableStateWithNodeReuse) != 0 {
@@ -1052,6 +1088,10 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 			m.Log.Error(err, "Failed to choose host, not choosing host")
 			return nil, nil, "", err
 		}
+	}
+
+	if chosenHost == nil {
+		return nil, nil, "", nil
 	}
 
 	helper, err := patch.NewHelper(chosenHost, m.client)
@@ -2423,8 +2463,11 @@ func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]corev
 	return nil
 }
 
-// Picks host from list of available hosts, if failureDomain is set, tries to choose from hosts in failureDomain.
-// When none available in failureDomain it chooses from all available hosts.
+// Picks host from list of available hosts. If failureDomain is set, chooses
+// from hosts in that failureDomain. When none is available in the
+// failureDomain, it either falls back to all available hosts
+// (EnableFailureDomainFallback == true) or returns nil so that the caller
+// requeues (EnableFailureDomainFallback == false).
 func (m *MachineManager) pickHost(availableHosts []*bmov1alpha1.BareMetalHost) (*bmov1alpha1.BareMetalHost, error) {
 	var chosenHost *bmov1alpha1.BareMetalHost
 	var availableHostsInFailureDomain []*bmov1alpha1.BareMetalHost
@@ -2449,7 +2492,12 @@ func (m *MachineManager) pickHost(availableHosts []*bmov1alpha1.BareMetalHost) (
 			}
 		}
 		if len(availableHostsInFailureDomain) == 0 {
-			m.Log.Info("No available hosts in FailureDomain", m.Metal3Machine.Spec.FailureDomain, "choosing from other available hosts")
+			if !EnableFailureDomainFallback {
+				m.Log.Info("No available hosts in FailureDomain and fallback is disabled, not choosing host",
+					LogFieldFailureDomain, m.Metal3Machine.Spec.FailureDomain)
+				return nil, nil //nolint:nilnil // nil host means none in the failure domain, the caller requeues
+			}
+			m.Log.Info("No available hosts in FailureDomain, choosing from other available hosts", LogFieldFailureDomain, m.Metal3Machine.Spec.FailureDomain)
 		}
 	}
 
