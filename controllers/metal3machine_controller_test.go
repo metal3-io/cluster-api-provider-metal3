@@ -739,4 +739,136 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 		}),
 	)
+
+	newM3TemplateWithFDMapping := func() *infrav1.Metal3MachineTemplate {
+		m3mt := newMetal3MachineTemplate("my-m3mt", namespaceName, map[string]string{})
+		m3mt.Spec.FailureDomainDataTemplates = []infrav1.FailureDomainDataTemplate{
+			{
+				FailureDomain: "rack1",
+				DataTemplate:  &infrav1.Metal3ObjectRef{Name: "m3dt-rack1"},
+			},
+			{
+				FailureDomain: "rack2",
+				DataTemplate:  &infrav1.Metal3ObjectRef{Name: "m3dt-rack2", Namespace: namespaceName},
+			},
+		}
+		return m3mt
+	}
+
+	defaultDataTemplate := &infrav1.Metal3ObjectRef{Name: "m3dt-default", Namespace: namespaceName}
+
+	// newAssignedM3M builds a Metal3Machine with the given assigned failure
+	// domain, optionally carrying the cloned-from template annotations.
+	newAssignedM3M := func(fd string, clonedFrom bool, dataTemplate *infrav1.Metal3ObjectRef) *infrav1.Metal3Machine {
+		annotations := map[string]string{}
+		if clonedFrom {
+			annotations[clusterv1.TemplateClonedFromNameAnnotation] = "my-m3mt"
+			annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = infrav1.ClonedFromGroupKind
+		}
+		meta := &metav1.ObjectMeta{
+			Name:        metal3machineName,
+			Namespace:   namespaceName,
+			Annotations: annotations,
+		}
+		spec := &infrav1.Metal3MachineSpec{
+			FailureDomain: fd,
+			DataTemplate:  dataTemplate,
+		}
+		return newMetal3Machine(metal3machineName, meta, spec, nil, false)
+	}
+
+	type testCaseApplyFDDataTemplate struct {
+		M3Machine        *infrav1.Metal3Machine
+		M3Template       *infrav1.Metal3MachineTemplate
+		ExpectedTemplate *infrav1.Metal3ObjectRef
+	}
+
+	DescribeTable("applyFailureDomainDataTemplate tests",
+		func(tc testCaseApplyFDDataTemplate) {
+			objects := []client.Object{}
+			if tc.M3Template != nil {
+				objects = append(objects, tc.M3Template)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			r := &Metal3MachineReconciler{Client: fakeClient, Log: logr.Discard()}
+
+			err := r.applyFailureDomainDataTemplate(context.Background(), tc.M3Machine, logr.Discard())
+			Expect(err).NotTo(HaveOccurred())
+
+			if tc.ExpectedTemplate == nil {
+				Expect(tc.M3Machine.Spec.DataTemplate).To(BeNil())
+			} else {
+				Expect(tc.M3Machine.Spec.DataTemplate).NotTo(BeNil())
+				Expect(*tc.M3Machine.Spec.DataTemplate).To(Equal(*tc.ExpectedTemplate))
+			}
+		},
+		Entry("Assigned FD in mapping overrides dataTemplate, namespace defaulted", testCaseApplyFDDataTemplate{
+			M3Machine:        newAssignedM3M("rack1", true, defaultDataTemplate.DeepCopy()),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ExpectedTemplate: &infrav1.Metal3ObjectRef{Name: "m3dt-rack1", Namespace: namespaceName},
+		}),
+		Entry("Assigned FD in mapping overrides nil dataTemplate", testCaseApplyFDDataTemplate{
+			M3Machine:        newAssignedM3M("rack2", true, nil),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ExpectedTemplate: &infrav1.Metal3ObjectRef{Name: "m3dt-rack2", Namespace: namespaceName},
+		}),
+		Entry("Assigned FD not in mapping keeps default", testCaseApplyFDDataTemplate{
+			M3Machine:        newAssignedM3M("rack9", true, defaultDataTemplate.DeepCopy()),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+		Entry("No assigned FD keeps default", testCaseApplyFDDataTemplate{
+			M3Machine:        newAssignedM3M("", true, defaultDataTemplate.DeepCopy()),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+		Entry("No cloned-from annotations keeps default", testCaseApplyFDDataTemplate{
+			M3Machine:        newAssignedM3M("rack1", false, defaultDataTemplate.DeepCopy()),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+		Entry("Missing source template keeps default", testCaseApplyFDDataTemplate{
+			M3Machine:        newAssignedM3M("rack1", true, defaultDataTemplate.DeepCopy()),
+			M3Template:       nil,
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+		Entry("Already rendered machine keeps default", testCaseApplyFDDataTemplate{
+			M3Machine: func() *infrav1.Metal3Machine {
+				m3m := newAssignedM3M("rack1", true, defaultDataTemplate.DeepCopy())
+				m3m.Status.RenderedData = &infrav1.Metal3ObjectRef{Name: "m3dt-default-0", Namespace: namespaceName}
+				return m3m
+			}(),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+		Entry("Mapping entry without dataTemplate keeps default", testCaseApplyFDDataTemplate{
+			M3Machine: newAssignedM3M("rack3", true, defaultDataTemplate.DeepCopy()),
+			M3Template: func() *infrav1.Metal3MachineTemplate {
+				m3mt := newM3TemplateWithFDMapping()
+				m3mt.Spec.FailureDomainDataTemplates = append(m3mt.Spec.FailureDomainDataTemplates,
+					infrav1.FailureDomainDataTemplate{FailureDomain: "rack3"})
+				return m3mt
+			}(),
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+		Entry("Mapping entry with empty dataTemplate name keeps default", testCaseApplyFDDataTemplate{
+			M3Machine: newAssignedM3M("rack3", true, defaultDataTemplate.DeepCopy()),
+			M3Template: func() *infrav1.Metal3MachineTemplate {
+				m3mt := newM3TemplateWithFDMapping()
+				m3mt.Spec.FailureDomainDataTemplates = append(m3mt.Spec.FailureDomainDataTemplates,
+					infrav1.FailureDomainDataTemplate{FailureDomain: "rack3", DataTemplate: &infrav1.Metal3ObjectRef{}})
+				return m3mt
+			}(),
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+		Entry("Machine already associated with a host keeps default", testCaseApplyFDDataTemplate{
+			M3Machine: func() *infrav1.Metal3Machine {
+				m3m := newAssignedM3M("rack1", true, defaultDataTemplate.DeepCopy())
+				m3m.Annotations[baremetal.HostAnnotation] = namespaceName + "/bmh"
+				return m3m
+			}(),
+			M3Template:       newM3TemplateWithFDMapping(),
+			ExpectedTemplate: defaultDataTemplate,
+		}),
+	)
 })

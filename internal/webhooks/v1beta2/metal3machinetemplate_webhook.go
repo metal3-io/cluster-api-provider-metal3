@@ -58,8 +58,27 @@ func (webhook *Metal3MachineTemplate) validate(newM3mt *infrav1.Metal3MachineTem
 		allErrs = append(allErrs, newM3mt.Spec.Template.Spec.Image.Validate(*field.NewPath("Spec", "Template", "Spec", "Image"))...)
 	}
 
+	allErrs = append(allErrs, webhook.validateFailureDomainDataTemplates(newM3mt)...)
+
 	if len(allErrs) == 0 {
 		return nil
 	}
 	return apierrors.NewInvalid(infrav1.GroupVersion.WithKind("Metal3MachineTemplate").GroupKind(), newM3mt.Name, allErrs)
+}
+
+// validateFailureDomainDataTemplates validates what the CRD schema cannot
+// express: cross-namespace references. Duplicate failureDomain keys and empty
+// dataTemplate names are already rejected by the API server via listType=map
+// and the CEL rule on the field.
+func (webhook *Metal3MachineTemplate) validateFailureDomainDataTemplates(m3mt *infrav1.Metal3MachineTemplate) field.ErrorList {
+	var allErrs field.ErrorList
+	basePath := field.NewPath("spec", "failureDomainDataTemplates")
+
+	for i, fdt := range m3mt.Spec.FailureDomainDataTemplates {
+		if fdt.DataTemplate != nil && fdt.DataTemplate.Namespace != "" && fdt.DataTemplate.Namespace != m3mt.Namespace {
+			allErrs = append(allErrs, field.Invalid(basePath.Index(i).Child("dataTemplate", "namespace"),
+				fdt.DataTemplate.Namespace, "cross-namespace Metal3DataTemplate references are not allowed"))
+		}
+	}
+	return allErrs
 }
