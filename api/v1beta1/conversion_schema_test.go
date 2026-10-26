@@ -197,6 +197,51 @@ func TestBondWithoutParametersAcceptedByV1Beta2Schema(t *testing.T) {
 	t.Cleanup(func() { _ = cl.Delete(ctx, hub) })
 }
 
+// A custom-deploy-only v1beta1 template must not acquire an image without a URL
+// when converted to v1beta2 or used to create a Machine.
+func TestCustomDeployConversionAcceptedByV1Beta2Schema(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	cl := clientWithBothVersions(g)
+
+	spoke := &Metal3MachineTemplate{
+		ObjectMeta: metav1.ObjectMeta{Name: "m3mt-custom-deploy-spoke", Namespace: "default"},
+		Spec: Metal3MachineTemplateSpec{
+			Template: Metal3MachineTemplateResource{
+				Spec: Metal3MachineSpec{CustomDeploy: &CustomDeploy{Method: "install_coreos"}},
+			},
+		},
+	}
+	// Confirm that the source is accepted by the v1beta1 schema first.
+	g.Expect(cl.Create(ctx, spoke)).To(Succeed())
+	t.Cleanup(func() { _ = cl.Delete(ctx, spoke) })
+
+	hub := &infrav1.Metal3MachineTemplate{}
+	g.Expect(spoke.ConvertTo(hub)).To(Succeed())
+	hub.ObjectMeta = metav1.ObjectMeta{Name: "m3mt-custom-deploy-hub", Namespace: "default"}
+	g.Expect(hub.Spec.Template.Spec.Image).To(Equal(infrav1.Image{}))
+	g.Expect(hub.Spec.Template.Spec.CustomDeploy.Method).To(Equal("install_coreos"))
+	g.Expect(cl.Create(ctx, hub)).To(Succeed())
+	t.Cleanup(func() { _ = cl.Delete(ctx, hub) })
+
+	machine := &infrav1.Metal3Machine{
+		ObjectMeta: metav1.ObjectMeta{Name: "m3m-custom-deploy-clone", Namespace: "default"},
+		Spec:       hub.Spec.Template.Spec,
+	}
+	g.Expect(cl.Create(ctx, machine)).To(Succeed())
+	t.Cleanup(func() { _ = cl.Delete(ctx, machine) })
+
+	// Also exercise the standalone Machine conversion entry point.
+	spokeMachine := &Metal3Machine{
+		ObjectMeta: metav1.ObjectMeta{Name: "m3m-custom-deploy-converted", Namespace: "default"},
+		Spec:       spoke.Spec.Template.Spec,
+	}
+	convertedMachine := &infrav1.Metal3Machine{}
+	g.Expect(spokeMachine.ConvertTo(convertedMachine)).To(Succeed())
+	g.Expect(cl.Create(ctx, convertedMachine)).To(Succeed())
+	t.Cleanup(func() { _ = cl.Delete(ctx, convertedMachine) })
+}
+
 func ptrTo[T any](v T) *T {
 	return &v
 }

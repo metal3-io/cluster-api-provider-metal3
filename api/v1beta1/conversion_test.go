@@ -97,6 +97,56 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
+func TestMetal3MachineTemplateImageConversion(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		checksum    *string
+		edit        bool
+		newChecksum string
+	}{
+		{name: "nil", checksum: nil},
+		{name: "empty", checksum: ptr.To("")},
+		{name: "non-empty", checksum: ptr.To("checksum")},
+		{name: "replace checksum", checksum: ptr.To("checksum"), edit: true, newChecksum: "new-checksum"},
+		{name: "set previously nil checksum", edit: true, newChecksum: "new-checksum"},
+		{name: "clear checksum", checksum: ptr.To("checksum"), edit: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			original := &infrav1.Metal3MachineTemplate{
+				Spec: infrav1.Metal3MachineTemplateSpec{
+					Template: infrav1.Metal3MachineTemplateResource{
+						Spec: infrav1.Metal3MachineSpec{
+							CustomDeploy: infrav1.CustomDeploy{Method: "install_coreos"},
+							Image:        infrav1.Image{Checksum: tc.checksum},
+						},
+					},
+				},
+			}
+			spoke := &Metal3MachineTemplate{}
+			g.Expect(spoke.ConvertFrom(original)).To(Succeed())
+			want := original.Spec.Template.Spec.Image
+			if tc.edit {
+				spoke.Spec.Template.Spec.Image = Image{
+					URL:          "http://example.org/new.raw",
+					Checksum:     tc.newChecksum,
+					ChecksumType: ptr.To("sha512"),
+					DiskFormat:   ptr.To("raw"),
+				}
+				want = infrav1.Image{
+					URL:          "http://example.org/new.raw",
+					Checksum:     ptr.To(tc.newChecksum),
+					ChecksumType: "sha512",
+					DiskFormat:   "raw",
+				}
+			}
+			restored := &infrav1.Metal3MachineTemplate{}
+			g.Expect(spoke.ConvertTo(restored)).To(Succeed())
+			g.Expect(restored.Spec.Template.Spec.Image).To(Equal(want))
+		})
+	}
+}
+
 func Metal3ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMetal3ClusterStatus,
