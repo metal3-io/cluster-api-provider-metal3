@@ -18,7 +18,7 @@ The pre-requisite for the deployment of CAPM3 are the following:
 ### Using clusterctl
 
 Please refer to
-[Clusterctl documentation](https://main.cluster-api.sigs.k8s.io/clusterctl/overview.html).
+[Clusterctl documentation](https://main.cluster-api.sigs.k8s.io/reference/clusterctl/overview.html).
 Once the [Pre-requisites](#pre-requisites) are fulfilled, you can follow the
 normal clusterctl flow for the `init`, `config`, `upgrade`, `move` and `delete`
 workflow. Please refer to the [Pivoting Ironic](#pivoting-or-updating-ironic)
