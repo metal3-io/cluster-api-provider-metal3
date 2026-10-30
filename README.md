@@ -43,7 +43,7 @@ Metal3.
 ## Deploying the metal3 provider
 
 The recommended method is using
-[Clusterctl](https://main.cluster-api.sigs.k8s.io/clusterctl/overview.html).
+[Clusterctl](https://main.cluster-api.sigs.k8s.io/reference/clusterctl/overview.html).
 
 Starting from `v0.5.0` release of Cluster API Provider Metal3, Baremetal
 Operator is decoupled from Cluster API Provider Metal3 deployments when deployed
