@@ -644,7 +644,7 @@ generate-examples-clusterclass: $(KUSTOMIZE) clean-examples ## Generate examples
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
 	docker build --network=host --pull \
-	--build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	--platform linux/$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
@@ -652,14 +652,14 @@ docker-build: ## Build the docker image for controller-manager
 docker-build-debug: ## Build the docker image for controller-manager with debug info
 	docker build --network=host --pull \
 	--build-arg LDFLAGS="-extldflags=-static" \
-	--build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	--platform linux/$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
 .PHONY: docker-build-e2e
 docker-build-e2e: ## Build the CAPM3 controller image for e2e tests (loaded into the kind mgmt cluster by the test framework)
 	docker build --network=host \
-	--build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG):$(E2E_TAG)
+	--platform linux/$(ARCH) . -t $(CONTROLLER_IMG):$(E2E_TAG)
 
 .PHONY: docker-build-fkas
 # Allow overriding this by setting CONTAINER_RUNTIME var
@@ -667,7 +667,7 @@ CONTAINER_RUNTIME := $(if $(CONTAINER_RUNTIME),$(CONTAINER_RUNTIME),docker)
 export CONTAINER_RUNTIME
 
 docker-build-fkas:
-	$(CONTAINER_RUNTIME) build --build-arg ARCH=$(ARCH) \
+	$(CONTAINER_RUNTIME) build --platform linux/$(ARCH) \
 	-f $(FAKE_APISERVER_DIR)/Dockerfile \
 	-t "quay.io/metal3-io/metal3-fkas:$(FKAS_TAG)" .
 

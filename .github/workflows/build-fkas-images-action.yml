@@ -24,6 +24,8 @@ jobs:
     with:
       image-name: "metal3-fkas"
       dockerfile-path: "hack/fake-apiserver/Dockerfile"
+      multiPlatform: true
+      platform: "linux/amd64,linux/arm64"
       pushImage: true
       sign-image: true
     secrets:

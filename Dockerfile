@@ -16,8 +16,10 @@
 ARG BUILD_IMAGE=docker.io/golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
 ARG BASE_IMAGE=gcr.io/distroless/static:nonroot@sha256:18f4cc26c9ffa7f20a359298be7deadac5c607c8e03a02b8119f1a5fc2f82c99
 
-# Build the manager binary on golang image
-FROM $BUILD_IMAGE AS builder
+# Build the manager binary on golang image. The builder runs on the native
+# platform of the build host and cross-compiles for the target platform, so
+# multi-platform builds do not need emulation.
+FROM --platform=$BUILDPLATFORM $BUILD_IMAGE AS builder
 WORKDIR /workspace
 
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
@@ -41,8 +43,9 @@ COPY controllers/ controllers/
 COPY internal/ internal/
 
 # Build
-ARG ARCH
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
     go build -a -ldflags "${LDFLAGS}" \
     -o manager .
 
