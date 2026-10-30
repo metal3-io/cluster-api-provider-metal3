@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
@@ -156,6 +157,64 @@ func TestHostSelectorNilValuesAcceptedByV1Beta1Schema(t *testing.T) {
 
 	g.Expect(cl.Create(ctx, spoke)).To(Succeed())
 	t.Cleanup(func() { _ = cl.Delete(ctx, spoke) })
+}
+
+// TestBondScalarParametersAcceptedByV1Beta2Schema covers issue 3844. v1beta1
+// accepts any JSON value for a bond parameter, and real bond options such as
+// miimon or xmit_hash_policy are numbers and strings. Those values must stay
+// writable once converted to v1beta2 and must be stored unchanged.
+func TestBondScalarParametersAcceptedByV1Beta2Schema(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	cl := clientWithBothVersions(g)
+
+	params := map[string]string{
+		"miimon":           `100`,
+		"xmit_hash_policy": `"layer3+4"`,
+		"use_carrier":      `true`,
+	}
+
+	spoke := &Metal3DataTemplate{
+		ObjectMeta: metav1.ObjectMeta{Name: "m3dt-scalar-bond-params", Namespace: "default"},
+		Spec: Metal3DataTemplateSpec{
+			NetworkData: &NetworkData{
+				Links: NetworkDataLink{
+					Bonds: []NetworkDataLinkBond{
+						{
+							Id:       "bond0",
+							BondMode: "802.3ad",
+							MACAddress: &NetworkLinkEthernetMac{
+								String: ptrTo("00:11:22:33:44:55"),
+							},
+							BondLinks:  []string{"eth0", "eth1"},
+							Parameters: NetworkDataLinkBondParams{},
+						},
+					},
+				},
+			},
+		},
+	}
+	for name, raw := range params {
+		spoke.Spec.NetworkData.Links.Bonds[0].Parameters[name] = apiextensionsv1.JSON{Raw: []byte(raw)}
+	}
+
+	hub := &infrav1.Metal3DataTemplate{}
+	g.Expect(spoke.ConvertTo(hub)).To(Succeed())
+	g.Expect(hub.Spec.NetworkData.Links.Bonds[0].Parameters).To(HaveLen(len(params)))
+
+	// Before the fix, the v1beta2 schema typed value as object and the API
+	// server rejected this with "parameters[0].value in body must be of type
+	// object".
+	g.Expect(cl.Create(ctx, hub)).To(Succeed())
+	t.Cleanup(func() { _ = cl.Delete(ctx, hub) })
+
+	fetched := &infrav1.Metal3DataTemplate{}
+	g.Expect(cl.Get(ctx, client.ObjectKeyFromObject(hub), fetched)).To(Succeed())
+	got := map[string]string{}
+	for _, p := range fetched.Spec.NetworkData.Links.Bonds[0].Parameters {
+		got[p.Name] = string(p.Value.Raw)
+	}
+	g.Expect(got).To(Equal(params))
 }
 
 // TestBondWithoutParametersAcceptedByV1Beta2Schema covers the same class of break

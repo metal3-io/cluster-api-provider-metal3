@@ -465,7 +465,6 @@ type NetworkDataLinkBondParam struct {
 	Name string `json:"name,omitempty"`
 	// value is the parameter value
 	// +optional
-	// +kubebuilder:validation:Type=object
 	Value apiextensionsv1.JSON `json:"value,omitempty"`
 }
 
