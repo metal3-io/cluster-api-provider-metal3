@@ -108,6 +108,7 @@ var (
 	watchFilterValue                 string
 	logOptions                       = logs.NewOptions()
 	enableBMHNameBasedPreallocation  bool
+	enableFailureDomainFallback      bool
 	managerOptions                   = flags.ManagerOptions{}
 	skipCRDMigrationPhases           []string
 )
@@ -229,6 +230,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	baremetal.EnableBMHNameBasedPreallocation = enableBMHNameBasedPreallocation
+	baremetal.EnableFailureDomainFallback = enableFailureDomainFallback
 
 	setupChecks(mgr)
 	setupReconcilers(ctx, mgr)
@@ -264,6 +266,16 @@ func initFlags(fs *pflag.FlagSet) {
 		"enable-bmh-name-based-preallocation",
 		false,
 		"If set to true, it enables PreAllocation field to use Metal3IPClaim name structured with BaremetalHost and M3IPPool names",
+	)
+
+	fs.BoolVar(
+		&enableFailureDomainFallback,
+		"enable-failure-domain-fallback",
+		true,
+		"If set to true, a Metal3Machine with a failure domain assigned may be associated with a BareMetalHost "+
+			"outside that failure domain when none is available in it. If set to false, the Metal3Machine waits "+
+			"for a BareMetalHost in its failure domain. Deprecated: the default will change to false in the next "+
+			"release and the flag will be removed afterwards.",
 	)
 
 	fs.DurationVar(
@@ -501,6 +513,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Machine"),
 		CapiClientGetter: infraremote.NewClusterClient,
 		WatchFilterValue: watchFilterValue,
+		Recorder:         mgr.GetEventRecorderFor("metal3machine-controller"),
 	}).SetupWithManager(ctx, mgr, concurrency(metal3MachineConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3MachineReconciler")
 		os.Exit(1)

@@ -1,6 +1,7 @@
 resources:
 - ../bases/ippool
 - ../bases/centos-kubeadm-config
+- datatemplates.yaml
 
 patchesStrategicMerge:
 - failure-domain.yaml

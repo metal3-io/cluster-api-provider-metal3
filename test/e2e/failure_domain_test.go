@@ -31,7 +31,6 @@ import (
 // Metal3DataTemplates) don't collide with the other features specs that share
 // the namespace.
 const failureDomainClusterName = "test-fd"
-const failureDomainControlPlaneCount = 3
 
 // This spec runs in the shared "features" bucket. The fallback assertion needs
 // exactly three selectable hosts; LabelBmhsForFailureDomain guarantees that by

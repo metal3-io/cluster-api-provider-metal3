@@ -12,3 +12,17 @@ spec:
     controlPlane: true
   - name: fd-2
     controlPlane: true
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: Metal3MachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-controlplane
+  namespace: ${NAMESPACE}
+spec:
+  failureDomainDataTemplates:
+  - failureDomain: fd-1
+    dataTemplate:
+      name: ${CLUSTER_NAME}-controlplane-template-fd-1
+  - failureDomain: fd-2
+    dataTemplate:
+      name: ${CLUSTER_NAME}-controlplane-template-fd-2

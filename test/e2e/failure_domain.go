@@ -34,6 +34,10 @@ import (
 // failureDomainLabel is the BMH label CAPM3 uses to match hosts to a failure domain.
 const failureDomainLabel = "infrastructure.cluster.x-k8s.io/failure-domain"
 
+// failureDomainControlPlaneCount is the number of control plane machines the
+// failure domain spec creates.
+const failureDomainControlPlaneCount = 3
+
 type FailureDomainInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	BootstrapClusterProxy framework.ClusterProxy
@@ -141,6 +145,30 @@ func FailureDomain(ctx context.Context, inputGetter func() FailureDomainInput) {
 		// requested a declared FD (fd-1 or fd-2) which had no free host left.
 		g.Expect(placement).To(HaveKey("fd-3"), "fd-3 host should host the fallback machine")
 		g.Expect(placement["fd-3"]).To(BeElementOf("fd-1", "fd-2"), "fallback machine on fd-3 host should have requested a declared FD")
+	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-control-plane")...).Should(Succeed())
+
+	By("Verifying each control plane Metal3Machine uses the dataTemplate mapped to its assigned failure domain")
+	// failureDomainDataTemplates is keyed by the assigned failure domain
+	// (Metal3Machine.Spec.FailureDomain), not by the label of the host the
+	// machine landed on. The fallback machine therefore still gets the
+	// template of the domain it requested.
+	Eventually(func(g Gomega) {
+		m3ms := &infrav1.Metal3MachineList{}
+		g.Expect(c.List(ctx, m3ms, client.InNamespace(input.Namespace),
+			client.MatchingLabels{clusterv1.ClusterNameLabel: input.ClusterName})).To(Succeed())
+
+		// WorkerMachineCount is 0 for this spec, so every Metal3Machine in the
+		// cluster is a control plane machine.
+		checked := 0
+		for _, m3m := range m3ms.Items {
+			g.Expect(m3m.Spec.FailureDomain).To(BeElementOf("fd-1", "fd-2"),
+				"control plane Metal3Machine %s should have a declared failure domain assigned", m3m.Name)
+			g.Expect(m3m.Spec.DataTemplate).NotTo(BeNil())
+			g.Expect(m3m.Spec.DataTemplate.Name).To(Equal(input.ClusterName+"-controlplane-template-"+m3m.Spec.FailureDomain),
+				"Metal3Machine %s should use the dataTemplate mapped to %s", m3m.Name, m3m.Spec.FailureDomain)
+			checked++
+		}
+		g.Expect(checked).To(Equal(failureDomainControlPlaneCount))
 	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-control-plane")...).Should(Succeed())
 
 	By("FAILURE DOMAIN TESTS PASSED!")

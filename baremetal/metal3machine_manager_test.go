@@ -724,10 +724,13 @@ var _ = Describe("Metal3Machine manager", func() {
 			Hosts            *bmov1alpha1.BareMetalHostList
 			M3Machine        *infrav1.Metal3Machine
 			ExpectedHostName string
+			FallbackDisabled bool
 		}
 
 		DescribeTable("Test ChooseHost",
 			func(tc testCaseChooseHost) {
+				EnableFailureDomainFallback = !tc.FallbackDisabled
+				DeferCleanup(func() { EnableFailureDomainFallback = true })
 				objects := []client.Object{}
 				if tc.Hosts != nil {
 					for i := range tc.Hosts.Items {
@@ -938,6 +941,70 @@ var _ = Describe("Metal3Machine manager", func() {
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithOtherConsRef, hostWithNodeReuseLabelSetToCP}},
 				M3Machine:        m3mconfig6,
 				ExpectedHostName: availableHost.Name,
+			}),
+			Entry("No host chosen, when hosts in FailureDomain not available and fallback disabled", testCaseChooseHost{
+				Machine:          newMachine(machineName, infrastructureRef6),
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithOtherConsRef, hostWithNodeReuseLabelSetToCP}},
+				M3Machine:        m3mconfig6,
+				ExpectedHostName: "",
+				FallbackDisabled: true,
+			}),
+			Entry("Choose a host in Failure Domain, when fallback disabled", testCaseChooseHost{
+				Machine:          newMachine(machineName, infrastructureRef6),
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithOtherConsRef, hostWithFailureDomainLabel}},
+				M3Machine:        m3mconfig6,
+				ExpectedHostName: hostWithFailureDomainLabel.Name,
+				FallbackDisabled: true,
+			}),
+			Entry("No host chosen, when NodeReuse host is not in Failure Domain and fallback disabled", testCaseChooseHost{
+				Machine: &clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      machineName,
+						Namespace: namespaceName,
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta2",
+								Name:       "test1",
+								Kind:       "KubeadmControlPlane",
+							},
+						},
+						Labels: map[string]string{
+							clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
+						},
+					},
+					Spec: clusterv1.MachineSpec{
+						InfrastructureRef: *infrastructureRef,
+					},
+				},
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithFailureDomainLabel, hostWithNodeReuseLabelSetToCP}},
+				M3Machine:        m3mconfig6,
+				ExpectedHostName: "",
+				FallbackDisabled: true,
+			}),
+			Entry("Choose NodeReuse host in Failure Domain even when a later NodeReuse host is outside it, fallback disabled", testCaseChooseHost{
+				Machine: &clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      machineName,
+						Namespace: namespaceName,
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta2",
+								Name:       "test1",
+								Kind:       "KubeadmControlPlane",
+							},
+						},
+						Labels: map[string]string{
+							clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
+						},
+					},
+					Spec: clusterv1.MachineSpec{
+						InfrastructureRef: *infrastructureRef,
+					},
+				},
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithNodeReuseLabelSetToCPinFailureDomain, hostWithNodeReuseLabelSetToCP}},
+				M3Machine:        m3mconfig6,
+				ExpectedHostName: hostWithNodeReuseLabelSetToCPinFailureDomain.Name,
+				FallbackDisabled: true,
 			}),
 			Entry("Choose a host in Failure Domain, when NodeReuse is set", testCaseChooseHost{
 				Machine: &clusterv1.Machine{
@@ -4176,10 +4243,14 @@ var _ = Describe("Metal3Machine manager", func() {
 		Data               *infrav1.Metal3Data
 		ExpectRequeue      bool
 		ExpectClusterLabel bool
+		FallbackDisabled   bool
+		ExpectFDWaitError  bool
 	}
 
 	DescribeTable("Test Associate function",
 		func(tc testCaseAssociate) {
+			EnableFailureDomainFallback = !tc.FallbackDisabled
+			DeferCleanup(func() { EnableFailureDomainFallback = true })
 			objects := []client.Object{
 				tc.M3Machine,
 				tc.Machine,
@@ -4211,6 +4282,11 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(ok).To(BeTrue())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
+			}
+			if tc.ExpectFDWaitError {
+				Expect(errors.Is(err, ErrNoAvailableHostInFailureDomain)).To(BeTrue())
+				Expect(err.Error()).To(ContainSubstring("my-fd-1"))
+				return
 			}
 
 			if tc.Host == nil {
@@ -4284,6 +4360,38 @@ var _ = Describe("Metal3Machine manager", func() {
 				),
 				Host:          nil,
 				ExpectRequeue: true,
+			},
+		),
+		Entry("Associate machine, no host in failure domain, fallback disabled, requeue with FD error",
+			testCaseAssociate{
+				Machine: newMachine("myUniqueMachine", nil),
+				M3Machine: func() *infrav1.Metal3Machine {
+					spec := m3mSpecAll()
+					spec.FailureDomain = "my-fd-1"
+					return newMetal3Machine(metal3machineName, spec, nil,
+						m3mObjectMetaNoAnnotations(),
+					)
+				}(),
+				Host:              newBareMetalHost(baremetalhostName, bmhSpecBMC(), bmov1alpha1.StateAvailable, &bmov1alpha1.BareMetalHostStatus{}, false, "metadata", false, "", false),
+				FallbackDisabled:  true,
+				ExpectRequeue:     true,
+				ExpectFDWaitError: true,
+			},
+		),
+		Entry("Associate machine, no hosts at all, fallback disabled, requeue with FD error",
+			testCaseAssociate{
+				Machine: newMachine("myUniqueMachine", nil),
+				M3Machine: func() *infrav1.Metal3Machine {
+					spec := m3mSpecAll()
+					spec.FailureDomain = "my-fd-1"
+					return newMetal3Machine(metal3machineName, spec, nil,
+						m3mObjectMetaNoAnnotations(),
+					)
+				}(),
+				Host:              nil,
+				FallbackDisabled:  true,
+				ExpectRequeue:     true,
+				ExpectFDWaitError: true,
 			},
 		),
 		Entry("Associate machine, host set, Metal3 machine spec set, set clusterLabel",

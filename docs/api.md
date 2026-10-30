@@ -572,7 +572,7 @@ spec:
 
 ## Metal3MachineTemplate
 
-The Metal3MachineTemplate contains following two specification fields:
+The Metal3MachineTemplate contains following specification fields:
 
 - **nodeReuse**: (true/false) Whether the same pool of BareMetalHosts will be
   re-used during the upgrade/remediation operations. By default set to false, if
@@ -581,6 +581,9 @@ The Metal3MachineTemplate contains following two specification fields:
   provisioning phase.
 - **template**: is a template containing the data needed to create a
   Metal3Machine.
+- **failureDomainDataTemplates**: an optional list mapping failure domain
+  names to Metal3DataTemplate references. See
+  [Per failure domain dataTemplate selection](#per-failure-domain-datatemplate-selection).
 
 ### Enabling nodeReuse feature
 
@@ -640,6 +643,87 @@ spec:
       dataTemplate:
         name: m3mt-0-metadata
 ```
+
+### Per failure domain dataTemplate selection
+
+When control-plane nodes are spread across failure domains that use different
+network segments (subnets, VLANs, IP pools), a single `dataTemplate` cannot
+render the right network configuration for every node.
+`spec.failureDomainDataTemplates` maps each failure domain to its own
+Metal3DataTemplate.
+
+The mapping is keyed by the failure domain **assigned** to the Machine by
+Cluster API (`Machine.spec.failureDomain`, mirrored to
+`Metal3Machine.spec.failureDomain`). KubeadmControlPlane assigns failure
+domains automatically. For MachineDeployments the value has to be set
+explicitly in `spec.template.spec.failureDomain`.
+
+When a Metal3Machine cloned from the template has an assigned failure domain
+that is present in the list, its `spec.dataTemplate` is overridden with the
+mapped reference before the Metal3DataClaim is created. Machines without an
+assigned failure domain, or whose failure domain is not in the list, keep the
+default `spec.template.spec.dataTemplate`. The mapping is applied until the
+machine is associated with a BareMetalHost; after that the dataTemplate is
+not changed again.
+
+Cross-namespace references are rejected by the webhook, duplicate failure
+domain entries by the API server.
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: Metal3MachineTemplate
+metadata:
+  name: my-cluster-cp
+  namespace: metal3
+spec:
+  template:
+    spec:
+      image:
+        url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.2-raw.img
+        checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.2-raw.img.sha256sum
+        checksumType: sha256
+        diskFormat: raw
+      dataTemplate:
+        name: m3dt-default
+  failureDomainDataTemplates:
+  - failureDomain: rack1
+    dataTemplate:
+      name: m3dt-rack1
+  - failureDomain: rack2
+    dataTemplate:
+      name: m3dt-rack2
+```
+
+#### Failure domain host selection and the fallback flag
+
+Host selection honours `Metal3Machine.spec.failureDomain` by matching the
+`infrastructure.cluster.x-k8s.io/failure-domain` label on BareMetalHosts.
+Historically, when no available host carried a matching label, CAPM3 picked
+any available host instead. This contradicts the Cluster API InfraMachine
+contract, which requires the InfraMachine to be placed in the failure domain
+set on the Machine, and it would render the wrong network data when
+`failureDomainDataTemplates` is used.
+
+The behaviour is now controlled by the manager flag
+`--enable-failure-domain-fallback`:
+
+- `true` (current default): keep the historical behaviour. A machine that
+  falls back to a host in another failure domain still receives the
+  dataTemplate of its **assigned** failure domain.
+- `false`: the Metal3Machine waits until a host in its failure domain becomes
+  available, in the same way an unmatched `hostSelector` does.
+  While it waits, the `AssociateBareMetalHost` condition is `False` with
+  reason `WaitingForBareMetalHostInFailureDomain` and a message naming the
+  requested failure domain, and a Warning Event with the same reason is
+  recorded on the Metal3Machine. `kubectl describe metal3machine <name>` shows
+  both. Node reuse keeps its precedence: when fallback is disabled and the
+  only hosts carrying the machine's node-reuse label are outside its failure
+  domain, the machine waits even if a free host without the label exists
+  inside the domain.
+
+Set `ENABLE_FAILURE_DOMAIN_FALLBACK=false` before using
+`failureDomainDataTemplates`. The default will change to `false` in the next
+release and the flag will be removed afterwards.
 
 ## Metal3DataTemplate
 
