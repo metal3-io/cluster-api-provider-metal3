@@ -19,7 +19,10 @@ ARG BASE_IMAGE=gcr.io/distroless/static:nonroot@sha256:9ecc53c269509f63c69a26616
 # Build the fkas binary on golang image
 # Use a WORKDIR that mirrors the repo structure so that the replace
 # directive in go.mod resolves correctly to the repo root.
-FROM $BUILD_IMAGE AS base
+# The builder runs on the native platform of the build host and
+# cross-compiles for the target platform, so multi-platform builds do not
+# need emulation.
+FROM --platform=$BUILDPLATFORM $BUILD_IMAGE AS base
 WORKDIR /workspace/hack/fake-apiserver
 
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
@@ -43,8 +46,9 @@ FROM base AS docker-build-fkas
 COPY hack/fake-apiserver/cmd/metal3-fkas/*.go ./
 
 # Build
-ARG ARCH=amd64
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
     go build -a -ldflags '-extldflags "-static"' \
     -o fkas .
 
@@ -55,8 +59,9 @@ FROM base AS docker-build-fkas-reconciler
 COPY hack/fake-apiserver/cmd/metal3-fkas-reconciler/*.go ./
 
 # Build
-ARG ARCH=amd64
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
     go build -a -ldflags '-extldflags "-static"' \
     -o reconciler .
 
