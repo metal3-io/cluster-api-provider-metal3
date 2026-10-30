@@ -33,6 +33,8 @@ var _ = Describe("When testing in-place k8s upgrade", Label("in-place-upgrade"),
 	It("Should create a workload cluster then upgrade k8s in-place", func() {
 		By("Apply BMH for workload cluster")
 		ApplyBmh(ctx, e2eConfig, bootstrapClusterProxy, namespace, specName)
+		Expect(testExtensionSSHPubKey).ToNot(BeEmpty(), "The temporary ssh key of the test-extension is not set")
+		GinkgoT().Setenv(testExtensionSSHPubKeyVar, testExtensionSSHPubKey)
 		By("Provision Workload cluster")
 		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
 			return CreateTargetClusterInput{
