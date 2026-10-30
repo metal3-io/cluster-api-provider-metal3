@@ -20,6 +20,7 @@ type InPlaceUpgradeInput struct {
 	SpecName              string
 	ClusterName           string
 	Namespace             string
+	ArtifactFolder        string
 }
 
 func InPlaceUpgrade(ctx context.Context, inputGetter func() InPlaceUpgradeInput) {
@@ -50,6 +51,9 @@ func InPlaceUpgrade(ctx context.Context, inputGetter func() InPlaceUpgradeInput)
 		Logf("Tracking machine %s with UID %s", machine.Name, machine.UID)
 	}
 	Logf("Captured %d machine UIDs before upgrade", len(initialMachineUIDs))
+
+	// The in-place upgrade restarts the control plane components on each node.
+	CollectPhaseArtifacts(input.ArtifactFolder, "in_place_upgrade", "preUpgrade", input.BootstrapClusterProxy, input.TargetCluster)
 
 	// Download and ensure node image is available locally
 	By("Download and ensure image is available locally")
@@ -115,6 +119,8 @@ func InPlaceUpgrade(ctx context.Context, inputGetter func() InPlaceUpgradeInput)
 			machine.Name, initialUID, machine.UID)
 		Logf("✓ CP machine %s has same UID - confirmed in-place upgrade", machine.Name)
 	}
+
+	CollectPhaseArtifacts(input.ArtifactFolder, "in_place_upgrade", "postUpgrade-kcp", input.BootstrapClusterProxy, input.TargetCluster)
 
 	// Scale up control plane nodes to 5
 	By("Scale up control plane nodes to 5")
