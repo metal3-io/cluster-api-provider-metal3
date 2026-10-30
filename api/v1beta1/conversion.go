@@ -589,6 +589,7 @@ func Convert_v1beta1_Image_To_v1beta2_Image(in *Image, out *infrav1.Image, s api
 	out.Checksum = ptr.To(in.Checksum)
 	out.ChecksumType = ptr.Deref(in.ChecksumType, "")
 	out.DiskFormat = ptr.Deref(in.DiskFormat, "")
+	out.RootFSUUID = in.RootFSUUID
 	return nil
 }
 
@@ -601,6 +602,7 @@ func Convert_v1beta2_Image_To_v1beta1_Image(in *infrav1.Image, out *Image, s api
 	// Always set pointers (use &"" for empty) to enable proper round-trip via hub restoration
 	out.ChecksumType = ptr.To(in.ChecksumType)
 	out.DiskFormat = ptr.To(in.DiskFormat)
+	out.RootFSUUID = in.RootFSUUID
 	return nil
 }
 
