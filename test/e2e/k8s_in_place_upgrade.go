@@ -2,11 +2,14 @@ package e2e
 
 import (
 	"context"
-	"os"
-	"path/filepath"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/pem"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"golang.org/x/crypto/ssh"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,11 +37,31 @@ const (
 	testExtensionSSHSecretName = "ssh-key"
 )
 
+// testExtensionSSHPubKeyVar is the cluster template variable for the public
+// key of the test-extension.
+const testExtensionSSHPubKeyVar = "IN_PLACE_UPGRADE_SSH_PUB_KEY"
+
+// testExtensionSSHPubKey is the authorized_keys line of the temporary key of
+// the test-extension.
+var testExtensionSSHPubKey string
+
+// GenerateTestExtensionSSHKey generates a temporary ed25519 key pair for the
+// in-place upgrade test. It returns the private key in OpenSSH PEM format and
+// the public key as an authorized_keys line.
+func GenerateTestExtensionSSHKey() ([]byte, string) {
+	_, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	Expect(err).ToNot(HaveOccurred(), "Failed to generate the ssh key for the test-extension")
+	block, err := ssh.MarshalPrivateKey(privateKey, "capm3-e2e-in-place-upgrade")
+	Expect(err).ToNot(HaveOccurred(), "Failed to encode the ssh key for the test-extension")
+	signer, err := ssh.NewSignerFromKey(privateKey)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get the public key for the test-extension")
+	publicKey := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(signer.PublicKey())))
+	return pem.EncodeToMemory(block), publicKey
+}
+
 // CreateTestExtensionSSHKeySecret creates the namespace of the in-place update
-// runtime extension and the ssh-key secret its pod mounts. The extension
-// upgrades Kubernetes over SSH, so it needs the private key matching
-// SSH_PUB_KEY_CONTENT (the key provisioned onto the nodes).
-func CreateTestExtensionSSHKeySecret(ctx context.Context, clusterProxy framework.ClusterProxy) {
+// runtime extension and the ssh-key secret its pod mounts.
+func CreateTestExtensionSSHKeySecret(ctx context.Context, clusterProxy framework.ClusterProxy, privateKey []byte) {
 	c := clusterProxy.GetClient()
 
 	By("Ensure the test-extension namespace exists")
@@ -49,11 +72,6 @@ func CreateTestExtensionSSHKeySecret(ctx context.Context, clusterProxy framework
 	}
 
 	By("Create the ssh-key secret the test-extension uses to reach the nodes")
-	home, err := os.UserHomeDir()
-	Expect(err).ToNot(HaveOccurred(), "Failed to resolve the home directory")
-	keyPath := filepath.Join(filepath.Clean(home), ".ssh", "id_rsa")
-	privateKey, err := os.ReadFile(keyPath) //#nosec G304:gosec
-	Expect(err).ToNot(HaveOccurred(), "Failed to read the ssh private key from %s", keyPath)
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testExtensionSSHSecretName,
