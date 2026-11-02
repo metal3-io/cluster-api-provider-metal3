@@ -31,8 +31,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -162,6 +165,10 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 	remediationMgr baremetal.RemediationManagerInterface, log logr.Logger,
 ) (ctrl.Result, error) {
 	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: starting remediation workflow")
+
+	if remediationMgr.GetRemediationPhase() == infrav1.PhaseDeleting {
+		return ctrl.Result{}, r.reconcileHandedOver(ctx, remediationMgr, log)
+	}
 
 	// If host is gone, exit early
 	log.V(baremetal.VerbosityLevelTrace).Info("Getting unhealthy host")
@@ -381,10 +388,6 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: completed (remediation failed)")
 			return ctrl.Result{}, nil
 
-		case infrav1.PhaseDeleting:
-			log.V(baremetal.VerbosityLevelDebug).Info("Phase: Deleting - nothing to do")
-			// nothing to do anymore
-
 		case infrav1.PhaseFailed:
 			log.V(baremetal.VerbosityLevelDebug).Info("Phase: Failed - nothing to do")
 			// nothing to do anymore
@@ -395,6 +398,30 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 	}
 	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: completed")
 	return ctrl.Result{}, nil
+}
+
+// reconcileHandedOver completes the hand-off for Machines that older CAPM3 versions handed over
+// with the deprecated v1beta1 OwnerRemediated condition only.
+func (r *Metal3RemediationReconciler) reconcileHandedOver(ctx context.Context,
+	remediationMgr baremetal.RemediationManagerInterface, log logr.Logger,
+) error {
+	capiMachine, err := remediationMgr.GetCapiMachine(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting owner machine: %w", err)
+	}
+	if capiMachine == nil || !capiMachine.DeletionTimestamp.IsZero() ||
+		!conditions.IsFalse(capiMachine, clusterv1.MachineHealthCheckSucceededCondition) ||
+		!deprecatedv1beta1conditions.IsFalse(capiMachine, clusterv1.MachineOwnerRemediatedV1Beta1Condition) ||
+		conditions.Has(capiMachine, clusterv1.MachineOwnerRemediatedCondition) {
+		log.V(baremetal.VerbosityLevelDebug).Info("Phase: Deleting - nothing to do")
+		return nil
+	}
+
+	log.Info("Machine was handed over with the v1beta1 OwnerRemediated condition only, setting the v1beta2 condition")
+	if err := remediationMgr.SetOwnerRemediatedConditionNew(ctx); err != nil {
+		return fmt.Errorf("error setting cluster api conditions: %w", err)
+	}
+	return nil
 }
 
 // remediateRebootStrategy executes the remediation using the reboot strategy.
