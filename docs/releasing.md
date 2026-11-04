@@ -158,9 +158,11 @@ Container images at Quay registry:
 
 - [cluster-api-provider-metal3:v1.x.y](https://quay.io/repository/metal3-io/cluster-api-provider-metal3?tab=tags)
 
-The image is a multi-platform image for `linux/amd64` and `linux/arm64`. Both
-platforms should be listed for the release tag, for example with
+For releases built from `main` (alpha and beta releases), the image is a
+multi-platform image for `linux/amd64` and `linux/arm64`. Both platforms should
+be listed for the release tag, for example with
 `docker buildx imagetools inspect quay.io/metal3-io/cluster-api-provider-metal3:v1.x.y`.
+Releases built from a `release-x.y` branch are still `linux/amd64` only.
 
 The manager image in `infrastructure-components.yaml` is pinned by digest, for
 example
