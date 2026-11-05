@@ -1894,7 +1894,6 @@ spec:
                                     type: string
                                   value:
                                     description: value is the parameter value
-                                    type: object
                                     x-kubernetes-preserve-unknown-fields: true
                                 required:
                                 - name
