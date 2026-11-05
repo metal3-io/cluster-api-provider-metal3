@@ -142,6 +142,8 @@ updates:
     update-types: [ "version-update:semver-major" ]
   # ignore ipam, as it needs more than just gomod
   - dependency-name: "github.com/metal3-io/ip-address-manager/api"
+  # ignore kustomize, as newer patch releases may require a newer go version
+  - dependency-name: "sigs.k8s.io/kustomize/*"
   # Ignore major and minor bumps for release branch
   - dependency-name: "*"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
@@ -217,6 +219,8 @@ updates:
     update-types: [ "version-update:semver-major" ]
   # ignore ipam, as it needs more than just gomod
   - dependency-name: "github.com/metal3-io/ip-address-manager/api"
+  # ignore kustomize, as newer patch releases may require a newer go version
+  - dependency-name: "sigs.k8s.io/kustomize/*"
   # Ignore major and minor bumps for release branch
   - dependency-name: "*"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
