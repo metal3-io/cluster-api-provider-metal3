@@ -1718,7 +1718,7 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 		return false, nil
 	}
 	if countNodesWithLabel > 1 {
-		return false, fmt.Errorf("found multiple target nodes with the same label: (%s): %w", nodeLabel, err)
+		return false, fmt.Errorf("found multiple target nodes with the same label (%s): (%s)", nodeLabel, getNodeNames(nodes.Items))
 	}
 
 	providerID, err := m.getProviderID()
@@ -1750,8 +1750,10 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 			return true, nil
 		}
 
-		m.Log.Info("node using unsupported providerID format", "providerID", providerIDOnNode, "providerID", providerID)
-		return false, fmt.Errorf("node using unsupported providerID format: %w", err)
+		m.Log.Info("node using unsupported providerID format", LogFieldNode, node.GetName(),
+			LogFieldProviderID, providerIDOnNode, "expectedProviderID", providerID)
+		return false, fmt.Errorf("node %s using unsupported providerID format: got %q, expected %q",
+			node.GetName(), providerIDOnNode, providerID)
 	}
 
 	return false, nil
