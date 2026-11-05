@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -418,6 +419,11 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 		return err
 	}
 
+	// Like the MHC, never touch a Machine that is already being deleted.
+	if !capiMachine.DeletionTimestamp.IsZero() {
+		return nil
+	}
+
 	machineHelper, err := patch.NewHelper(capiMachine, r.Client)
 	if err != nil {
 		r.Log.Info("Unable to create patch helper for Machine",
@@ -427,11 +433,23 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 		return err
 	}
 
-	deprecatedv1beta1conditions.MarkFalse(capiMachine,
-		clusterv1.MachineOwnerRemediatedV1Beta1Condition,
-		clusterv1.WaitingForRemediationV1Beta1Reason,
-		clusterv1.ConditionSeverityWarning,
-		"")
+	// MachineSet sets the v1beta1 condition to True when it deletes the Machine, so only add it if missing.
+	if !deprecatedv1beta1conditions.Has(capiMachine, clusterv1.MachineOwnerRemediatedV1Beta1Condition) {
+		deprecatedv1beta1conditions.MarkFalse(capiMachine,
+			clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+			clusterv1.WaitingForRemediationV1Beta1Reason,
+			clusterv1.ConditionSeverityWarning,
+			"")
+	}
+	// Like the MHC, keep a reason the owner has already set, e.g. MachineDeleting.
+	if c := conditions.Get(capiMachine, clusterv1.MachineOwnerRemediatedCondition); c == nil || c.Status == metav1.ConditionTrue {
+		conditions.Set(capiMachine, metav1.Condition{
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineOwnerRemediatedWaitingForRemediationReason,
+			Message: "Waiting for remediation",
+		})
+	}
 	err = machineHelper.Patch(ctx, capiMachine)
 	if err != nil {
 		r.Log.Info("Unable to patch Machine",
