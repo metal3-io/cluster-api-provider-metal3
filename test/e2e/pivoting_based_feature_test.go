@@ -151,6 +151,25 @@ var _ = Describe("Testing features in target cluster", Label("pivoting", "featur
 				ListMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
 				ListMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
 				ListNodes(ctx, targetCluster.GetClient())
+				// If RePivoting fails, this AfterEach stops, and
+				// DumpSpecResourcesAndCleanup does not collect the artifacts.
+				// Thus, collect the state of both clusters in that case. A
+				// Ginkgo failure panics, so the deferred function runs.
+				rePivoted := false
+				defer func() {
+					if rePivoted {
+						return
+					}
+					failedFolder := specArtifactFolder(artifactFolder, specName, "rePivotFailed")
+					for _, proxy := range []framework.ClusterProxy{bootstrapClusterProxy, targetCluster} {
+						if err := FetchClusterLogs(proxy, failedFolder); err != nil {
+							Logf("Error fetching logs for cluster %s: %v", proxy.GetName(), err)
+						}
+						if err := FetchManifests(proxy, failedFolder); err != nil {
+							Logf("Error fetching manifests for cluster %s: %v", proxy.GetName(), err)
+						}
+					}
+				}()
 				// Dump the target cluster resources before re-pivoting.
 				Logf("Dump the target cluster resources before re-pivoting")
 				framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
@@ -172,6 +191,7 @@ var _ = Describe("Testing features in target cluster", Label("pivoting", "featur
 						ClusterctlConfigPath:  clusterctlConfigPath,
 					}
 				})
+				rePivoted = true
 			}
 			DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup, clusterctlConfigPath)
 		})

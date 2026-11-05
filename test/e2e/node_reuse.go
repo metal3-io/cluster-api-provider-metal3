@@ -123,12 +123,12 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	kcpObj.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.Taints = ptr.To(emptyTaint)
 
 	By("Fetch cluster logs and manifests before patching KCP [node_reuse]")
-	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "preUpgrade-kcp", "logs"))
+	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "preUpgrade-kcp"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
 
-	err = FetchManifests(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "preUpgrade-kcp", "manifests"))
+	err = FetchManifests(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "preUpgrade-kcp"))
 	if err != nil {
 		Logf("Error fetching manifests: %v", err)
 	}
@@ -177,11 +177,11 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	).Should(Succeed())
 
 	By("Fetch cluster logs and manifests after patching KCP [node_reuse]")
-	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "postUpgrade-kcp", "logs"))
+	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "postUpgrade-kcp"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
-	err = FetchManifests(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "postUpgrade-kcp", "manifests"))
+	err = FetchManifests(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "postUpgrade-kcp"))
 	if err != nil {
 		Logf("Error fetching manifests: %v", err)
 	}
@@ -365,11 +365,11 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	machineDeploy.Spec.Template.Spec.Version = toK8sVersion
 
 	By("Fetch cluster logs and manifests before patching worker [node_reuse]")
-	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "preUpgrade-worker", "logs"))
+	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "preUpgrade-worker"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
-	err = FetchManifests(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "preUpgrade-worker", "manifests"))
+	err = FetchManifests(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "preUpgrade-worker"))
 	if err != nil {
 		Logf("Error fetching manifests: %v", err)
 	}
@@ -402,11 +402,11 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	).Should(Succeed())
 
 	By("Fetch cluster logs and manifests after patching worker [node_reuse]")
-	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "postUpgrade-worker", "logs"))
+	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "postUpgrade-worker"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
-	err = FetchManifests(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "postUpgrade-worker", "manifests"))
+	err = FetchManifests(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "node_reuse", "postUpgrade-worker"))
 	if err != nil {
 		Logf("Error fetching manifests: %v", err)
 	}

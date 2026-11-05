@@ -68,22 +68,22 @@ var _ = Describe("When testing cluster upgrade from releases (v1.14=>current)", 
 
 	AfterEach(func() {
 		By("Collecting logs from the bootstrap cluster after clusterctl upgrade test (v1.13=>current)")
-		err := FetchClusterLogs(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-logs"))
+		err := FetchClusterLogs(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "afterEach"))
 		if err != nil {
 			Logf("Error fetching logs: %v", err)
 		}
-		err = FetchManifests(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-manifests"))
+		err = FetchManifests(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "afterEach"))
 		if err != nil {
 			Logf("Error fetching manifests: %v", err)
 		}
 
 		By("Collecting logs from the management cluster")
 		if workloadClusterProxy != nil {
-			err = FetchClusterLogs(workloadClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-logs"))
+			err = FetchClusterLogs(workloadClusterProxy, filepath.Join(artifactFolder, testName, "afterEach"))
 			if err != nil {
 				Logf("Error fetching management cluster logs: %v", err)
 			}
-			err = FetchManifests(workloadClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-manifests"))
+			err = FetchManifests(workloadClusterProxy, filepath.Join(artifactFolder, testName, "afterEach"))
 			if err != nil {
 				Logf("Error fetching management cluster manifests: %v", err)
 			}
@@ -160,22 +160,22 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 
 	AfterEach(func() {
 		By("Collecting logs from the bootstrap cluster after clusterctl upgrade test (v1.12=>current)")
-		err := FetchClusterLogs(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-logs"))
+		err := FetchClusterLogs(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "afterEach"))
 		if err != nil {
 			Logf("Error fetching logs: %v", err)
 		}
-		err = FetchManifests(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-manifests"))
+		err = FetchManifests(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "afterEach"))
 		if err != nil {
 			Logf("Error fetching manifests: %v", err)
 		}
 
 		By("Collecting logs from the management cluster")
 		if workloadClusterProxy != nil {
-			err = FetchClusterLogs(workloadClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-logs"))
+			err = FetchClusterLogs(workloadClusterProxy, filepath.Join(artifactFolder, testName, "afterEach"))
 			if err != nil {
 				Logf("Error fetching management cluster logs: %v", err)
 			}
-			err = FetchManifests(workloadClusterProxy, filepath.Join(artifactFolder, testName, "afterEach-manifests"))
+			err = FetchManifests(workloadClusterProxy, filepath.Join(artifactFolder, testName, "afterEach"))
 			if err != nil {
 				Logf("Error fetching management cluster manifests: %v", err)
 			}
@@ -228,13 +228,13 @@ func postClusterctlUpgradeNamespaceCreated(clusterProxy framework.ClusterProxy, 
 	Expect(len(vmInfos)).To(BeNumerically(">=", 5), "clusterctl-upgrade requires at least 5 VMs in bmcs config (node-0..node-4), got %d", len(vmInfos))
 
 	By("Fetch manifest for cluster")
-	err := FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "postNamespaceCreated-manifest"))
+	err := FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "postNamespaceCreated"))
 	if err != nil {
 		Logf("Error fetching manifests for cluster : %v", err)
 	}
 
 	By("Fetch logs for cluster")
-	err = FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "postNamespaceCreated-logs"))
+	err = FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "postNamespaceCreated"))
 	if err != nil {
 		Logf("Error fetching logs for cluster: %v", err)
 	}
@@ -327,24 +327,24 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	}
 
 	By("Fetch manifest for workload cluster")
-	err := FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "preInit-manifest"))
+	err := FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "preInit"))
 	if err != nil {
 		Logf("Error fetching manifests for workload cluster: %v", err)
 	}
 
 	By("Fetch logs for workload cluster")
-	err = FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "preInit-logs"))
+	err = FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "preInit"))
 	if err != nil {
 		Logf("Error fetching logs for workload cluster: %v", err)
 	}
 
 	By("Fetch manifest for bootstrap cluster")
-	err = FetchManifests(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "preInit-manifest"))
+	err = FetchManifests(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "preInit"))
 	if err != nil {
 		Logf("Error fetching manifests for bootstrap cluster: %v", err)
 	}
 	By("Fetch logs for bootstrap cluster")
-	err = FetchClusterLogs(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "preInit-logs"))
+	err = FetchClusterLogs(bootstrapClusterProxy, filepath.Join(artifactFolder, testName, "preInit"))
 	if err != nil {
 		Logf("Error fetching logs for bootstrap cluster: %v", err)
 	}
@@ -408,13 +408,13 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Fetch manifest for workload cluster")
-	err = FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "postInit-manifest"))
+	err = FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "postInit"))
 	if err != nil {
 		Logf("Error fetching manifests for workload cluster: %v", err)
 	}
 
 	By("Fetch logs for workload cluster")
-	err = FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "postInit-logs"))
+	err = FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "postInit"))
 	if err != nil {
 		Logf("Error fetching logs for workload cluster: %v", err)
 	}
@@ -435,12 +435,12 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 // preUpgrade hook should be called from ClusterctlUpgradeSpec before upgrading the management cluster
 // it upgrades Ironic and BMO before upgrading the providers.
 func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string, ironicUpgradeToRelease string, testName string) {
-	err := FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "preUpgrade-manifest"))
+	err := FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "preUpgrade"))
 	if err != nil {
 		Logf("Error fetching manifests for bootstrap cluster: %v", err)
 	}
 
-	err = FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "preUpgrade-logs"))
+	err = FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "preUpgrade"))
 	if err != nil {
 		Logf("Error fetching logs for workload cluster: %v", err)
 	}
@@ -488,12 +488,12 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "postUpgrade-manifest"))
+	err = FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "postUpgrade"))
 	if err != nil {
 		Logf("Error fetching manifests for bootstrap cluster: %v", err)
 	}
 
-	err = FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "postUpgrade-logs"))
+	err = FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "postUpgrade"))
 	if err != nil {
 		Logf("Error fetching logs for workload cluster: %v", err)
 	}
@@ -503,12 +503,12 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 // it moves back Ironic to the bootstrap cluster.
 func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, testName string) {
 	By("Fetch logs from target cluster")
-	err := FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "preCleanup-logs"))
+	err := FetchClusterLogs(clusterProxy, filepath.Join(artifactFolder, testName, "preCleanup"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
 
-	err = FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "preCleanup-manifest"))
+	err = FetchManifests(clusterProxy, filepath.Join(artifactFolder, testName, "preCleanup"))
 	if err != nil {
 		Logf("Error fetching manifests for bootstrap cluster: %v", err)
 	}

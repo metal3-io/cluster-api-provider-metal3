@@ -23,6 +23,7 @@ type IPReuseInput struct {
 	SpecName              string
 	ClusterName           string
 	Namespace             string
+	ArtifactFolder        string
 }
 
 func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
@@ -39,6 +40,8 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	// Download node image
 	Byf("Download image %s", toK8sVersion)
 	imageURL, imageChecksum := EnsureImage(input.E2EConfig, toK8sVersion)
+
+	CollectPhaseArtifacts(input.ArtifactFolder, "ip_reuse", "preUpgrade", input.BootstrapClusterProxy, input.TargetCluster)
 
 	// Upgrade KCP
 	By("Create new KCP Metal3MachineTemplate with upgraded image to boot")
@@ -78,6 +81,9 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	ListMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
 	ListMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
 	ListNodes(ctx, targetClusterClient)
+
+	// The worker upgrade replaces all the workers at the same time.
+	CollectPhaseArtifacts(input.ArtifactFolder, "ip_reuse", "postUpgrade-kcp", input.BootstrapClusterProxy, input.TargetCluster)
 
 	By("Get the IPPools in the cluster")
 	baremetalv4Pool, provisioningPool := GetIPPools(ctx, managementClusterClient, input.ClusterName, input.Namespace)

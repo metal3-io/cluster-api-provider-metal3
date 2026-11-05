@@ -47,6 +47,7 @@ var _ = Describe("When testing ip reuse", Label("ip-reuse", "features"), func() 
 				SpecName:              specName,
 				ClusterName:           clusterName,
 				Namespace:             namespace,
+				ArtifactFolder:        artifactFolder,
 			}
 		})
 	})
