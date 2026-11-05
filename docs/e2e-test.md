@@ -187,6 +187,9 @@ The bootstrap cluster is first launched using
 inspection and Metal3Remediation tests are then run with the controllers still
 in the bootstrap cluster either before pivoting or after re-pivoting.
 
+See [Remediation based e2e tests](e2e-remediation-based-tests.md) for the
+sequence of events in each of these tests.
+
 ### clusterctl upgrade tests
 
 - Upgrade BMO
