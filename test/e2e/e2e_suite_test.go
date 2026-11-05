@@ -141,7 +141,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	bootstrapClusterProvider, bootstrapClusterProxy = SetupBootstrapCluster(e2eConfig, scheme, useExistingCluster)
 
 	By("Initializing the bootstrap cluster")
-	InitBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
+	sshPublicKey := InitBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
 
 	By("Configuring provisioning network on the bootstrap cluster node")
 	provisioningIP := os.Getenv("CLUSTER_PROVISIONING_IP")
@@ -195,17 +195,19 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			configPath,
 			clusterctlConfigPath,
 			bootstrapClusterProxy.GetKubeconfigPath(),
+			sshPublicKey,
 		}, ","),
 	)
 }, func(data []byte) {
 	// Before each ParallelNode.
 	parts := strings.Split(string(data), ",")
-	Expect(parts).To(HaveLen(4))
+	Expect(parts).To(HaveLen(5))
 
 	artifactFolder = parts[0]
 	configPath = parts[1]
 	clusterctlConfigPath = parts[2]
 	kubeconfigPath = parts[3]
+	testExtensionSSHPubKey = parts[4]
 
 	e2eConfig = loadE2EConfig(configPath)
 	withMetal3LogCollectorOpt := framework.WithMachineLogCollector(Metal3LogCollector{})
@@ -305,7 +307,7 @@ func SetupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 	return clusterProvider, clusterProxy
 }
 
-func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, e2econfig *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) {
+func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, e2econfig *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) string {
 	capiRelease := os.Getenv("CAPIRELEASE")
 	if capiRelease == "" {
 		// Resolve the latest stable CAPI release for the minor version from CAPI_RELEASE_PREFIX.
@@ -323,6 +325,7 @@ func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, e2econfi
 	}
 
 	var runtimeExtensionProviders []string
+	var sshPublicKey string
 	if os.Getenv("GINKGO_FOCUS") == inPlaceUpgradeFocus {
 		runtimeExtensionProviders = e2econfig.GetProviderLatestVersionsByContract("*", testExtensionProviderName)
 		Expect(runtimeExtensionProviders).ToNot(BeEmpty(), "No %s provider version found in the e2e config", testExtensionProviderName)
@@ -330,7 +333,10 @@ func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, e2econfi
 		// clusterctl init waits for every provider deployment to become
 		// available, and the extension pod mounts this secret, so it has to
 		// exist before init rather than be created by the test.
-		CreateTestExtensionSSHKeySecret(context.TODO(), bootstrapClusterProxy)
+		// The key is temporary, so the test does not read a key of the user.
+		var sshPrivateKey []byte
+		sshPrivateKey, sshPublicKey = GenerateTestExtensionSSHKey()
+		CreateTestExtensionSSHKeySecret(context.TODO(), bootstrapClusterProxy, sshPrivateKey)
 	}
 
 	clusterctl.InitManagementClusterAndWatchControllerLogs(context.TODO(), clusterctl.InitManagementClusterAndWatchControllerLogsInput{
@@ -344,6 +350,8 @@ func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, e2econfi
 		RuntimeExtensionProviders: runtimeExtensionProviders,
 		LogFolder:                 filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
 	}, e2econfig.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
+
+	return sshPublicKey
 }
 
 func TearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClusterProxy framework.ClusterProxy) {
