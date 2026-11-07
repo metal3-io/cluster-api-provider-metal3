@@ -1152,6 +1152,9 @@ type CreateTargetClusterInput struct {
 	ClusterctlConfigPath  string
 	OSType                string
 	Namespace             string
+	// ControlPlaneWaiters optionally replaces the default control plane
+	// waits of clusterctl.ApplyClusterTemplateAndWait.
+	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
 }
 
 func CreateTargetCluster(ctx context.Context, inputGetter func() CreateTargetClusterInput) (framework.ClusterProxy, *clusterctl.ApplyClusterTemplateAndWaitResult) {
@@ -1180,6 +1183,7 @@ func CreateTargetCluster(ctx context.Context, inputGetter func() CreateTargetClu
 		WaitForClusterIntervals:      input.E2EConfig.GetIntervals(input.SpecName, "wait-cluster"),
 		WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-control-plane"),
 		WaitForMachineDeployments:    input.E2EConfig.GetIntervals(input.SpecName, "wait-worker-nodes"),
+		ControlPlaneWaiters:          input.ControlPlaneWaiters,
 	}, &result)
 	targetCluster := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace, result.Cluster.Name)
 	framework.WaitForPodListCondition(ctx, framework.WaitForPodListConditionInput{

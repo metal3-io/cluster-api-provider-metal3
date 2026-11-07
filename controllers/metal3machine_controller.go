@@ -32,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
@@ -63,6 +64,8 @@ type Metal3MachineReconciler struct {
 	Log              logr.Logger
 	CapiClientGetter baremetal.ClientGetter
 	WatchFilterValue string
+	// Recorder emits Kubernetes Events on Metal3Machines. Optional, nil disables Events.
+	Recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines,verbs=get;list;watch;create;update;patch;delete
@@ -331,6 +334,16 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return r.reconcileDelete(ctx, machineMgr, machineLog)
 	}
 
+	// Apply the per failure domain dataTemplate mapping before the
+	// Metal3DataClaim is created further down in reconcileNormal.
+	fdMapped, fdErr := r.applyFailureDomainDataTemplate(ctx, capm3Machine, machineLog)
+	if fdErr != nil {
+		return ctrl.Result{}, fdErr
+	}
+	// A machine whose dataTemplate is specific to its assigned failure domain
+	// must wait for a host in that domain instead of falling back.
+	machineMgr.SetFailureDomainMapped(fdMapped)
+
 	// Handle non-deleted machines
 	machineLog.V(baremetal.VerbosityLevelTrace).Info("Running normal reconciliation")
 	return r.reconcileNormal(ctx, machineMgr, machineLog, req.Namespace, clusterName, capm3Machine.ObjectMeta.CreationTimestamp.Time)
@@ -385,6 +398,91 @@ func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Ma
 		patch.WithStatusObservedGeneration{},
 	)
 	return patchHelper.Patch(ctx, metal3Machine, options...)
+}
+
+// applyFailureDomainDataTemplate replaces the Metal3Machine dataTemplate with
+// the reference the source Metal3MachineTemplate maps to the failure domain
+// assigned to the machine (spec.failureDomain, mirrored from the Machine).
+// Machines without an assigned failure domain, machines not cloned from a
+// template, and failure domains absent from the mapping keep their current
+// dataTemplate. The core Machine is never written.
+//
+// The returned bool reports whether the mapping has an entry for the assigned
+// failure domain, whether or not this call changed the spec. The controller
+// hands it to the MachineManager so that host selection never falls back to a
+// host in another failure domain for such a machine: its dataTemplate is
+// specific to the assigned domain and would render the wrong network data
+// elsewhere. It is recomputed on every reconcile and never persisted.
+func (r *Metal3MachineReconciler) applyFailureDomainDataTemplate(ctx context.Context,
+	capm3Machine *infrav1.Metal3Machine, log logr.Logger,
+) (bool, error) {
+	assignedFD := capm3Machine.Spec.FailureDomain
+	if assignedFD == "" {
+		return false, nil
+	}
+	// Once the metadata has been rendered the Metal3DataClaim is immutable;
+	// overriding the dataTemplate at that point would only create a
+	// spec-vs-rendered mismatch, so leave the spec untouched.
+	if capm3Machine.Status.RenderedData != nil {
+		return false, nil
+	}
+	// The Metal3DataClaim is only created once the machine is associated with
+	// a BareMetalHost, so stopping here guarantees the claim is created from
+	// the dataTemplate chosen below and that a mapping added to a live
+	// template never retargets an associated machine.
+	if capm3Machine.Annotations[baremetal.HostAnnotation] != "" {
+		log.V(baremetal.VerbosityLevelDebug).Info("Machine already associated with a BareMetalHost, keeping dataTemplate")
+		return false, nil
+	}
+	templateName := capm3Machine.Annotations[clusterv1.TemplateClonedFromNameAnnotation]
+	if templateName == "" ||
+		capm3Machine.Annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] != infrav1.ClonedFromGroupKind {
+		return false, nil
+	}
+
+	m3mt := &infrav1.Metal3MachineTemplate{}
+	key := types.NamespacedName{Namespace: capm3Machine.Namespace, Name: templateName}
+	if err := r.Client.Get(ctx, key, m3mt); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.V(baremetal.VerbosityLevelDebug).Info("Source Metal3MachineTemplate not found, keeping dataTemplate",
+				baremetal.LogFieldMetal3MachineTemplate, templateName)
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to get source Metal3MachineTemplate %s: %w", key, err)
+	}
+
+	found := false
+	var fdt infrav1.FailureDomainDataTemplate
+	for _, candidate := range m3mt.Spec.FailureDomainDataTemplates {
+		if candidate.FailureDomain == assignedFD {
+			fdt = candidate
+			found = true
+			break
+		}
+	}
+	if !found {
+		log.V(baremetal.VerbosityLevelDebug).Info("No dataTemplate mapping for assigned failure domain, keeping dataTemplate",
+			baremetal.LogFieldFailureDomain, assignedFD)
+		return false, nil
+	}
+
+	// CRD validation (CEL) rejects empty names on write, but objects
+	// stored before that rule existed can still carry one. Never
+	// propagate it.
+	if fdt.DataTemplate == nil || fdt.DataTemplate.Name == "" {
+		return false, nil
+	}
+	ref := *fdt.DataTemplate
+	if ref.Namespace == "" {
+		ref.Namespace = capm3Machine.Namespace
+	}
+	if capm3Machine.Spec.DataTemplate == nil || *capm3Machine.Spec.DataTemplate != ref {
+		log.Info("Overriding dataTemplate for assigned failure domain",
+			baremetal.LogFieldFailureDomain, assignedFD,
+			baremetal.LogFieldDataTemplate, ref.Name)
+		capm3Machine.Spec.DataTemplate = &ref
+	}
+	return true, nil
 }
 
 func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
@@ -462,8 +560,16 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 				baremetal.LogFieldError, err.Error())
 			machineMgr.SetV1Beta1ConditionToFalse(infrav1.AssociateBMHV1Beta1Condition, infrav1.AssociateBMHFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 			metrics.RecordBMHAssociation(namespace, clusterName, associationStart, err)
+			reason := infrav1.AssociateBareMetalHostFailedReason
+			if errors.Is(err, baremetal.ErrNoAvailableHostInFailureDomain) {
+				reason = infrav1.WaitingForBareMetalHostInFailureDomainReason
+				if r.Recorder != nil {
+					r.Recorder.Event(machineMgr.GetMetal3Machine(), corev1.EventTypeWarning,
+						infrav1.WaitingForBareMetalHostInFailureDomainReason, err.Error())
+				}
+			}
 			return checkMachineError(machineMgr, err,
-				infrav1.AssociateBareMetalHostCondition, infrav1.AssociateBareMetalHostFailedReason,
+				infrav1.AssociateBareMetalHostCondition, reason,
 				"failed to associate the Metal3Machine to a BareMetalHost")
 		}
 

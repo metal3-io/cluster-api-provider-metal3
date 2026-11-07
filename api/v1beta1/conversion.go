@@ -145,6 +145,8 @@ func (src *Metal3MachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	} else {
 		dst.Spec.Template.Spec.Image.Checksum = ptr.To(src.Spec.Template.Spec.Image.Checksum)
 	}
+	// Restore FailureDomainDataTemplates, which does not exist in v1beta1
+	dst.Spec.FailureDomainDataTemplates = restored.Spec.FailureDomainDataTemplates
 
 	return nil
 }
