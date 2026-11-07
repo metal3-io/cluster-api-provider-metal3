@@ -274,8 +274,9 @@ func initFlags(fs *pflag.FlagSet) {
 		true,
 		"If set to true, a Metal3Machine with a failure domain assigned may be associated with a BareMetalHost "+
 			"outside that failure domain when none is available in it. If set to false, the Metal3Machine waits "+
-			"for a BareMetalHost in its failure domain. Deprecated: the default will change to false in the next "+
-			"release and the flag will be removed afterwards.",
+			"for a BareMetalHost in its failure domain. A Metal3Machine whose dataTemplate comes from "+
+			"failureDomainDataTemplates always waits, regardless of this flag. Deprecated: the default will "+
+			"change to false in the next release and the flag will be removed afterwards.",
 	)
 
 	fs.DurationVar(

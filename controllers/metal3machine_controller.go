@@ -336,9 +336,13 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Apply the per failure domain dataTemplate mapping before the
 	// Metal3DataClaim is created further down in reconcileNormal.
-	if err := r.applyFailureDomainDataTemplate(ctx, capm3Machine, machineLog); err != nil {
-		return ctrl.Result{}, err
+	fdMapped, fdErr := r.applyFailureDomainDataTemplate(ctx, capm3Machine, machineLog)
+	if fdErr != nil {
+		return ctrl.Result{}, fdErr
 	}
+	// A machine whose dataTemplate is specific to its assigned failure domain
+	// must wait for a host in that domain instead of falling back.
+	machineMgr.SetFailureDomainMapped(fdMapped)
 
 	// Handle non-deleted machines
 	machineLog.V(baremetal.VerbosityLevelTrace).Info("Running normal reconciliation")
@@ -402,18 +406,25 @@ func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Ma
 // Machines without an assigned failure domain, machines not cloned from a
 // template, and failure domains absent from the mapping keep their current
 // dataTemplate. The core Machine is never written.
+//
+// The returned bool reports whether the mapping has an entry for the assigned
+// failure domain, whether or not this call changed the spec. The controller
+// hands it to the MachineManager so that host selection never falls back to a
+// host in another failure domain for such a machine: its dataTemplate is
+// specific to the assigned domain and would render the wrong network data
+// elsewhere. It is recomputed on every reconcile and never persisted.
 func (r *Metal3MachineReconciler) applyFailureDomainDataTemplate(ctx context.Context,
 	capm3Machine *infrav1.Metal3Machine, log logr.Logger,
-) error {
+) (bool, error) {
 	assignedFD := capm3Machine.Spec.FailureDomain
 	if assignedFD == "" {
-		return nil
+		return false, nil
 	}
 	// Once the metadata has been rendered the Metal3DataClaim is immutable;
 	// overriding the dataTemplate at that point would only create a
 	// spec-vs-rendered mismatch, so leave the spec untouched.
 	if capm3Machine.Status.RenderedData != nil {
-		return nil
+		return false, nil
 	}
 	// The Metal3DataClaim is only created once the machine is associated with
 	// a BareMetalHost, so stopping here guarantees the claim is created from
@@ -421,12 +432,12 @@ func (r *Metal3MachineReconciler) applyFailureDomainDataTemplate(ctx context.Con
 	// template never retargets an associated machine.
 	if capm3Machine.Annotations[baremetal.HostAnnotation] != "" {
 		log.V(baremetal.VerbosityLevelDebug).Info("Machine already associated with a BareMetalHost, keeping dataTemplate")
-		return nil
+		return false, nil
 	}
 	templateName := capm3Machine.Annotations[clusterv1.TemplateClonedFromNameAnnotation]
 	if templateName == "" ||
 		capm3Machine.Annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] != infrav1.ClonedFromGroupKind {
-		return nil
+		return false, nil
 	}
 
 	m3mt := &infrav1.Metal3MachineTemplate{}
@@ -435,9 +446,9 @@ func (r *Metal3MachineReconciler) applyFailureDomainDataTemplate(ctx context.Con
 		if apierrors.IsNotFound(err) {
 			log.V(baremetal.VerbosityLevelDebug).Info("Source Metal3MachineTemplate not found, keeping dataTemplate",
 				baremetal.LogFieldMetal3MachineTemplate, templateName)
-			return nil
+			return false, nil
 		}
-		return fmt.Errorf("failed to get source Metal3MachineTemplate %s: %w", key, err)
+		return false, fmt.Errorf("failed to get source Metal3MachineTemplate %s: %w", key, err)
 	}
 
 	found := false
@@ -452,14 +463,14 @@ func (r *Metal3MachineReconciler) applyFailureDomainDataTemplate(ctx context.Con
 	if !found {
 		log.V(baremetal.VerbosityLevelDebug).Info("No dataTemplate mapping for assigned failure domain, keeping dataTemplate",
 			baremetal.LogFieldFailureDomain, assignedFD)
-		return nil
+		return false, nil
 	}
 
 	// CRD validation (CEL) rejects empty names on write, but objects
 	// stored before that rule existed can still carry one. Never
 	// propagate it.
 	if fdt.DataTemplate == nil || fdt.DataTemplate.Name == "" {
-		return nil
+		return false, nil
 	}
 	ref := *fdt.DataTemplate
 	if ref.Namespace == "" {
@@ -471,7 +482,7 @@ func (r *Metal3MachineReconciler) applyFailureDomainDataTemplate(ctx context.Con
 			baremetal.LogFieldDataTemplate, ref.Name)
 		capm3Machine.Spec.DataTemplate = &ref
 	}
-	return nil
+	return true, nil
 }
 
 func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,

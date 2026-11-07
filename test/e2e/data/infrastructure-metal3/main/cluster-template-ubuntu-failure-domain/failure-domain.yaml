@@ -5,8 +5,10 @@ metadata:
   name: ${CLUSTER_NAME}
   namespace: ${NAMESPACE}
 spec:
-  # fd-3 is intentionally not declared: BMHs labeled fd-3 act as the fallback
-  # target when a control plane machine requests a declared FD with no free host.
+  # Two declared failure domains for three control plane machines: the third
+  # machine is assigned one of them and, because its dataTemplate is mapped to
+  # that domain, waits until a host labeled with it becomes available instead
+  # of falling back to any free host.
   failureDomains:
   - name: fd-1
     controlPlane: true

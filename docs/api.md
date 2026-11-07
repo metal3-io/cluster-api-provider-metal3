@@ -666,6 +666,11 @@ default `spec.template.spec.dataTemplate`. The mapping is applied until the
 machine is associated with a BareMetalHost; after that the dataTemplate is
 not changed again.
 
+A machine that received a mapped dataTemplate is only ever placed on a
+BareMetalHost in its assigned failure domain, regardless of
+`--enable-failure-domain-fallback`. See
+[Failure domain host selection and the fallback flag](#failure-domain-host-selection-and-the-fallback-flag).
+
 Cross-namespace references are rejected by the webhook, duplicate failure
 domain entries by the API server.
 
@@ -707,9 +712,13 @@ set on the Machine, and it would render the wrong network data when
 The behaviour is now controlled by the manager flag
 `--enable-failure-domain-fallback`:
 
-- `true` (current default): keep the historical behaviour. A machine that
-  falls back to a host in another failure domain still receives the
-  dataTemplate of its **assigned** failure domain.
+- `true` (current default): keep the historical behaviour for machines whose
+  dataTemplate does not come from `failureDomainDataTemplates`. A machine that
+  did receive a mapped dataTemplate never falls back, whatever the flag says:
+  that template renders network data specific to the assigned failure domain,
+  so the machine waits exactly as described for `false` below. The controller
+  recomputes this on every reconcile from the source Metal3MachineTemplate;
+  nothing is stored on the Metal3Machine.
 - `false`: the Metal3Machine waits until a host in its failure domain becomes
   available, in the same way an unmatched `hostSelector` does.
   While it waits, the `AssociateBareMetalHost` condition is `False` with
@@ -721,9 +730,9 @@ The behaviour is now controlled by the manager flag
   domain, the machine waits even if a free host without the label exists
   inside the domain.
 
-Set `ENABLE_FAILURE_DOMAIN_FALLBACK=false` before using
-`failureDomainDataTemplates`. The default will change to `false` in the next
-release and the flag will be removed afterwards.
+`failureDomainDataTemplates` works with either flag value. The default will
+change to `false` in the next release and the flag will be removed afterwards,
+at which point every machine with an assigned failure domain waits.
 
 ## Metal3DataTemplate
 

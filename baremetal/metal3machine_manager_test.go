@@ -720,11 +720,12 @@ var _ = Describe("Metal3Machine manager", func() {
 		)
 
 		type testCaseChooseHost struct {
-			Machine          *clusterv1.Machine
-			Hosts            *bmov1alpha1.BareMetalHostList
-			M3Machine        *infrav1.Metal3Machine
-			ExpectedHostName string
-			FallbackDisabled bool
+			Machine             *clusterv1.Machine
+			Hosts               *bmov1alpha1.BareMetalHostList
+			M3Machine           *infrav1.Metal3Machine
+			ExpectedHostName    string
+			FallbackDisabled    bool
+			FailureDomainMapped bool
 		}
 
 		DescribeTable("Test ChooseHost",
@@ -748,6 +749,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					tc.M3Machine, logr.Discard(),
 				)
 				Expect(err).NotTo(HaveOccurred())
+				machineMgr.SetFailureDomainMapped(tc.FailureDomainMapped)
 
 				result, _, _, err := machineMgr.chooseHost(context.TODO())
 
@@ -955,6 +957,20 @@ var _ = Describe("Metal3Machine manager", func() {
 				M3Machine:        m3mconfig6,
 				ExpectedHostName: hostWithFailureDomainLabel.Name,
 				FallbackDisabled: true,
+			}),
+			Entry("No host chosen, when hosts in FailureDomain not available, fallback enabled but machine has FD-mapped dataTemplate", testCaseChooseHost{
+				Machine:             newMachine(machineName, infrastructureRef6),
+				Hosts:               &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithOtherConsRef, hostWithNodeReuseLabelSetToCP}},
+				M3Machine:           m3mconfig6,
+				ExpectedHostName:    "",
+				FailureDomainMapped: true,
+			}),
+			Entry("Choose a host in Failure Domain, when machine has FD-mapped dataTemplate", testCaseChooseHost{
+				Machine:             newMachine(machineName, infrastructureRef6),
+				Hosts:               &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithOtherConsRef, hostWithFailureDomainLabel}},
+				M3Machine:           m3mconfig6,
+				ExpectedHostName:    hostWithFailureDomainLabel.Name,
+				FailureDomainMapped: true,
 			}),
 			Entry("No host chosen, when NodeReuse host is not in Failure Domain and fallback disabled", testCaseChooseHost{
 				Machine: &clusterv1.Machine{
@@ -4235,16 +4251,17 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseAssociate struct {
-		Machine            *clusterv1.Machine
-		Host               *bmov1alpha1.BareMetalHost
-		M3Machine          *infrav1.Metal3Machine
-		BMCSecret          *corev1.Secret
-		DataTemplate       *infrav1.Metal3DataTemplate
-		Data               *infrav1.Metal3Data
-		ExpectRequeue      bool
-		ExpectClusterLabel bool
-		FallbackDisabled   bool
-		ExpectFDWaitError  bool
+		Machine             *clusterv1.Machine
+		Host                *bmov1alpha1.BareMetalHost
+		M3Machine           *infrav1.Metal3Machine
+		BMCSecret           *corev1.Secret
+		DataTemplate        *infrav1.Metal3DataTemplate
+		Data                *infrav1.Metal3Data
+		ExpectRequeue       bool
+		ExpectClusterLabel  bool
+		FallbackDisabled    bool
+		ExpectFDWaitError   bool
+		FailureDomainMapped bool
 	}
 
 	DescribeTable("Test Associate function",
@@ -4273,6 +4290,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				tc.M3Machine, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
+			machineMgr.SetFailureDomainMapped(tc.FailureDomainMapped)
 
 			_, err = machineMgr.Associate(context.TODO())
 			if tc.ExpectRequeue {
@@ -4392,6 +4410,22 @@ var _ = Describe("Metal3Machine manager", func() {
 				FallbackDisabled:  true,
 				ExpectRequeue:     true,
 				ExpectFDWaitError: true,
+			},
+		),
+		Entry("Associate machine, host outside FD, fallback enabled but machine has FD-mapped dataTemplate, requeue with FD error",
+			testCaseAssociate{
+				Machine: newMachine("myUniqueMachine", nil),
+				M3Machine: func() *infrav1.Metal3Machine {
+					spec := m3mSpecAll()
+					spec.FailureDomain = "my-fd-1"
+					return newMetal3Machine(metal3machineName, spec, nil,
+						m3mObjectMetaNoAnnotations(),
+					)
+				}(),
+				Host:                newBareMetalHost(baremetalhostName, bmhSpecBMC(), bmov1alpha1.StateAvailable, &bmov1alpha1.BareMetalHostStatus{}, false, "metadata", false, "", false),
+				FailureDomainMapped: true,
+				ExpectRequeue:       true,
+				ExpectFDWaitError:   true,
 			},
 		),
 		Entry("Associate machine, host set, Metal3 machine spec set, set clusterLabel",

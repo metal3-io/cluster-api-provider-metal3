@@ -125,6 +125,7 @@ type MachineManagerInterface interface {
 	IsBootstrapReady() bool
 	MachineHasNodeRef() bool
 	Associate(context.Context) (string, error)
+	SetFailureDomainMapped(bool)
 	Delete(context.Context) error
 	Update(context.Context) error
 	HasAnnotation() bool
@@ -163,6 +164,13 @@ type MachineManager struct {
 	MachineSet            *clusterv1.MachineSet
 	MachineSetList        *clusterv1.MachineSetList
 	Log                   logr.Logger
+
+	// failureDomainMapped is set by the controller when the Metal3Machine
+	// received the dataTemplate mapped to its assigned failure domain. Such a
+	// machine must never fall back to a host in another failure domain, so
+	// host selection treats it as if EnableFailureDomainFallback were false.
+	// It is recomputed on every reconcile and never persisted.
+	failureDomainMapped bool
 }
 
 // GetMetal3Machine returns the underlying Metal3Machine object.
@@ -458,6 +466,18 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 	return nil
 }
 
+// SetFailureDomainMapped records whether the machine received the
+// dataTemplate mapped to its assigned failure domain. See failureDomainMapped.
+func (m *MachineManager) SetFailureDomainMapped(mapped bool) {
+	m.failureDomainMapped = mapped
+}
+
+// mustStayInFailureDomain reports whether host selection has to wait for a
+// host in the machine's failure domain instead of falling back to any host.
+func (m *MachineManager) mustStayInFailureDomain() bool {
+	return !EnableFailureDomainFallback || m.failureDomainMapped
+}
+
 // Associate associates a machine and is invoked by the Machine Controller.
 func (m *MachineManager) Associate(ctx context.Context) (string, error) {
 	// Parallel attempts to associate is problematic since the same BMH
@@ -489,8 +509,8 @@ func (m *MachineManager) Associate(ctx context.Context) (string, error) {
 			return "", err
 		}
 		if host == nil {
-			if !EnableFailureDomainFallback && m.Metal3Machine.Spec.FailureDomain != "" {
-				m.Log.Info("No available BareMetalHost in the assigned failure domain and fallback is disabled, requeuing",
+			if m.mustStayInFailureDomain() && m.Metal3Machine.Spec.FailureDomain != "" {
+				m.Log.Info("No available BareMetalHost in the assigned failure domain and fallback is not allowed, requeuing",
 					LogFieldMetal3Machine, m.Metal3Machine.Name,
 					LogFieldNamespace, m.Metal3Machine.Namespace,
 					LogFieldFailureDomain, m.Metal3Machine.Spec.FailureDomain)
@@ -2466,8 +2486,9 @@ func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]corev
 // Picks host from list of available hosts. If failureDomain is set, chooses
 // from hosts in that failureDomain. When none is available in the
 // failureDomain, it either falls back to all available hosts
-// (EnableFailureDomainFallback == true) or returns nil so that the caller
-// requeues (EnableFailureDomainFallback == false).
+// (EnableFailureDomainFallback == true and the machine's dataTemplate is not
+// mapped to its failure domain) or returns nil so that the caller requeues
+// (EnableFailureDomainFallback == false, or failureDomainMapped == true).
 func (m *MachineManager) pickHost(availableHosts []*bmov1alpha1.BareMetalHost) (*bmov1alpha1.BareMetalHost, error) {
 	var chosenHost *bmov1alpha1.BareMetalHost
 	var availableHostsInFailureDomain []*bmov1alpha1.BareMetalHost
@@ -2492,8 +2513,8 @@ func (m *MachineManager) pickHost(availableHosts []*bmov1alpha1.BareMetalHost) (
 			}
 		}
 		if len(availableHostsInFailureDomain) == 0 {
-			if !EnableFailureDomainFallback {
-				m.Log.Info("No available hosts in FailureDomain and fallback is disabled, not choosing host",
+			if m.mustStayInFailureDomain() {
+				m.Log.Info("No available hosts in FailureDomain and fallback is not allowed, not choosing host",
 					LogFieldFailureDomain, m.Metal3Machine.Spec.FailureDomain)
 				return nil, nil //nolint:nilnil // nil host means none in the failure domain, the caller requeues
 			}

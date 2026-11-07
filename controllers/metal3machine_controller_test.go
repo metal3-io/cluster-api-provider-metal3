@@ -814,6 +814,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		M3Machine        *infrav1.Metal3Machine
 		M3Template       *infrav1.Metal3MachineTemplate
 		ExpectedTemplate *infrav1.Metal3ObjectRef
+		ExpectedMapped   bool
 	}
 
 	DescribeTable("applyFailureDomainDataTemplate tests",
@@ -825,8 +826,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			r := &Metal3MachineReconciler{Client: fakeClient, Log: logr.Discard()}
 
-			err := r.applyFailureDomainDataTemplate(context.Background(), tc.M3Machine, logr.Discard())
+			mapped, err := r.applyFailureDomainDataTemplate(context.Background(), tc.M3Machine, logr.Discard())
 			Expect(err).NotTo(HaveOccurred())
+			Expect(mapped).To(Equal(tc.ExpectedMapped))
 
 			if tc.ExpectedTemplate == nil {
 				Expect(tc.M3Machine.Spec.DataTemplate).To(BeNil())
@@ -839,11 +841,13 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine:        newAssignedM3M("rack1", true, defaultDataTemplate.DeepCopy()),
 			M3Template:       newM3TemplateWithFDMapping(),
 			ExpectedTemplate: &infrav1.Metal3ObjectRef{Name: "m3dt-rack1", Namespace: namespaceName},
+			ExpectedMapped:   true,
 		}),
 		Entry("Assigned FD in mapping overrides nil dataTemplate", testCaseApplyFDDataTemplate{
 			M3Machine:        newAssignedM3M("rack2", true, nil),
 			M3Template:       newM3TemplateWithFDMapping(),
 			ExpectedTemplate: &infrav1.Metal3ObjectRef{Name: "m3dt-rack2", Namespace: namespaceName},
+			ExpectedMapped:   true,
 		}),
 		Entry("Assigned FD not in mapping keeps default", testCaseApplyFDDataTemplate{
 			M3Machine:        newAssignedM3M("rack9", true, defaultDataTemplate.DeepCopy()),
