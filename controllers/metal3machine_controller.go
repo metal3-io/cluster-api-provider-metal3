@@ -82,6 +82,7 @@ type Metal3MachineReconciler struct {
 // Add RBAC rules to access cluster-api resources
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=metal3.io,resources=hardwaredata,verbs=get
 
 // Reconcile handles Metal3Machine events.
 func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rres ctrl.Result, rerr error) {
