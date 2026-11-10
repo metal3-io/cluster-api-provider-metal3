@@ -306,21 +306,7 @@ func SetupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 }
 
 func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, e2econfig *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) {
-	capiRelease := os.Getenv("CAPIRELEASE")
-	if capiRelease == "" {
-		// Resolve the latest stable CAPI release for the minor version from CAPI_RELEASE_PREFIX.
-		// e.g. CAPI_RELEASE_PREFIX="v1.13." -> minorVersion="1.13" -> capiRelease="v1.13.2"
-		releasePrefix := os.Getenv("CAPI_RELEASE_PREFIX")
-		Expect(releasePrefix).ToNot(BeEmpty(), "CAPI_RELEASE_PREFIX must be set when CAPIRELEASE is not")
-		minorVersion := strings.TrimSuffix(strings.TrimPrefix(releasePrefix, "v"), ".")
-		var err error
-		capiRelease, err = capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
-		Expect(err).ToNot(HaveOccurred(), "Failed to get stable CAPI release for minor version %s", minorVersion)
-		if !strings.HasPrefix(capiRelease, "v") {
-			capiRelease = "v" + capiRelease
-		}
-		log.Printf("Resolved CAPIRELEASE from goproxy: %s", capiRelease)
-	}
+	capiRelease := getCAPIRelease(ctx)
 
 	var runtimeExtensionProviders []string
 	if os.Getenv("GINKGO_FOCUS") == inPlaceUpgradeFocus {
