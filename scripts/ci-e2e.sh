@@ -161,6 +161,30 @@ source "${M3_DEV_ENV_PATH}/lib/common.sh"
 # shellcheck disable=SC1091,SC1090
 source "${M3_DEV_ENV_PATH}/lib/network.sh"
 
+## --- IPA (Ironic Python Agent) local caching ---
+# A single e2e job can install/reinstall Ironic (and thus its IPA downloader
+# init container) several times — e.g. pivoted target cluster, ironic version
+# upgrades — each getting a fresh, empty shared volume. Without a local cache,
+# every one of those installs would hit the upstream server again for the exact
+# same file. Download it once here into the metal3-dev-env image server data
+# dir, which is served on the provisioning network at
+# BARE_METAL_PROVISIONER_URL_HOST (the same host the node images come from, see
+# lib/images.sh), and point every Ironic instance the test installs at that
+# local copy instead (IPA_BASEURI, exported below).
+IPA_UPSTREAM_BASEURI="https://tarballs.opendev.org/openstack/ironic-python-agent/dib"
+export IPA_FLAVOR="${IPA_FLAVOR:-centos9}"
+IPA_FILENAME="ipa-${IPA_FLAVOR}-$(echo "${IPA_BRANCH:-master}" | tr / -).tar.gz"
+
+mkdir -p "${IRONIC_DATA_DIR}/html"
+for ipa_asset in "${IPA_FILENAME}" "${IPA_FILENAME}.sha256"; do
+  if [[ ! -f "${IRONIC_DATA_DIR}/html/${ipa_asset}" ]]; then
+    echo "Downloading ${ipa_asset} from upstream (cached locally for the rest of this job)..."
+    wget --no-verbose -P "${IRONIC_DATA_DIR}/html/" "${IPA_UPSTREAM_BASEURI}/${ipa_asset}"
+  fi
+done
+
+export IPA_BASEURI="http://${BARE_METAL_PROVISIONER_URL_HOST}"
+
 update_kustomize_image() {
   local image_name="$1"      # e.g., quay.io/metal3-io/ironic
   local env_var_name="$2"    # e.g., IRONIC_IMAGE
