@@ -20,7 +20,7 @@ SHELL:=/usr/bin/env bash
 
 .DEFAULT_GOAL:=help
 
-GO_VERSION ?= 1.25.13
+GO_VERSION ?= 1.25.14
 GO := $(shell type -P go)
 # Use GOPROXY environment variable if set
 ifneq ($(GO),)
