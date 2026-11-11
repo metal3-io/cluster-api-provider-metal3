@@ -90,7 +90,8 @@ controller, including how it handles the Node of the remediated machine.
 ## Health check
 
 The health check test lets Cluster API detect unhealthy machines and
-remediate them through a Metal3RemediationTemplate.
+remediate them through a Metal3RemediationTemplate. The cluster has 3 control
+plane Machines and 1 worker Machine.
 
 1. Create a Metal3RemediationTemplate with the `Reboot` strategy, a retry
    limit of 1 and a timeout of 300 seconds, and a MachineHealthCheck that uses
@@ -134,15 +135,25 @@ Operator (BMO) handle, and runs the inspection test in the middle.
 
 ### Unhealthy annotation
 
+At this point the cluster has 1 control plane Machine and 1 worker Machine.
+Of the 4 BMHs, 2 are `provisioned` and 2 are `available`.
+
 1. Add the `capm3.metal3.io/unhealthy` annotation to the BMH of the worker and
    delete the worker Machine.
 1. Wait until that BMH is deprovisioned and `available`, and until the
    MachineDeployment has replaced the worker, so that 2 BMHs are
    `provisioned`.
-1. Scale the MachineDeployment up to 3 replicas. Wait until 3 BMHs are
-   `provisioned`, then check that for a while no BMH starts `provisioning`:
-   the only `available` BMH is the unhealthy one, so CAPM3 must not pick it
-   for the remaining worker.
+1. Scale the MachineDeployment up to 3 replicas. Wait until 1 BMH is
+   `provisioning` and then until 3 BMHs are `provisioned`. Then check that for
+   a while no BMH starts `provisioning`: the only `available` BMH is the
+   unhealthy one, so CAPM3 must not pick it for the remaining worker. The
+   state of the objects at this point is:
+
+   | Object | State |
+   | --- | --- |
+   | BMHs | 3 `provisioned` (1 control plane, 2 workers), 1 `available` (the unhealthy one) |
+   | Metal3Machines | 3, one for each `provisioned` BMH |
+   | Machines | 3, all `Running` |
 1. Remove the unhealthy annotation and wait until all 4 BMHs are
    `provisioned` and all 4 Machines are `Running`.
 
