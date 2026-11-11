@@ -1,5 +1,5 @@
 # Build the extension binary
-ARG BUILD_IMAGE=docker.io/golang:1.25.13@sha256:cbff9d1a9041b316010f2da6b701b6c0d597718cb90928c85eb597334a0d23d4
+ARG BUILD_IMAGE=docker.io/golang:1.25.14@sha256:699337d620559a59b4a2bb298ad59611e535d2ee755a34cf2d2a98f37578dc80
 ARG BASE_IMAGE=gcr.io/distroless/static:nonroot@sha256:9ecc53c269509f63c69a266168e4a687c7eb8c0cfd753bd8bfcaa4f58a90876f
 
 FROM $BUILD_IMAGE AS builder
