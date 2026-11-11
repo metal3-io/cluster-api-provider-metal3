@@ -18,6 +18,7 @@ jobs:
     outputs:
       release_tag: ${{ steps.release-version.outputs.release_version }}
       release_branch: ${{ steps.release-branch.outputs.release_branch }}
+      multi_platform: ${{ steps.release-branch.outputs.multi_platform }}
     if: github.repository == 'metal3-io/cluster-api-provider-metal3'
     steps:
     - name: Checkout code
@@ -61,6 +62,16 @@ jobs:
           echo "RELEASE_BRANCH=${RELEASE_BRANCH}" >> ${GITHUB_ENV}
           echo "release_branch=${RELEASE_BRANCH}" >> ${GITHUB_OUTPUT}
           echo "This is not a beta or alpha release, will use release branch ${RELEASE_BRANCH}"
+        fi
+        # Release branches older than release-1.15 do not cross-compile in
+        # their Dockerfiles, so their images are built for linux/amd64 only.
+        oldest_branch="$(printf '%s\n' release-1.15 "${RELEASE_BRANCH}" | sort -V | head -n 1)"
+        if [[ "${RELEASE_BRANCH}" == "main" ]] || [[ "${oldest_branch}" == "release-1.15" ]]; then
+          echo "multi_platform=true" >> ${GITHUB_OUTPUT}
+          echo "Images will be built for linux/amd64 and linux/arm64"
+        else
+          echo "multi_platform=false" >> ${GITHUB_OUTPUT}
+          echo "Images will be built for linux/amd64 only"
         fi
     - name: Create or checkout release branch
       run: |
@@ -172,6 +183,8 @@ jobs:
     uses: metal3-io/project-infra/.github/workflows/container-image-build.yml@main # zizmor: ignore[unpinned-uses]
     with:
       image-name: 'cluster-api-provider-metal3'
+      multiPlatform: ${{ needs.push_release_tags.outputs.multi_platform == 'true' }}
+      platform: ${{ needs.push_release_tags.outputs.multi_platform == 'true' && 'linux/amd64,linux/arm64' || '' }}
       pushImage: true
       ref: ${{ needs.push_release_tags.outputs.release_tag }}
       generate-sbom: true
@@ -191,6 +204,8 @@ jobs:
     uses: metal3-io/project-infra/.github/workflows/container-image-build.yml@main # zizmor: ignore[unpinned-uses]
     with:
       image-name: 'cluster-api-provider-metal3'
+      multiPlatform: ${{ needs.push_release_tags.outputs.multi_platform == 'true' }}
+      platform: ${{ needs.push_release_tags.outputs.multi_platform == 'true' && 'linux/amd64,linux/arm64' || '' }}
       pushImage: true
       ref: ${{ needs.push_release_tags.outputs.release_branch }}
       generate-sbom: false
