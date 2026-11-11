@@ -33,6 +33,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,6 +65,8 @@ type reconcileNormalRemediationTestCase struct {
 	IsOutOfServiceTaintSupported bool
 	IsOutOfServiceTaintAdded     bool
 	IsNodeDrained                bool
+	Machine                      *clusterv1.Machine
+	ExpectOwnerRemediatedSet     bool
 }
 
 type reconcileRemediationTestCase struct {
@@ -85,6 +88,15 @@ type unMarshallRemediationTestCase struct {
 func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 	tc reconcileNormalRemediationTestCase) *baremetal_mocks.MockRemediationManagerInterface {
 	m := baremetal_mocks.NewMockRemediationManagerInterface(ctrl)
+	m.EXPECT().GetRemediationPhase().Return(tc.RemediationPhase).MinTimes(1)
+
+	if tc.RemediationPhase == infrav1.PhaseDeleting {
+		m.EXPECT().GetCapiMachine(context.TODO()).Return(tc.Machine, nil)
+		if tc.ExpectOwnerRemediatedSet {
+			m.EXPECT().SetOwnerRemediatedConditionNew(context.TODO())
+		}
+		return m
+	}
 
 	bmh := &bmov1alpha1.BareMetalHost{}
 	if tc.GetUnhealthyHostFails {
@@ -129,7 +141,6 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 	}
 
 	m.EXPECT().GetRemediationType().Return(infrav1.RebootRemediationStrategy)
-	m.EXPECT().GetRemediationPhase().Return(tc.RemediationPhase).MinTimes(1)
 
 	switch tc.RemediationPhase {
 	case "":
@@ -242,13 +253,46 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 			m.EXPECT().SetRemediationPhase(infrav1.PhaseDeleting)
 		}
 
-	case infrav1.PhaseDeleting:
-		expectGetNode()
-
 	case infrav1.PhaseFailed:
 		expectGetNode()
 	}
 	return m
+}
+
+func handedOverMachine(unhealthy, ownerRemediated, deleting, v1beta1HandedOver bool) *clusterv1.Machine {
+	healthStatus := metav1.ConditionTrue
+	if unhealthy {
+		healthStatus = metav1.ConditionFalse
+	}
+	machine := &clusterv1.Machine{
+		Status: clusterv1.MachineStatus{
+			Conditions: []metav1.Condition{{
+				Type:   clusterv1.MachineHealthCheckSucceededCondition,
+				Status: healthStatus,
+				Reason: clusterv1.MachineHealthCheckUnhealthyNodeReason,
+			}},
+		},
+	}
+	if ownerRemediated {
+		machine.Status.Conditions = append(machine.Status.Conditions, metav1.Condition{
+			Type:   clusterv1.MachineOwnerRemediatedCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachineSetMachineRemediationMachineDeletingReason,
+		})
+	}
+	if deleting {
+		machine.DeletionTimestamp = ptr.To(metav1.Now())
+	}
+	if v1beta1HandedOver {
+		machine.Status.Deprecated = &clusterv1.MachineDeprecatedStatus{V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+			Conditions: clusterv1.Conditions{{
+				Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+				Status: corev1.ConditionFalse,
+				Reason: clusterv1.WaitingForRemediationV1Beta1Reason,
+			}},
+		}}
+	}
+	return machine
 }
 
 var _ = Describe("Metal3Remediation controller", func() {
@@ -611,6 +655,32 @@ var _ = Describe("Metal3Remediation controller", func() {
 			ExpectError:      false,
 			ExpectRequeue:    false,
 			RemediationPhase: infrav1.PhaseDeleting,
+			Machine:          handedOverMachine(true, true, false, true),
+		}),
+		Entry("Should set the v1beta2 OwnerRemediated for Phase Deleting if only the v1beta1 condition is set", reconcileNormalRemediationTestCase{
+			ExpectError:              false,
+			ExpectRequeue:            false,
+			RemediationPhase:         infrav1.PhaseDeleting,
+			Machine:                  handedOverMachine(true, false, false, true),
+			ExpectOwnerRemediatedSet: true,
+		}),
+		Entry("Should not set OwnerRemediated for Phase Deleting if no condition was handed over", reconcileNormalRemediationTestCase{
+			ExpectError:      false,
+			ExpectRequeue:    false,
+			RemediationPhase: infrav1.PhaseDeleting,
+			Machine:          handedOverMachine(true, false, false, false),
+		}),
+		Entry("Should not set OwnerRemediated for Phase Deleting if the Machine is healthy again", reconcileNormalRemediationTestCase{
+			ExpectError:      false,
+			ExpectRequeue:    false,
+			RemediationPhase: infrav1.PhaseDeleting,
+			Machine:          handedOverMachine(false, false, false, true),
+		}),
+		Entry("Should not set OwnerRemediated for Phase Deleting if the Machine is being deleted", reconcileNormalRemediationTestCase{
+			ExpectError:      false,
+			ExpectRequeue:    false,
+			RemediationPhase: infrav1.PhaseDeleting,
+			Machine:          handedOverMachine(true, false, true, true),
 		}),
 		Entry("Should not requeue for Phase Failed", reconcileNormalRemediationTestCase{
 			ExpectError:      false,
