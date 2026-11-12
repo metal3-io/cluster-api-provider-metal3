@@ -61,7 +61,7 @@ Metal3Cluster is the Schema for the metal3clusters API.
       <td>true</td>
       </tr>
       <tr>
-      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta">metadata</a></b></td>
       <td>object</td>
       <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
       <td>true</td>
@@ -592,7 +592,7 @@ Metal3ClusterTemplate is the Schema for the metal3clustertemplates API.
       <td>true</td>
       </tr>
       <tr>
-      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta">metadata</a></b></td>
       <td>object</td>
       <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
       <td>true</td>
@@ -864,7 +864,7 @@ Metal3Machine is the Schema for the metal3machines API.
       <td>true</td>
       </tr>
       <tr>
-      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta">metadata</a></b></td>
       <td>object</td>
       <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
       <td>true</td>
@@ -976,8 +976,8 @@ network data given by the user.<br/>
         <td>
           providerID must match the provider ID as seen on the node object corresponding to this machine.
 For Kubernetes Nodes running on the Metal3 provider, this value is set by the corresponding CPI component
-and it has the format metal3://<namespace>/<bmh-name>/<m3m-name>.
-The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
+and it has the format metal3://&lt;namespace&gt;/&lt;bmh-name&gt;/&lt;m3m-name&gt;.
+The legacy format (metal3://&lt;bmh-uuid&gt;) will be deprecated in CAPM3 v1.13
 and removed in CAPM3 v1.14.<br/>
         </td>
         <td>false</td>
@@ -1895,7 +1895,7 @@ Metal3MachineTemplate is the Schema for the metal3machinetemplates API.
       <td>true</td>
       </tr>
       <tr>
-      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta">metadata</a></b></td>
       <td>object</td>
       <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
       <td>true</td>
@@ -2073,8 +2073,8 @@ network data given by the user.<br/>
         <td>
           providerID must match the provider ID as seen on the node object corresponding to this machine.
 For Kubernetes Nodes running on the Metal3 provider, this value is set by the corresponding CPI component
-and it has the format metal3://<namespace>/<bmh-name>/<m3m-name>.
-The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
+and it has the format metal3://&lt;namespace&gt;/&lt;bmh-name&gt;/&lt;m3m-name&gt;.
+The legacy format (metal3://&lt;bmh-uuid&gt;) will be deprecated in CAPM3 v1.13
 and removed in CAPM3 v1.14.<br/>
         </td>
         <td>false</td>
@@ -2475,7 +2475,7 @@ Metal3DataTemplate is the Schema for the metal3datatemplates API.
       <td>true</td>
       </tr>
       <tr>
-      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta">metadata</a></b></td>
       <td>object</td>
       <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
       <td>true</td>
@@ -5465,7 +5465,7 @@ Metal3DataClaim is the Schema for the metal3datas API.
       <td>true</td>
       </tr>
       <tr>
-      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta">metadata</a></b></td>
       <td>object</td>
       <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
       <td>true</td>
@@ -5647,7 +5647,7 @@ Metal3Data is the Schema for the metal3datas API.
       <td>true</td>
       </tr>
       <tr>
-      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta">metadata</a></b></td>
       <td>object</td>
       <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
       <td>true</td>
@@ -5928,7 +5928,7 @@ Metal3Remediation is the Schema for the metal3remediations API.
       <td>true</td>
       </tr>
       <tr>
-      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta">metadata</a></b></td>
       <td>object</td>
       <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
       <td>true</td>
@@ -6118,7 +6118,7 @@ Metal3RemediationTemplate is the Schema for the metal3remediationtemplates API.
       <td>true</td>
       </tr>
       <tr>
-      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta">metadata</a></b></td>
       <td>object</td>
       <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
       <td>true</td>
