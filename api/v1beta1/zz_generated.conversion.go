@@ -30,7 +30,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	selection "k8s.io/apimachinery/pkg/selection"
 	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -838,7 +837,7 @@ func autoConvert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(in *v1beta2.APIEndpo
 }
 
 func autoConvert_v1beta1_CustomDeploy_To_v1beta2_CustomDeploy(in *CustomDeploy, out *v1beta2.CustomDeploy, s conversion.Scope) error {
-	out.Method = in.Method
+	*out = *(*v1beta2.CustomDeploy)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -848,7 +847,7 @@ func Convert_v1beta1_CustomDeploy_To_v1beta2_CustomDeploy(in *CustomDeploy, out 
 }
 
 func autoConvert_v1beta2_CustomDeploy_To_v1beta1_CustomDeploy(in *v1beta2.CustomDeploy, out *CustomDeploy, s conversion.Scope) error {
-	out.Method = in.Method
+	*out = *(*CustomDeploy)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -858,10 +857,7 @@ func Convert_v1beta2_CustomDeploy_To_v1beta1_CustomDeploy(in *v1beta2.CustomDepl
 }
 
 func autoConvert_v1beta1_FromPool_To_v1beta2_FromPool(in *FromPool, out *v1beta2.FromPool, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Name = in.Name
-	out.APIGroup = in.APIGroup
-	out.Kind = in.Kind
+	*out = *(*v1beta2.FromPool)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -871,10 +867,7 @@ func Convert_v1beta1_FromPool_To_v1beta2_FromPool(in *FromPool, out *v1beta2.Fro
 }
 
 func autoConvert_v1beta2_FromPool_To_v1beta1_FromPool(in *v1beta2.FromPool, out *FromPool, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Name = in.Name
-	out.APIGroup = in.APIGroup
-	out.Kind = in.Kind
+	*out = *(*FromPool)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -884,8 +877,7 @@ func Convert_v1beta2_FromPool_To_v1beta1_FromPool(in *v1beta2.FromPool, out *Fro
 }
 
 func autoConvert_v1beta1_FromPoolAnnotation_To_v1beta2_FromPoolAnnotation(in *FromPoolAnnotation, out *v1beta2.FromPoolAnnotation, s conversion.Scope) error {
-	out.Object = in.Object
-	out.Annotation = in.Annotation
+	*out = *(*v1beta2.FromPoolAnnotation)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -895,8 +887,7 @@ func Convert_v1beta1_FromPoolAnnotation_To_v1beta2_FromPoolAnnotation(in *FromPo
 }
 
 func autoConvert_v1beta2_FromPoolAnnotation_To_v1beta1_FromPoolAnnotation(in *v1beta2.FromPoolAnnotation, out *FromPoolAnnotation, s conversion.Scope) error {
-	out.Object = in.Object
-	out.Annotation = in.Annotation
+	*out = *(*FromPoolAnnotation)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -906,8 +897,7 @@ func Convert_v1beta2_FromPoolAnnotation_To_v1beta1_FromPoolAnnotation(in *v1beta
 }
 
 func autoConvert_v1beta1_HostSelector_To_v1beta2_HostSelector(in *HostSelector, out *v1beta2.HostSelector, s conversion.Scope) error {
-	out.MatchLabels = *(*map[string]string)(unsafe.Pointer(&in.MatchLabels))
-	out.MatchExpressions = *(*[]v1beta2.HostSelectorRequirement)(unsafe.Pointer(&in.MatchExpressions))
+	*out = *(*v1beta2.HostSelector)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -917,8 +907,7 @@ func Convert_v1beta1_HostSelector_To_v1beta2_HostSelector(in *HostSelector, out 
 }
 
 func autoConvert_v1beta2_HostSelector_To_v1beta1_HostSelector(in *v1beta2.HostSelector, out *HostSelector, s conversion.Scope) error {
-	out.MatchLabels = *(*map[string]string)(unsafe.Pointer(&in.MatchLabels))
-	out.MatchExpressions = *(*[]HostSelectorRequirement)(unsafe.Pointer(&in.MatchExpressions))
+	*out = *(*HostSelector)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -928,9 +917,7 @@ func Convert_v1beta2_HostSelector_To_v1beta1_HostSelector(in *v1beta2.HostSelect
 }
 
 func autoConvert_v1beta1_HostSelectorRequirement_To_v1beta2_HostSelectorRequirement(in *HostSelectorRequirement, out *v1beta2.HostSelectorRequirement, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Operator = selection.Operator(in.Operator)
-	out.Values = *(*[]string)(unsafe.Pointer(&in.Values))
+	*out = *(*v1beta2.HostSelectorRequirement)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -940,9 +927,7 @@ func Convert_v1beta1_HostSelectorRequirement_To_v1beta2_HostSelectorRequirement(
 }
 
 func autoConvert_v1beta2_HostSelectorRequirement_To_v1beta1_HostSelectorRequirement(in *v1beta2.HostSelectorRequirement, out *HostSelectorRequirement, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Operator = selection.Operator(in.Operator)
-	out.Values = *(*[]string)(unsafe.Pointer(&in.Values))
+	*out = *(*HostSelectorRequirement)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1060,9 +1045,7 @@ func Convert_v1beta2_MetaData_To_v1beta1_MetaData(in *v1beta2.MetaData, out *Met
 }
 
 func autoConvert_v1beta1_MetaDataFromAnnotation_To_v1beta2_MetaDataFromAnnotation(in *MetaDataFromAnnotation, out *v1beta2.MetaDataFromAnnotation, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Object = in.Object
-	out.Annotation = in.Annotation
+	*out = *(*v1beta2.MetaDataFromAnnotation)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1072,9 +1055,7 @@ func Convert_v1beta1_MetaDataFromAnnotation_To_v1beta2_MetaDataFromAnnotation(in
 }
 
 func autoConvert_v1beta2_MetaDataFromAnnotation_To_v1beta1_MetaDataFromAnnotation(in *v1beta2.MetaDataFromAnnotation, out *MetaDataFromAnnotation, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Object = in.Object
-	out.Annotation = in.Annotation
+	*out = *(*MetaDataFromAnnotation)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1084,9 +1065,7 @@ func Convert_v1beta2_MetaDataFromAnnotation_To_v1beta1_MetaDataFromAnnotation(in
 }
 
 func autoConvert_v1beta1_MetaDataFromLabel_To_v1beta2_MetaDataFromLabel(in *MetaDataFromLabel, out *v1beta2.MetaDataFromLabel, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Object = in.Object
-	out.Label = in.Label
+	*out = *(*v1beta2.MetaDataFromLabel)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1096,9 +1075,7 @@ func Convert_v1beta1_MetaDataFromLabel_To_v1beta2_MetaDataFromLabel(in *MetaData
 }
 
 func autoConvert_v1beta2_MetaDataFromLabel_To_v1beta1_MetaDataFromLabel(in *v1beta2.MetaDataFromLabel, out *MetaDataFromLabel, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Object = in.Object
-	out.Label = in.Label
+	*out = *(*MetaDataFromLabel)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1182,7 +1159,7 @@ func autoConvert_v1beta2_MetaDataIndex_To_v1beta1_MetaDataIndex(in *v1beta2.Meta
 }
 
 func autoConvert_v1beta1_MetaDataNamespace_To_v1beta2_MetaDataNamespace(in *MetaDataNamespace, out *v1beta2.MetaDataNamespace, s conversion.Scope) error {
-	out.Key = in.Key
+	*out = *(*v1beta2.MetaDataNamespace)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1192,7 +1169,7 @@ func Convert_v1beta1_MetaDataNamespace_To_v1beta2_MetaDataNamespace(in *MetaData
 }
 
 func autoConvert_v1beta2_MetaDataNamespace_To_v1beta1_MetaDataNamespace(in *v1beta2.MetaDataNamespace, out *MetaDataNamespace, s conversion.Scope) error {
-	out.Key = in.Key
+	*out = *(*MetaDataNamespace)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1202,8 +1179,7 @@ func Convert_v1beta2_MetaDataNamespace_To_v1beta1_MetaDataNamespace(in *v1beta2.
 }
 
 func autoConvert_v1beta1_MetaDataObjectName_To_v1beta2_MetaDataObjectName(in *MetaDataObjectName, out *v1beta2.MetaDataObjectName, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Object = in.Object
+	*out = *(*v1beta2.MetaDataObjectName)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1213,8 +1189,7 @@ func Convert_v1beta1_MetaDataObjectName_To_v1beta2_MetaDataObjectName(in *MetaDa
 }
 
 func autoConvert_v1beta2_MetaDataObjectName_To_v1beta1_MetaDataObjectName(in *v1beta2.MetaDataObjectName, out *MetaDataObjectName, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Object = in.Object
+	*out = *(*MetaDataObjectName)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1224,8 +1199,7 @@ func Convert_v1beta2_MetaDataObjectName_To_v1beta1_MetaDataObjectName(in *v1beta
 }
 
 func autoConvert_v1beta1_MetaDataString_To_v1beta2_MetaDataString(in *MetaDataString, out *v1beta2.MetaDataString, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Value = in.Value
+	*out = *(*v1beta2.MetaDataString)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1235,8 +1209,7 @@ func Convert_v1beta1_MetaDataString_To_v1beta2_MetaDataString(in *MetaDataString
 }
 
 func autoConvert_v1beta2_MetaDataString_To_v1beta1_MetaDataString(in *v1beta2.MetaDataString, out *MetaDataString, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Value = in.Value
+	*out = *(*MetaDataString)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -3130,8 +3103,7 @@ func autoConvert_v1beta2_NetworkLinkEthernetMac_To_v1beta1_NetworkLinkEthernetMa
 }
 
 func autoConvert_v1beta1_NetworkLinkEthernetMacFromAnnotation_To_v1beta2_NetworkLinkEthernetMacFromAnnotation(in *NetworkLinkEthernetMacFromAnnotation, out *v1beta2.NetworkLinkEthernetMacFromAnnotation, s conversion.Scope) error {
-	out.Object = in.Object
-	out.Annotation = in.Annotation
+	*out = *(*v1beta2.NetworkLinkEthernetMacFromAnnotation)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -3141,8 +3113,7 @@ func Convert_v1beta1_NetworkLinkEthernetMacFromAnnotation_To_v1beta2_NetworkLink
 }
 
 func autoConvert_v1beta2_NetworkLinkEthernetMacFromAnnotation_To_v1beta1_NetworkLinkEthernetMacFromAnnotation(in *v1beta2.NetworkLinkEthernetMacFromAnnotation, out *NetworkLinkEthernetMacFromAnnotation, s conversion.Scope) error {
-	out.Object = in.Object
-	out.Annotation = in.Annotation
+	*out = *(*NetworkLinkEthernetMacFromAnnotation)(unsafe.Pointer(in))
 	return nil
 }
 
