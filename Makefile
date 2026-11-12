@@ -464,6 +464,9 @@ $(GINKGO_BIN): $(GINKGO) ## Build a local copy of ginkgo.
 $(GINKGO):
 	GOBIN=$(TOOLS_BIN_DIR) $(GO) install $(GINKGO_PKG)@$(GINKGO_VER)
 
+# crdoc --version does not report the installed release, so always run go
+# install and let it settle on the pinned version.
+.PHONY: $(CRDOC)
 $(CRDOC):
 	GOBIN=$(TOOLS_BIN_DIR) $(GO) install $(CRDOC_PKG)@$(CRDOC_VER)
 
