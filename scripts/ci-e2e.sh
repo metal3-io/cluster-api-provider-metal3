@@ -135,6 +135,25 @@ if [[ "${GINKGO_FOCUS:-}" == "scalability" ]]; then
   FKAS_TAG=ci make docker-build-fkas
 fi
 
+# Deploy Grafana Alloy for log shipping.
+# Populate the CI labels from Jenkins' built-in env vars when available; they
+# fall back to local/0 for manual runs outside CI.
+ALLOY_KUBE_CONTEXT="$(kubectl config current-context 2>/dev/null || echo "")"
+export ALLOY_KUBE_CONTEXT
+export ALLOY_JOB="metal3ci"
+export ALLOY_PIPELINE_ID="${JOB_NAME:-local}"
+export ALLOY_BUILD_NUMBER="${BUILD_NUMBER:-0}"
+"${REPO_ROOT}/hack/log-collection/deploy-alloy.sh" || echo "WARN: Alloy deployment failed; continuing without log shipping." >&2
+# If running in-place-upgrade tests, ensure extension namespace and ssh key secret exist
+if [[ "${GINKGO_FOCUS:-}" == "in-place-upgrade" ]]; then
+  EXT_NS="test-extension-system"
+  kubectl get ns "${EXT_NS}" >/dev/null 2>&1 || kubectl create ns "${EXT_NS}"
+  # Recreate the secret to ensure freshest key is used
+  kubectl -n "${EXT_NS}" delete secret ssh-key >/dev/null 2>&1 || true
+  kubectl -n "${EXT_NS}" create secret generic ssh-key \
+    --from-file=id_rsa="${HOME}/.ssh/id_rsa"
+fi
+
 # Ensure kustomize + envsubst (tooling used below)
 make kustomize envsubst
 export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
