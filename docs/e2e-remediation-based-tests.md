@@ -154,6 +154,7 @@ Of the 4 BMHs, 2 are `provisioned` and 2 are `available`.
    | BMHs | 3 `provisioned` (1 control plane, 2 workers), 1 `available` (the unhealthy one) |
    | Metal3Machines | 3, one for each `provisioned` BMH |
    | Machines | 3, all `Running` |
+
 1. Remove the unhealthy annotation and wait until all 4 BMHs are
    `provisioned` and all 4 Machines are `Running`.
 
