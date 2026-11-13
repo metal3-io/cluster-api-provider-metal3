@@ -45,6 +45,7 @@ import (
 	"k8s.io/utils/ptr"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	testexec "sigs.k8s.io/cluster-api/test/framework/exec"
@@ -93,6 +94,30 @@ func Byf(format string, a ...any) {
 
 func Logf(format string, a ...any) {
 	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
+}
+
+// getCAPIStableRelease returns the latest stable CAPI release of a minor version,
+// for example "1.14.3" for minorVersion "1.14". The returned value has no "v" prefix.
+func getCAPIStableRelease(ctx context.Context, minorVersion string) string {
+	release, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
+	return strings.TrimPrefix(release, "v")
+}
+
+// getCAPIRelease returns the CAPI version to use for the current branch, with a "v" prefix.
+// If CAPIRELEASE is set (for example v1.15.0-beta.0, or v1.15.99 for nightly builds),
+// it returns that value. If not, it returns the latest stable release of the minor
+// version in CAPI_RELEASE_PREFIX, for example "v1.13." -> "v1.13.2".
+func getCAPIRelease(ctx context.Context) string {
+	if capiRelease := os.Getenv("CAPIRELEASE"); capiRelease != "" {
+		return capiRelease
+	}
+	releasePrefix := os.Getenv("CAPI_RELEASE_PREFIX")
+	Expect(releasePrefix).ToNot(BeEmpty(), "CAPI_RELEASE_PREFIX must be set when CAPIRELEASE is not")
+	minorVersion := strings.TrimSuffix(strings.TrimPrefix(releasePrefix, "v"), ".")
+	capiRelease := "v" + getCAPIStableRelease(ctx, minorVersion)
+	Logf("Resolved CAPIRELEASE from goproxy: %s", capiRelease)
+	return capiRelease
 }
 
 func LogFromFile(logFile string) {

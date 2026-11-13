@@ -31,6 +31,15 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/capi/v1.15/metadata.yaml"
+  - name: "v1.15.0-beta.0"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.15.0-beta.0/core-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.15/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/core-components.yaml"
     type: "url"
@@ -70,6 +79,15 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/capi/v1.15/metadata.yaml"
+  - name: "v1.15.0-beta.0"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.15.0-beta.0/bootstrap-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.15/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.14}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.14}/bootstrap-components.yaml"
     type: "url"
@@ -102,6 +120,15 @@ providers:
   versions:
   - name: "v1.15.99"
     value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.15/metadata.yaml"
+  - name: "v1.15.0-beta.0"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.15.0-beta.0/control-plane-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:

@@ -47,6 +47,9 @@ else
     export CAPM3RELEASE="v1.15.99"
     export IPAMRELEASE="v1.15.99"
     export CAPI_RELEASE_PREFIX="v1.14."
+    # Hard code CAPIRELEASE because CAPI v1.15 has no stable release yet.
+    # Remove this line when CAPI v1.15.0 is released.
+    export CAPIRELEASE="v1.15.0-beta.0"
 fi
 
 # Default CAPI_CONFIG_FOLDER to ${HOME}/.config folder if XDG_CONFIG_HOME not set

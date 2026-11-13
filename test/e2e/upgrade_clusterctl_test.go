@@ -36,6 +36,22 @@ var (
 	workloadClusterProxy       framework.ClusterProxy
 )
 
+// upgradeToCurrent returns the provider versions for the clusterctl upgrade step.
+// The CAPI version comes from getCAPIRelease. The Metal3 versions come
+// from CAPM3RELEASE and IPAMRELEASE.
+func upgradeToCurrent() []capi_e2e.ClusterctlUpgradeSpecInputUpgrade {
+	capiRelease := getCAPIRelease(ctx)
+	return []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
+		{
+			CoreProvider:            "cluster-api:" + capiRelease,
+			BootstrapProviders:      []string{"kubeadm:" + capiRelease},
+			ControlPlaneProviders:   []string{"kubeadm:" + capiRelease},
+			InfrastructureProviders: []string{"metal3:" + os.Getenv("CAPM3RELEASE")},
+			IPAMProviders:           []string{"metal3:" + os.Getenv("IPAMRELEASE")},
+		},
+	}
+}
+
 // Ironic 37.0 -> latest image tag.
 var _ = Describe("When testing cluster upgrade from releases (v1.14=>current)", Label("clusterctl-upgrade"), func() {
 	minorVersion := "1.14"
@@ -51,7 +67,6 @@ var _ = Describe("When testing cluster upgrade from releases (v1.14=>current)", 
 	// clusterctl has built-in GitHub URLs for them.
 	capm3InitVersion := minorVersion + ".99"
 	ipamInitVersion := minorVersion + ".99"
-	var capiStableRelease string
 
 	BeforeEach(func() {
 		k8sVersion = "v1.37.0"
@@ -60,10 +75,6 @@ var _ = Describe("When testing cluster upgrade from releases (v1.14=>current)", 
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
-
-		var err error
-		capiStableRelease, err = capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
-		Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
 	})
 
 	AfterEach(func() {
@@ -91,6 +102,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.14=>current)", 
 	})
 
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
+		capiStableRelease := getCAPIStableRelease(ctx, minorVersion)
 		return capi_e2e.ClusterctlUpgradeSpecInput{
 			E2EConfig:                       e2eConfig,
 			ClusterctlConfigPath:            clusterctlConfigPath,
@@ -107,6 +119,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.14=>current)", 
 			InitWithKubernetesVersion:         k8sVersion,
 			WorkloadKubernetesVersion:         k8sVersion,
 			InitWithBinary:                    fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
+			Upgrades:                          upgradeToCurrent(),
 			PreInit: func(clusterProxy framework.ClusterProxy) {
 				preInitFunc(clusterProxy, bmoFromRelease, ironicFromRelease, testName)
 				// Override capi/capm3 versions exported in preInit
@@ -145,7 +158,6 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 	// clusterctl has built-in GitHub URLs for them.
 	capm3InitVersion := minorVersion + ".99"
 	ipamInitVersion := minorVersion + ".99"
-	var capiStableRelease string
 
 	BeforeEach(func() {
 		k8sVersion = "v1.37.0"
@@ -154,10 +166,6 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
-
-		var err error
-		capiStableRelease, err = capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
-		Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
 	})
 
 	AfterEach(func() {
@@ -185,6 +193,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 	})
 
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
+		capiStableRelease := getCAPIStableRelease(ctx, minorVersion)
 		return capi_e2e.ClusterctlUpgradeSpecInput{
 			E2EConfig:                       e2eConfig,
 			ClusterctlConfigPath:            clusterctlConfigPath,
@@ -201,6 +210,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 			InitWithKubernetesVersion:         k8sVersion,
 			WorkloadKubernetesVersion:         k8sVersion,
 			InitWithBinary:                    fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
+			Upgrades:                          upgradeToCurrent(),
 			PreInit: func(clusterProxy framework.ClusterProxy) {
 				preInitFunc(clusterProxy, bmoFromRelease, ironicFromRelease, testName)
 				// Override capi/capm3 versions exported in preInit
