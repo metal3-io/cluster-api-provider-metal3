@@ -7,9 +7,9 @@ set -eux
 IS_CONTAINER="${IS_CONTAINER:-false}"
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 
-# all md files, but ignore .github
+# all md files, but ignore .github and auto-generated docs
 if [ "${IS_CONTAINER}" != "false" ]; then
-    markdownlint-cli2 "**/*.md" "#.github"
+    markdownlint-cli2 "**/*.md" "#.github" "#docs/api-reference.md"
 else
     "${CONTAINER_RUNTIME}" run --rm \
         --env IS_CONTAINER=TRUE \

@@ -34,7 +34,7 @@ if [ "${IS_CONTAINER}" != "false" ]; then
     cp -a . "${CODEGEN_DIR}"
     cd "${CODEGEN_DIR}"
 
-    INPUT_FILES="$(git ls-files config) $(git ls-files | grep zz_generated)"
+    INPUT_FILES="$(git ls-files config) $(git ls-files | grep zz_generated) docs/api-reference.md"
     cksum ${INPUT_FILES} > "${ARTIFACTS}/lint.cksums.before"
     export VERBOSE="--verbose"
     make generate

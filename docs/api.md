@@ -9,6 +9,9 @@ Metal3-io components are deployed :
 - Baremetal Operator (including the Ironic setup)
 - Cluster API Provider Metal3 (CAPM3)
 
+For a complete list of the fields of every CAPM3 resource, see the
+[API reference](api-reference.md), which is generated from the CRDs.
+
 ## BareMetalHost
 
 The BareMetalHost is an object from

@@ -72,6 +72,10 @@ SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 GINKGO_BIN := ginkgo
 GINKGO := $(TOOLS_BIN_DIR)/$(GINKGO_BIN)
 GINKGO_PKG := github.com/onsi/ginkgo/v2/ginkgo
+CRDOC_BIN := crdoc
+CRDOC := $(TOOLS_BIN_DIR)/$(CRDOC_BIN)
+CRDOC_PKG := fybrik.io/crdoc
+CRDOC_VER := v0.6.4
 
 # Helper function to get dependency version from go.mod
 get_go_version = $(shell $(GO) list -m $1 | awk '{print $$2}')
@@ -460,6 +464,12 @@ $(GINKGO_BIN): $(GINKGO) ## Build a local copy of ginkgo.
 $(GINKGO):
 	GOBIN=$(TOOLS_BIN_DIR) $(GO) install $(GINKGO_PKG)@$(GINKGO_VER)
 
+# crdoc --version does not report the installed release, so always run go
+# install and let it settle on the pinned version.
+.PHONY: $(CRDOC)
+$(CRDOC):
+	GOBIN=$(TOOLS_BIN_DIR) $(GO) install $(CRDOC_PKG)@$(CRDOC_VER)
+
 $(ENVSUBST):
 	rm -f $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)*
 	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/envsubst-drone github.com/drone/envsubst/cmd/envsubst
@@ -530,6 +540,7 @@ modules: ## Runs go mod to ensure proper vendoring.
 generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) generate-manifests
+	$(MAKE) generate-api-docs
 
 .PHONY: generate-go
 generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUSTOMIZE) ## Runs Go related generate targets
@@ -617,6 +628,10 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:rbac:dir=$(RBAC_ROOT) \
 		output:webhook:dir=$(WEBHOOK_ROOT) \
 		webhook
+
+.PHONY: generate-api-docs
+generate-api-docs: $(CRDOC) ## Generate the API reference documentation from the CRDs
+	CRDOC=$(CRDOC) CRD_ROOT=$(CRD_ROOT) ./hack/gen-api-docs.sh
 
 .PHONY: generate-manifests-test-extension
 generate-manifests-test-extension: $(CONTROLLER_GEN) ## Generate manifests e.g. RBAC for test-extension provider
