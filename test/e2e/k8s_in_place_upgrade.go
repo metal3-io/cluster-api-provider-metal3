@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -11,9 +12,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -69,6 +72,56 @@ func CreateTestExtensionSSHKeySecret(ctx context.Context, clusterProxy framework
 	Expect(c.Create(ctx, secret)).To(Succeed(), "Failed to create the %s secret", testExtensionSSHSecretName)
 }
 
+// cpMachineHealthy returns true if the Machine is a control plane Machine that
+// passes the KCP preflight checks: it has a Node and all control plane
+// component and etcd conditions are true.
+func cpMachineHealthy(machine clusterv1.Machine) bool {
+	if _, isControlPlane := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]; !isControlPlane {
+		return false
+	}
+	if !machine.Status.NodeRef.IsDefined() {
+		return false
+	}
+	for _, conditionType := range []string{
+		controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+		controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
+	} {
+		if !conditions.IsTrue(&machine, conditionType) {
+			return false
+		}
+	}
+	return true
+}
+
+// cpStableDuration is how long all CP Machines must stay healthy before the
+// test starts the in-place upgrade.
+const cpStableDuration = 2 * time.Minute
+
+// WaitForStableControlPlane waits until the number of healthy CP Machines is
+// equal to replicas, and stays equal to replicas for cpStableDuration. Each
+// failed check starts the stable period again.
+func WaitForStableControlPlane(ctx context.Context, c client.Client, namespace string, replicas int, intervals ...interface{}) {
+	var healthySince time.Time
+	Eventually(func(g Gomega) {
+		machineList := clusterv1.MachineList{}
+		g.Expect(c.List(ctx, &machineList, client.InNamespace(namespace))).To(Succeed())
+		healthy := len(FilterMachines(machineList.Items, cpMachineHealthy))
+		if healthy != replicas {
+			healthySince = time.Time{}
+			g.Expect(healthy).To(Equal(replicas), "Not all CP machines are healthy")
+		}
+		if healthySince.IsZero() {
+			healthySince = time.Now()
+		}
+		g.Expect(time.Since(healthySince)).To(BeNumerically(">=", cpStableDuration),
+			"CP machines are healthy, but not for %s yet", cpStableDuration)
+	}, intervals...).Should(Succeed())
+	ListMachines(ctx, c, client.InNamespace(namespace))
+}
+
 type InPlaceUpgradeInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	BootstrapClusterProxy framework.ClusterProxy
@@ -76,6 +129,25 @@ type InPlaceUpgradeInput struct {
 	SpecName              string
 	ClusterName           string
 	Namespace             string
+	ArtifactFolder        string
+}
+
+// fetchInPlaceUpgradeArtifacts collects the pod logs and the manifests of the
+// bootstrap and the target cluster into <ArtifactFolder>/<stage>. A failure
+// to collect is logged and does not stop the test.
+func fetchInPlaceUpgradeArtifacts(input InPlaceUpgradeInput, stage string) {
+	outputPath := filepath.Join(input.ArtifactFolder, stage)
+	for _, proxy := range []framework.ClusterProxy{input.BootstrapClusterProxy, input.TargetCluster} {
+		Byf("Fetch logs from %s cluster (%s)", proxy.GetName(), stage)
+		if err := FetchClusterLogs(proxy, outputPath); err != nil {
+			Logf("Error fetching logs for %s cluster (%s): %v", proxy.GetName(), stage, err)
+		}
+
+		Byf("Fetch manifests for %s cluster (%s)", proxy.GetName(), stage)
+		if err := FetchManifests(proxy, outputPath); err != nil {
+			Logf("Error fetching manifests for %s cluster (%s): %v", proxy.GetName(), stage, err)
+		}
+	}
 }
 
 func InPlaceUpgrade(ctx context.Context, inputGetter func() InPlaceUpgradeInput) {
@@ -95,6 +167,7 @@ func InPlaceUpgrade(ctx context.Context, inputGetter func() InPlaceUpgradeInput)
 	ListMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
 	ListMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
 	ListNodes(ctx, targetClusterClient)
+	fetchInPlaceUpgradeArtifacts(input, "beforeStableWait")
 
 	// Get the initial machine UIDs before upgrade to verify in-place upgrade (no rollout)
 	By("Capture machine UIDs before upgrade to verify no rollout occurs")
@@ -127,6 +200,22 @@ func InPlaceUpgrade(ctx context.Context, inputGetter func() InPlaceUpgradeInput)
 	newM3MachineTemplateName := input.ClusterName + "-new-controlplane"
 	CreateNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
 
+	Byf("Wait for %d CP machine(s) to stay healthy for %s", numberOfControlplane, cpStableDuration)
+	WaitForStableControlPlane(ctx, managementClusterClient, input.Namespace, numberOfControlplane,
+		input.E2EConfig.GetIntervals(input.SpecName, "wait-control-plane")...)
+
+	fetchInPlaceUpgradeArtifacts(input, "afterStableWait")
+
+	// The log collection above takes time. Check the CP health again
+	// immediately before the KCP patch.
+	Byf("Check that %d CP machine(s) are still healthy", numberOfControlplane)
+	WaitForNumMachines(ctx, cpMachineHealthy, WaitForNumInput{
+		Client:    managementClusterClient,
+		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
+		Replicas:  numberOfControlplane,
+		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-control-plane"),
+	})
+
 	Byf("Update KCP to upgrade k8s version and binaries from %s to %s", fromK8sVersion, upgradedK8sVersion)
 	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
 		Lister:      managementClusterClient,
@@ -156,6 +245,8 @@ func InPlaceUpgrade(ctx context.Context, inputGetter func() InPlaceUpgradeInput)
 	})
 
 	Logf("CP nodes upgraded successfully to %s", upgradedK8sVersion)
+
+	fetchInPlaceUpgradeArtifacts(input, "afterUpgrade")
 
 	// Verify CP machines were not replaced (in-place upgrade)
 	By("Verify CP machines were not replaced (no rollout)")
