@@ -273,7 +273,10 @@ The fields are:
 - **image** -- This includes two sub-fields, `url` and `checksum`, which include
   the URL to the image and the URL to a checksum for that image. These fields
   are required. The image will be used for provisioning of the `BareMetalHost`
-  chosen by the `Machine` actuator.
+  chosen by the `Machine` actuator. For an `oci://` URL, `checksum` must be
+  empty and `ociAuthSecretName` may name a `kubernetes.io/dockerconfigjson` or
+  `kubernetes.io/dockercfg` secret in the `BareMetalHost` namespace holding the
+  registry credentials.
 
 - **userData** -- This includes two sub-fields, `name` and `namespace`, which
   reference a `Secret` that contains base64 encoded user-data to be written to a
