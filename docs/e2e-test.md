@@ -299,9 +299,14 @@ declared as the `test-extension` `RuntimeExtensionProvider` in
 `test/e2e/config/e2e_conf.yaml` and, only when `GINKGO_FOCUS=in-place-upgrade`,
 installed by `clusterctl init` together with the other providers. Right before
 that init, the `test-extension-system` namespace and the `ssh-key` secret are
-created; the secret carries `~/.ssh/id_rsa`, the counterpart of the public key
-provisioned onto the nodes, and is mounted at `/home/nonroot/.ssh/id_rsa` in
-the extension pod. The test then applies the `ExtensionConfig` so CAPI
+created. The secret carries a temporary ed25519 private key that the suite
+generates in memory. The secret is mounted at `/home/nonroot/.ssh/id_rsa` in
+the extension pod. The test gives the matching public key to the cluster
+template as `IN_PLACE_UPGRADE_SSH_PUB_KEY`. The KCP of the `main` templates
+puts this key into `kubeadmConfigSpec.users` next to `SSH_PUB_KEY_CONTENT`, so
+the nodes get both keys at creation time. For the other tests,
+`scripts/environment.sh` sets `IN_PLACE_UPGRADE_SSH_PUB_KEY` to
+`SSH_PUB_KEY_CONTENT`. The test then applies the `ExtensionConfig` so CAPI
 discovers the hooks.
 
 **Handling version-managed KubeadmConfig changes:**
