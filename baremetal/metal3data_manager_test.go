@@ -170,6 +170,7 @@ var _ = Describe("Metal3Data manager", func() {
 		dataClaim           *infrav1.Metal3DataClaim
 		machine             *clusterv1.Machine
 		bmh                 *bmov1alpha1.BareMetalHost
+		hardwareData        *bmov1alpha1.HardwareData
 		metadataSecret      *corev1.Secret
 		networkdataSecret   *corev1.Secret
 		expectError         bool
@@ -196,6 +197,9 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			if tc.bmh != nil {
 				objects = append(objects, tc.bmh)
+			}
+			if tc.hardwareData != nil {
+				objects = append(objects, tc.hardwareData)
 			}
 			if tc.metadataSecret != nil {
 				objects = append(objects, tc.metadataSecret)
@@ -469,6 +473,98 @@ var _ = Describe("Metal3Data manager", func() {
 			expectReady:         true,
 			expectedMetadata:    ptr.To(fmt.Sprintf("String-1: String-1\nproviderid: %s\n", providerid)),
 			expectedNetworkData: "links:\n- ethernet_mac_address: 12:34:56:78:9A:BC\n  id: eth0\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n",
+		}),
+		Entry("secrets do not exist, MAC addresses from HardwareData", testCaseCreateSecrets{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
+				Spec: infrav1.Metal3DataSpec{
+					Template: testMetal3ObjectReference(metal3DataTemplateName),
+					Claim:    testMetal3ObjectReference(metal3DataClaimName),
+				},
+			},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, m3dtuid),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromHostInterfaces: []infrav1.MetaDataHostInterface{
+							{
+								Key:       "Mac-1",
+								Interface: "eth1",
+							},
+						},
+					},
+					NetworkData: &infrav1.NetworkData{
+						Links: &infrav1.NetworkDataLink{
+							Ethernets: []infrav1.NetworkDataLinkEthernet{
+								{
+									Type: "phy",
+									Id:   "eth1",
+									MTU:  1500,
+									MACAddress: &infrav1.NetworkLinkEthernetMac{
+										FromHostInterface: "eth1",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			m3m: &infrav1.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3machineName,
+					Namespace: namespaceName,
+					UID:       m3muid,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name:       machineName,
+							Kind:       "Machine",
+							APIVersion: clusterv1.GroupVersion.String(),
+						},
+					},
+					Annotations: map[string]string{
+						"metal3.io/BareMetalHost": namespaceName + "/" + baremetalhostName,
+					},
+				},
+				Spec: infrav1.Metal3MachineSpec{
+					DataTemplate: testMetal3ObjectReference(metal3DataTemplateName),
+				},
+			},
+			dataClaim: &infrav1.Metal3DataClaim{
+				ObjectMeta: testObjectMetaWithOR(metal3DataClaimName, metal3machineName),
+				Spec:       infrav1.Metal3DataClaimSpec{},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: testObjectMeta(machineName, namespaceName, muid),
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, bmhuid),
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
+							{
+								Name: "eth1",
+								MAC:  "12:34:56:78:9A:BC",
+							},
+						},
+					},
+				},
+			},
+			hardwareData: &bmov1alpha1.HardwareData{
+				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
+				Spec: bmov1alpha1.HardwareDataSpec{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
+							{
+								Name: "eth1",
+								MAC:  "DE:F0:12:34:56:78",
+							},
+						},
+					},
+				},
+			},
+			expectReady:         true,
+			expectedMetadata:    ptr.To(fmt.Sprintf("Mac-1: DE:F0:12:34:56:78\nproviderid: %s\n", providerid)),
+			expectedNetworkData: "links:\n- ethernet_mac_address: DE:F0:12:34:56:78\n  id: eth1\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n",
 		}),
 		Entry("No Machine OwnerRef on M3M", testCaseCreateSecrets{
 			m3d: &infrav1.Metal3Data{
@@ -2581,7 +2677,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test renderNetworkData",
 		func(tc testCaseRenderNetworkData) {
-			result, err := renderNetworkData(tc.m3dt, tc.m3m, tc.machine, tc.bmh, tc.poolAddresses)
+			result, err := renderNetworkData(tc.m3dt, tc.m3m, tc.machine, tc.bmh, nil, tc.poolAddresses)
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
@@ -2815,7 +2911,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test renderNetworkLinks",
 		func(tc testCaseRenderNetworkLinks) {
-			result, err := renderNetworkLinks(tc.links, tc.m3m, tc.machine, tc.bmh)
+			result, err := renderNetworkLinks(tc.links, tc.m3m, tc.machine, tc.bmh, nil)
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
@@ -3848,17 +3944,18 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseGetLinkMacAddress struct {
-		mac         *infrav1.NetworkLinkEthernetMac
-		m3m         *infrav1.Metal3Machine
-		machine     *clusterv1.Machine
-		bmh         *bmov1alpha1.BareMetalHost
-		expectError bool
-		expectedMAC string
+		mac             *infrav1.NetworkLinkEthernetMac
+		m3m             *infrav1.Metal3Machine
+		machine         *clusterv1.Machine
+		bmh             *bmov1alpha1.BareMetalHost
+		hardwareDetails *bmov1alpha1.HardwareDetails
+		expectError     bool
+		expectedMAC     string
 	}
 
 	DescribeTable("Test getLinkMacAddress",
 		func(tc testCaseGetLinkMacAddress) {
-			result, err := getLinkMacAddress(tc.mac, tc.m3m, tc.machine, tc.bmh)
+			result, err := getLinkMacAddress(tc.mac, tc.m3m, tc.machine, tc.bmh, tc.hardwareDetails)
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
@@ -3876,22 +3973,17 @@ var _ = Describe("Metal3Data manager", func() {
 			mac: &infrav1.NetworkLinkEthernetMac{
 				FromHostInterface: "eth1",
 			},
-			bmh: &bmov1alpha1.BareMetalHost{
-				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
-				Status: bmov1alpha1.BareMetalHostStatus{
-					HardwareDetails: &bmov1alpha1.HardwareDetails{
-						NIC: []bmov1alpha1.NIC{
-							{
-								Name: "eth0",
-								MAC:  "12:34:56:78:9A:BC",
-							},
-							// Check if empty value cause failure
-							{},
-							{
-								Name: "eth1",
-								MAC:  "DE:F0:12:34:56:78",
-							},
-						},
+			hardwareDetails: &bmov1alpha1.HardwareDetails{
+				NIC: []bmov1alpha1.NIC{
+					{
+						Name: "eth0",
+						MAC:  "12:34:56:78:9A:BC",
+					},
+					// Check if empty value cause failure
+					{},
+					{
+						Name: "eth1",
+						MAC:  "DE:F0:12:34:56:78",
 					},
 				},
 			},
@@ -3901,22 +3993,17 @@ var _ = Describe("Metal3Data manager", func() {
 			mac: &infrav1.NetworkLinkEthernetMac{
 				FromHostInterface: "eth2",
 			},
-			bmh: &bmov1alpha1.BareMetalHost{
-				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
-				Status: bmov1alpha1.BareMetalHostStatus{
-					HardwareDetails: &bmov1alpha1.HardwareDetails{
-						NIC: []bmov1alpha1.NIC{
-							{
-								Name: "eth0",
-								MAC:  "12:34:56:78:9A:BC",
-							},
-							// Check if empty value cause failure
-							{},
-							{
-								Name: "eth1",
-								MAC:  "DE:F0:12:34:56:78",
-							},
-						},
+			hardwareDetails: &bmov1alpha1.HardwareDetails{
+				NIC: []bmov1alpha1.NIC{
+					{
+						Name: "eth0",
+						MAC:  "12:34:56:78:9A:BC",
+					},
+					// Check if empty value cause failure
+					{},
+					{
+						Name: "eth1",
+						MAC:  "DE:F0:12:34:56:78",
 					},
 				},
 			},
@@ -4028,6 +4115,7 @@ var _ = Describe("Metal3Data manager", func() {
 		m3m              *infrav1.Metal3Machine
 		machine          *clusterv1.Machine
 		bmh              *bmov1alpha1.BareMetalHost
+		hardwareDetails  *bmov1alpha1.HardwareDetails
 		poolAddresses    map[string]AddressFromPool
 		expectedMetaData map[string]string
 		expectError      bool
@@ -4036,7 +4124,7 @@ var _ = Describe("Metal3Data manager", func() {
 	DescribeTable("Test renderMetaData",
 		func(tc testCaseRenderMetaData) {
 			resultBytes, err := renderMetaData(tc.m3d, tc.m3dt, tc.m3m, tc.machine,
-				tc.bmh, tc.poolAddresses,
+				tc.bmh, tc.hardwareDetails, tc.poolAddresses,
 			)
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
@@ -4248,20 +4336,18 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 					UID: bmhuid,
 				},
-				Status: bmov1alpha1.BareMetalHostStatus{
-					HardwareDetails: &bmov1alpha1.HardwareDetails{
-						NIC: []bmov1alpha1.NIC{
-							{
-								Name: "eth0",
-								MAC:  "XX:XX:XX:XX:XX:XX",
-							},
-							// To check if empty value cause failure
-							{},
-							{
-								Name: "eth1",
-								MAC:  "XX:XX:XX:XX:XX:YY",
-							},
-						},
+			},
+			hardwareDetails: &bmov1alpha1.HardwareDetails{
+				NIC: []bmov1alpha1.NIC{
+					{
+						Name: "eth0",
+						MAC:  "XX:XX:XX:XX:XX:XX",
+					},
+					// To check if empty value cause failure
+					{},
+					{
+						Name: "eth1",
+						MAC:  "XX:XX:XX:XX:XX:YY",
 					},
 				},
 			},
@@ -4324,20 +4410,18 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			bmh: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
-				Status: bmov1alpha1.BareMetalHostStatus{
-					HardwareDetails: &bmov1alpha1.HardwareDetails{
-						NIC: []bmov1alpha1.NIC{
-							{
-								Name: "eth0",
-								MAC:  "XX:XX:XX:XX:XX:XX",
-							},
-							// Check if empty value cause failure
-							{},
-							{
-								Name: "eth1",
-								MAC:  "XX:XX:XX:XX:XX:YY",
-							},
-						},
+			},
+			hardwareDetails: &bmov1alpha1.HardwareDetails{
+				NIC: []bmov1alpha1.NIC{
+					{
+						Name: "eth0",
+						MAC:  "XX:XX:XX:XX:XX:XX",
+					},
+					// Check if empty value cause failure
+					{},
+					{
+						Name: "eth1",
+						MAC:  "XX:XX:XX:XX:XX:YY",
 					},
 				},
 			},
@@ -4516,15 +4600,15 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseGetBMHMacByName struct {
-		bmh         *bmov1alpha1.BareMetalHost
-		name        string
-		expectError bool
-		expectedMAC string
+		hardwareDetails *bmov1alpha1.HardwareDetails
+		name            string
+		expectError     bool
+		expectedMAC     string
 	}
 
 	DescribeTable("Test getBMHMacByName",
 		func(tc testCaseGetBMHMacByName) {
-			result, err := getBMHMacByName(tc.name, tc.bmh)
+			result, err := getBMHMacByName(tc.name, tc.hardwareDetails)
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 			} else {
@@ -4533,42 +4617,27 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("No hardware details", testCaseGetBMHMacByName{
-			bmh: &bmov1alpha1.BareMetalHost{
-				Status: bmov1alpha1.BareMetalHostStatus{},
-			},
 			name:        "eth1",
 			expectError: true,
 		}),
 		Entry("No Nics detail", testCaseGetBMHMacByName{
-			bmh: &bmov1alpha1.BareMetalHost{
-				Status: bmov1alpha1.BareMetalHostStatus{
-					HardwareDetails: &bmov1alpha1.HardwareDetails{},
-				},
-			},
-			name:        "eth1",
-			expectError: true,
+			hardwareDetails: &bmov1alpha1.HardwareDetails{},
+			name:            "eth1",
+			expectError:     true,
 		}),
 		Entry("Empty nic list", testCaseGetBMHMacByName{
-			bmh: &bmov1alpha1.BareMetalHost{
-				Status: bmov1alpha1.BareMetalHostStatus{
-					HardwareDetails: &bmov1alpha1.HardwareDetails{
-						NIC: []bmov1alpha1.NIC{},
-					},
-				},
+			hardwareDetails: &bmov1alpha1.HardwareDetails{
+				NIC: []bmov1alpha1.NIC{},
 			},
 			name:        "eth1",
 			expectError: true,
 		}),
 		Entry("Nic not found", testCaseGetBMHMacByName{
-			bmh: &bmov1alpha1.BareMetalHost{
-				Status: bmov1alpha1.BareMetalHostStatus{
-					HardwareDetails: &bmov1alpha1.HardwareDetails{
-						NIC: []bmov1alpha1.NIC{
-							{
-								Name: "eth0",
-								MAC:  "XX:XX:XX:XX:XX:XX",
-							},
-						},
+			hardwareDetails: &bmov1alpha1.HardwareDetails{
+				NIC: []bmov1alpha1.NIC{
+					{
+						Name: "eth0",
+						MAC:  "XX:XX:XX:XX:XX:XX",
 					},
 				},
 			},
@@ -4576,21 +4645,17 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Nic found", testCaseGetBMHMacByName{
-			bmh: &bmov1alpha1.BareMetalHost{
-				Status: bmov1alpha1.BareMetalHostStatus{
-					HardwareDetails: &bmov1alpha1.HardwareDetails{
-						NIC: []bmov1alpha1.NIC{
-							{
-								Name: "eth0",
-								MAC:  "XX:XX:XX:XX:XX:XX",
-							},
-							// Check if empty value cause failure
-							{},
-							{
-								Name: "eth1",
-								MAC:  "XX:XX:XX:XX:XX:YY",
-							},
-						},
+			hardwareDetails: &bmov1alpha1.HardwareDetails{
+				NIC: []bmov1alpha1.NIC{
+					{
+						Name: "eth0",
+						MAC:  "XX:XX:XX:XX:XX:XX",
+					},
+					// Check if empty value cause failure
+					{},
+					{
+						Name: "eth1",
+						MAC:  "XX:XX:XX:XX:XX:YY",
 					},
 				},
 			},
@@ -4598,20 +4663,16 @@ var _ = Describe("Metal3Data manager", func() {
 			expectedMAC: "XX:XX:XX:XX:XX:YY",
 		}),
 		Entry("Nic found, Empty Mac", testCaseGetBMHMacByName{
-			bmh: &bmov1alpha1.BareMetalHost{
-				Status: bmov1alpha1.BareMetalHostStatus{
-					HardwareDetails: &bmov1alpha1.HardwareDetails{
-						NIC: []bmov1alpha1.NIC{
-							{
-								Name: "eth0",
-								MAC:  "XX:XX:XX:XX:XX:XX",
-							},
-							// Check if empty value cause failure
-							{},
-							{
-								Name: "eth1",
-							},
-						},
+			hardwareDetails: &bmov1alpha1.HardwareDetails{
+				NIC: []bmov1alpha1.NIC{
+					{
+						Name: "eth0",
+						MAC:  "XX:XX:XX:XX:XX:XX",
+					},
+					// Check if empty value cause failure
+					{},
+					{
+						Name: "eth1",
 					},
 				},
 			},

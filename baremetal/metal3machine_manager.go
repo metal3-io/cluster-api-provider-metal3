@@ -910,6 +910,34 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 	return &host, nil
 }
 
+// getHardwareDetails returns the hardware details of the given BareMetalHost.
+// The details are read from the HardwareData resource that the
+// baremetal-operator creates with the same name and namespace as the host
+// after inspection. The deprecated BareMetalHost status.hardware field is used
+// as a fallback when the HardwareData does not exist or holds no hardware
+// details, for example when the details were provided through the
+// inspect.metal3.io/hardwaredetails annotation or while the HardwareData is
+// being re-created after a new inspection. Returns nil if no hardware details
+// are available.
+func getHardwareDetails(ctx context.Context, cl client.Client,
+	host *bmov1alpha1.BareMetalHost,
+) (*bmov1alpha1.HardwareDetails, error) {
+	if host == nil {
+		return nil, nil //nolint:nilnil
+	}
+
+	hardwareData := &bmov1alpha1.HardwareData{}
+	key := client.ObjectKeyFromObject(host)
+	err := cl.Get(ctx, key, hardwareData)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, fmt.Errorf("failed to get HardwareData %s: %w", key, err)
+	}
+	if err == nil && hardwareData.Spec.HardwareDetails != nil {
+		return hardwareData.Spec.HardwareDetails, nil
+	}
+	return host.Status.HardwareDetails, nil
+}
+
 // chooseHost iterates through known BareMetalHosts and selects one to associate
 // with the Metal3Machine. It first checks if any host already has a ConsumerRef
 // pointing to this machine, and returns it immediately if found. Otherwise it
@@ -1428,11 +1456,12 @@ func (m *MachineManager) updateMachineStatus(ctx context.Context, host *bmov1alp
 // nodeAddresses returns a slice of clusterv1.MachineAddress objects for a
 // given Metal3 machine.
 //
-// The IP addresses are normally derived from the NICs of the BareMetalHost. If
-// the metaData secret of the Metal3Machine provides address overrides, see
+// The IP addresses are normally derived from the NICs of the BareMetalHost, as
+// found in its hardware details, see getHardwareDetails. If the metaData secret
+// of the Metal3Machine provides address overrides, see
 // addressOverridesFromMetaData, those are used instead. The hostname based
-// addresses are always taken from the BareMetalHost, also when the IP addresses
-// are overridden.
+// addresses are always taken from the hardware details of the BareMetalHost,
+// also when the IP addresses are overridden.
 func (m *MachineManager) nodeAddresses(ctx context.Context, host *bmov1alpha1.BareMetalHost) ([]clusterv1.MachineAddress, error) {
 	addrs := []clusterv1.MachineAddress{}
 
@@ -1441,15 +1470,20 @@ func (m *MachineManager) nodeAddresses(ctx context.Context, host *bmov1alpha1.Ba
 		return nil, err
 	}
 
+	hardwareDetails, err := getHardwareDetails(ctx, m.client, host)
+	if err != nil {
+		return nil, err
+	}
+
 	// If the host is nil or we have no hw details, only the overrides are available.
-	if host == nil || host.Status.HardwareDetails == nil {
+	if hardwareDetails == nil {
 		return append(addrs, overrides...), nil
 	}
 
 	if len(overrides) > 0 {
 		addrs = append(addrs, overrides...)
 	} else {
-		for _, nic := range host.Status.HardwareDetails.NIC {
+		for _, nic := range hardwareDetails.NIC {
 			address := clusterv1.MachineAddress{
 				Type:    clusterv1.MachineInternalIP,
 				Address: nic.IP,
@@ -1461,14 +1495,14 @@ func (m *MachineManager) nodeAddresses(ctx context.Context, host *bmov1alpha1.Ba
 		}
 	}
 
-	if host.Status.HardwareDetails.Hostname != "" {
+	if hardwareDetails.Hostname != "" {
 		addrs = append(addrs, clusterv1.MachineAddress{
 			Type:    clusterv1.MachineHostName,
-			Address: host.Status.HardwareDetails.Hostname,
+			Address: hardwareDetails.Hostname,
 		})
 		addrs = append(addrs, clusterv1.MachineAddress{
 			Type:    clusterv1.MachineInternalDNS,
-			Address: host.Status.HardwareDetails.Hostname,
+			Address: hardwareDetails.Hostname,
 		})
 	}
 
