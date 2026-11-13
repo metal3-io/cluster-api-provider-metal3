@@ -102,9 +102,11 @@ var _ = Describe("When testing cluster upgrade from releases (v1.14=>current)", 
 			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3InitVersion)},
 			InitWithIPAMProviders:           []string{fmt.Sprintf(providerMetal3Prefix, ipamInitVersion)},
-			InitWithKubernetesVersion:       k8sVersion,
-			WorkloadKubernetesVersion:       k8sVersion,
-			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
+			// The test-extension is only for the in-place upgrade test.
+			InitWithRuntimeExtensionProviders: []string{},
+			InitWithKubernetesVersion:         k8sVersion,
+			WorkloadKubernetesVersion:         k8sVersion,
+			InitWithBinary:                    fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 			PreInit: func(clusterProxy framework.ClusterProxy) {
 				preInitFunc(clusterProxy, bmoFromRelease, ironicFromRelease, testName)
 				// Override capi/capm3 versions exported in preInit
@@ -194,9 +196,11 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3InitVersion)},
 			InitWithIPAMProviders:           []string{fmt.Sprintf(providerMetal3Prefix, ipamInitVersion)},
-			InitWithKubernetesVersion:       k8sVersion,
-			WorkloadKubernetesVersion:       k8sVersion,
-			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
+			// The test-extension is only for the in-place upgrade test.
+			InitWithRuntimeExtensionProviders: []string{},
+			InitWithKubernetesVersion:         k8sVersion,
+			WorkloadKubernetesVersion:         k8sVersion,
+			InitWithBinary:                    fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 			PreInit: func(clusterProxy framework.ClusterProxy) {
 				preInitFunc(clusterProxy, bmoFromRelease, ironicFromRelease, testName)
 				// Override capi/capm3 versions exported in preInit
