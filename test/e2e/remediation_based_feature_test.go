@@ -80,6 +80,10 @@ var _ = Describe("Testing nodes remediation", Label("remediation", "features"), 
 				Namespace:             namespace,
 			}
 		})
+		// Each remediation test below powers off, deletes, or replaces nodes,
+		// so collect the artifacts at the border between the tests.
+		CollectPhaseArtifacts(artifactFolder, "remediation", "preNodeRemediation", bootstrapClusterProxy, targetCluster)
+
 		// Run Metal3Remediation test first, doesn't work after remediation...
 		By("Running node remediation tests")
 		NodeRemediation(ctx, func() NodeRemediationInput {
@@ -93,6 +97,8 @@ var _ = Describe("Testing nodes remediation", Label("remediation", "features"), 
 			}
 		})
 
+		CollectPhaseArtifacts(artifactFolder, "remediation", "postNodeRemediation", bootstrapClusterProxy, targetCluster)
+
 		By("Running healthcheck tests")
 		HealthCheck(ctx, func() HealthCheckInput {
 			return HealthCheckInput{
@@ -104,6 +110,8 @@ var _ = Describe("Testing nodes remediation", Label("remediation", "features"), 
 			}
 		})
 
+		CollectPhaseArtifacts(artifactFolder, "remediation", "postHealthCheck", bootstrapClusterProxy, targetCluster)
+
 		By("Running annotated powercycle remediation tests")
 		Remediation(ctx, func() RemediationInput {
 			return RemediationInput{
@@ -114,6 +122,7 @@ var _ = Describe("Testing nodes remediation", Label("remediation", "features"), 
 				ClusterName:           clusterName,
 				Namespace:             namespace,
 				ClusterctlConfigPath:  clusterctlConfigPath,
+				ArtifactFolder:        artifactFolder,
 			}
 		})
 	})

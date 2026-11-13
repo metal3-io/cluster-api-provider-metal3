@@ -63,6 +63,7 @@ var _ = Describe("Kubernetes version upgrade in target nodes", Label("k8s-upgrad
 				SpecName:              specName,
 				ClusterName:           clusterName,
 				Namespace:             namespace,
+				ArtifactFolder:        artifactFolder,
 			}
 		})
 	})
@@ -86,6 +87,7 @@ type upgradeKubernetesInput struct {
 	SpecName              string
 	ClusterName           string
 	Namespace             string
+	ArtifactFolder        string
 }
 
 // upgradeKubernetes implements a test upgrading the cluster nodes from an old k8s version to a newer version.
@@ -114,6 +116,8 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	ListMetal3Machines(ctx, clusterClient, client.InNamespace(namespace))
 	ListMachines(ctx, clusterClient, client.InNamespace(namespace))
 	ListNodes(ctx, targetClusterClient)
+
+	CollectPhaseArtifacts(input.ArtifactFolder, "k8s_upgrade", "preUpgrade", input.BootstrapClusterProxy, input.TargetCluster)
 
 	// Download node image
 	By("Download image")
@@ -179,6 +183,9 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 		}
 		time.Sleep(30 * time.Second)
 	}
+
+	// The worker upgrade replaces the worker nodes.
+	CollectPhaseArtifacts(input.ArtifactFolder, "k8s_upgrade", "postUpgrade-kcp", input.BootstrapClusterProxy, input.TargetCluster)
 
 	By("Get MachineDeployment")
 	machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{

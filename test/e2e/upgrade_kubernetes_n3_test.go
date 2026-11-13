@@ -58,6 +58,7 @@ var _ = Describe("Kubernetes version upgrade through three consecutive minor ver
 				SpecName:              specName,
 				ClusterName:           clusterName,
 				Namespace:             namespace,
+				ArtifactFolder:        artifactFolder,
 			}
 		})
 	})
@@ -81,6 +82,7 @@ type upgradeKubernetesN3Input struct {
 	SpecName              string
 	ClusterName           string
 	Namespace             string
+	ArtifactFolder        string
 }
 
 // upgradeKubernetesN3 implements a test upgrading the control plane through three consecutive Kubernetes minor versions (N+3 upgrade path).
@@ -103,6 +105,10 @@ func upgradeKubernetesN3(ctx context.Context, inputGetter func() upgradeKubernet
 	ListMachines(ctx, clusterClient, client.InNamespace(input.Namespace))
 	ListNodes(ctx, targetClusterClient)
 
+	// Each upgrade replaces the control plane nodes, so collect the artifacts
+	// before each upgrade. The AfterEach collects the state after the last one.
+	CollectPhaseArtifacts(input.ArtifactFolder, "k8s_upgrade_n3", "preUpgrade-n1", input.BootstrapClusterProxy, input.TargetCluster)
+
 	By("Running Kubernetes N+1 Upgrade tests")
 	UpgradeControlPlane(ctx, func() UpgradeControlPlaneInput {
 		return UpgradeControlPlaneInput{
@@ -117,6 +123,7 @@ func upgradeKubernetesN3(ctx context.Context, inputGetter func() upgradeKubernet
 		}
 	})
 	By("KUBERNETES UPGRADE N+1 TESTS PASSED!")
+	CollectPhaseArtifacts(input.ArtifactFolder, "k8s_upgrade_n3", "preUpgrade-n2", input.BootstrapClusterProxy, input.TargetCluster)
 	Logf("Kubernetes upgrade N+2: %s to %s", upgradedK8sVersion1, upgradedK8sVersion2)
 	Logf("KUBERNETES VERSION: %v", upgradedK8sVersion1)
 	Logf("UPGRADED K8S VERSION: %v", upgradedK8sVersion2)
@@ -135,6 +142,7 @@ func upgradeKubernetesN3(ctx context.Context, inputGetter func() upgradeKubernet
 		}
 	})
 	By("KUBERNETES UPGRADE N+2 TESTS PASSED!")
+	CollectPhaseArtifacts(input.ArtifactFolder, "k8s_upgrade_n3", "preUpgrade-n3", input.BootstrapClusterProxy, input.TargetCluster)
 	Logf("Kubernetes upgrade N+3: %s to %s", upgradedK8sVersion2, upgradedK8sVersion3)
 	Logf("KUBERNETES VERSION: %v", upgradedK8sVersion2)
 	Logf("UPGRADED K8S VERSION: %v", upgradedK8sVersion3)
