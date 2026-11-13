@@ -58,6 +58,12 @@ func (e ReconcileError) Error() string {
 	}
 }
 
+// Unwrap exposes the wrapped error so that errors.Is and errors.As can
+// inspect the root cause of a ReconcileError.
+func (e ReconcileError) Unwrap() error {
+	return e.error
+}
+
 // GetRequeueAfter gets the duration to wait until the managed object is
 // requeued for further processing.
 func (e ReconcileError) GetRequeueAfter() time.Duration {

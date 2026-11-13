@@ -312,6 +312,18 @@ func (mr *MockMachineManagerInterfaceMockRecorder) SetError(arg0, arg1 any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetError", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetError), arg0, arg1)
 }
 
+// SetFailureDomainMapped mocks base method.
+func (m *MockMachineManagerInterface) SetFailureDomainMapped(arg0 bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetFailureDomainMapped", arg0)
+}
+
+// SetFailureDomainMapped indicates an expected call of SetFailureDomainMapped.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetFailureDomainMapped(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFailureDomainMapped", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetFailureDomainMapped), arg0)
+}
+
 // SetFinalizer mocks base method.
 func (m *MockMachineManagerInterface) SetFinalizer() {
 	m.ctrl.T.Helper()

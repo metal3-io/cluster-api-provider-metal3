@@ -27,6 +27,7 @@ spec:
         args:
         - "--webhook-port=9443"
         - "--enable-bmh-name-based-preallocation=${ENABLE_BMH_NAME_BASED_PREALLOCATION:=false}"
+        - "--enable-failure-domain-fallback=${ENABLE_FAILURE_DOMAIN_FALLBACK:=true}"
         - "--diagnostics-address=${CAPM3_DIAGNOSTICS_ADDRESS:=:8443}"
         - "--insecure-diagnostics=${CAPM3_INSECURE_DIAGNOSTICS:=false}"
         image: controller:latest

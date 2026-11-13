@@ -1,6 +1,7 @@
 resources:
 - ../bases/ippool
 - ../bases/opensuse-leap-kubeadm-config
+- datatemplates.yaml
 
 patchesStrategicMerge:
 - failure-domain.yaml

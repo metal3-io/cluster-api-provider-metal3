@@ -64,6 +64,11 @@ const (
 	// AssociateBareMetalHostViaNodeReuseSuccessReason surfaces when the Metal3Machine is successfully associated with a BareMetalHost via node reuse.
 	AssociateBareMetalHostViaNodeReuseSuccessReason = "AssociateBareMetalHostViaNodeReuseSuccess"
 
+	// WaitingForBareMetalHostInFailureDomainReason surfaces that the Metal3Machine has a failure domain
+	// assigned, failure domain fallback is disabled and no available BareMetalHost carries a matching
+	// failure-domain label. The Metal3Machine keeps requeueing until such a host becomes available.
+	WaitingForBareMetalHostInFailureDomainReason = "WaitingForBareMetalHostInFailureDomain"
+
 	// WaitingForClusterInfrastructureReadyReason used when waiting for cluster
 	// infrastructure to be ready before proceeding.
 	WaitingForClusterInfrastructureReadyReason = clusterv1.WaitingForClusterInfrastructureReadyReason
