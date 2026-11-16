@@ -1475,7 +1475,7 @@ func (m *MachineManager) nodeAddresses(ctx context.Context, host *bmov1alpha1.Ba
 		return nil, err
 	}
 
-	// If the host is nil or we have no hw details, only the overrides are available.
+	// If no hardware details are available, only the overrides are used.
 	if hardwareDetails == nil {
 		return append(addrs, overrides...), nil
 	}
