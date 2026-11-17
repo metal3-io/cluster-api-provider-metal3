@@ -654,7 +654,7 @@ docker-build-debug: ## Build the docker image for controller-manager with debug 
 
 .PHONY: docker-build-e2e
 docker-build-e2e: ## Build the CAPM3 controller image for e2e tests (loaded into the kind mgmt cluster by the test framework)
-	docker build --network=host \
+	DOCKER_BUILDKIT=1 docker build --network=host \
 	--platform linux/$(ARCH) . -t $(CONTROLLER_IMG):$(E2E_TAG)
 
 .PHONY: docker-build-fkas
