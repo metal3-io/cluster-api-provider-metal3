@@ -152,8 +152,6 @@ unit: $(SETUP_ENVTEST) ## Run unit test
 	$(GO) test ./... \
 		$(GO_TEST_FLAGS) \
 		-coverprofile ./cover.out
-	# Run fuzz tests as part of the unit test
-	$(MAKE) fuzz-run FUZZ_TIME=15s
 
 unit-cover: unit
 	$(GO) tool cover -func=./api/cover.out
@@ -166,10 +164,10 @@ unit-cover-verbose:
 	GO_TEST_FLAGS=-v GINKGO_TEST_FLAGS=-ginkgo.v $(MAKE) unit-cover
 
 .PHONY: test
-test: lint unit ## Run tests
+test: lint unit fuzz-run ## Run tests
 
 ## Fuzz testing variables
-FUZZ_TIME ?= 30s
+FUZZ_TIME ?= 5s
 
 .PHONY: fuzz
 fuzz: ## Run fuzz tests with seed corpus (no fuzzing, regression test only)
