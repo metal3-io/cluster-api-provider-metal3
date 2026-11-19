@@ -935,8 +935,9 @@ The **links/bonds** object contains the following:
 
 - **id**: Interface name
 - **name**: (optional) the name cloud-init gives to the bond interface, with
-  the same rules as for the ethernet links. When it is not set, cloud-init
-  names the bonds `bond0`, `bond1` and so on.
+  the same rules as for the ethernet links. Only cloud-init 26.1 and newer
+  honors it, older versions ignore it and name the bonds `bond0`, `bond1` and
+  so on, as they do when it is not set.
 - **mtu**: Interface MTU
 - **macAddress**: an object to render the MAC Address
 - **bondMode**: The bond mode
