@@ -85,6 +85,7 @@ func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Clie
 		"cloud-final.log": "journalctl --no-pager -u cloud-final",
 		"kubelet.log":     "journalctl --no-pager -u kubelet.service",
 		"containerd.log":  "journalctl --no-pager -u containerd.service",
+		"crio.log":        "journalctl --no-pager -u crio.service",
 	}
 
 	for title, cmd := range commands {

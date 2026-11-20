@@ -54,7 +54,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.14=>current)", 
 	var capiStableRelease string
 
 	BeforeEach(func() {
-		k8sVersion = "v1.37.0"
+		k8sVersion = "v1.37.2"
 		validateGlobals(specName)
 		imageURL, imageChecksum := EnsureImage(e2eConfig, k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
@@ -148,7 +148,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 	var capiStableRelease string
 
 	BeforeEach(func() {
-		k8sVersion = "v1.37.0"
+		k8sVersion = "v1.37.2"
 		validateGlobals(specName)
 		imageURL, imageChecksum := EnsureImage(e2eConfig, k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)

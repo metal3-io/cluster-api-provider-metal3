@@ -23,7 +23,7 @@ if [[ "${TRACE-0}" == "1" ]]; then
 fi
 
 GOPATH_BIN="$(go env GOPATH)/bin/"
-MINIMUM_KUBECTL_VERSION=${KUBERNETES_VERSION:-"v1.37.0"}
+MINIMUM_KUBECTL_VERSION=${KUBERNETES_VERSION:-"v1.37.2"}
 
 # Download the required kubectl version into the given target directory
 download_kubectl() {

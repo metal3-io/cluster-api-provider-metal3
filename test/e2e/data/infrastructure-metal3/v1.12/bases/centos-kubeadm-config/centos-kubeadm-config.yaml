@@ -92,11 +92,11 @@ spec:
       owner: root:root
       permissions: '0600'
     - content: |
-        [registries.search]
-        registries = ['docker.io']
+        unqualified-search-registries = ["docker.io"]
 
-        [registries.insecure]
-        registries = ['${REGISTRY}']
+        [[registry]]
+        location = "${REGISTRY}"
+        insecure = true
       path: /etc/containers/registries.conf
     initConfiguration:
       nodeRegistration:
@@ -209,11 +209,11 @@ spec:
         owner: root:root
         permissions: '0644'
         content: |
-          [registries.search]
-          registries = ['docker.io']
+          unqualified-search-registries = ["docker.io"]
 
-          [registries.insecure]
-          registries = ['${REGISTRY}']
+          [[registry]]
+          location = "${REGISTRY}"
+          insecure = true
       preKubeadmCommands:
       - rm /etc/cni/net.d/*
       - systemctl restart NetworkManager.service
