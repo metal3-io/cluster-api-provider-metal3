@@ -268,6 +268,13 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	}
 	m.Log.V(VerbosityLevelDebug).Info("Fetched BMH")
 
+	// Fetch the hardware details of the BMH, used to look up the MAC addresses
+	// of the host interfaces.
+	hardwareDetails, err := getHardwareDetails(ctx, m.client, bmh)
+	if err != nil {
+		return err
+	}
+
 	// Fetch all the Metal3IPPools and create Metal3IPClaims as needed. Check if the
 	// IP address has been allocated, if so, fetch the address, gateway and prefix.
 	poolAddresses, err := m.getAddressesFromPool(ctx, *m3dt, m3m, capiMachine, bmh)
@@ -289,7 +296,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	// The MetaData secret must be created
 	if apierrors.IsNotFound(metaDataErr) {
 		m.Log.Info("Creating Metadata secret")
-		metadata, err := renderMetaData(m.Data, m3dt, m3m, capiMachine, bmh, poolAddresses)
+		metadata, err := renderMetaData(m.Data, m3dt, m3m, capiMachine, bmh, hardwareDetails, poolAddresses)
 		if err != nil {
 			return err
 		}
@@ -304,7 +311,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	// The NetworkData secret must be created
 	if apierrors.IsNotFound(networkDataErr) {
 		m.Log.Info("Creating Networkdata secret")
-		networkData, err := renderNetworkData(m3dt, m3m, capiMachine, bmh, poolAddresses)
+		networkData, err := renderNetworkData(m3dt, m3m, capiMachine, bmh, hardwareDetails, poolAddresses)
 		if err != nil {
 			return err
 		}
@@ -1208,7 +1215,7 @@ func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolRef infrav
 // marshalled into the secret.
 func renderNetworkData(m3dt *infrav1.Metal3DataTemplate,
 	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost,
-	poolAddresses map[string]AddressFromPool,
+	hardwareDetails *bmov1alpha1.HardwareDetails, poolAddresses map[string]AddressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.NetworkData == nil {
 		return nil, nil
@@ -1222,7 +1229,7 @@ func renderNetworkData(m3dt *infrav1.Metal3DataTemplate,
 	}
 
 	if m3dt.Spec.NetworkData.Links != nil {
-		networkData["links"], err = renderNetworkLinks(*m3dt.Spec.NetworkData.Links, m3m, machine, bmh)
+		networkData["links"], err = renderNetworkLinks(*m3dt.Spec.NetworkData.Links, m3m, machine, bmh, hardwareDetails)
 		if err != nil {
 			return nil, err
 		}
@@ -1274,7 +1281,8 @@ func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses ma
 
 // renderNetworkLinks renders the different types of links.
 func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
-	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) ([]any, error) {
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost,
+	hardwareDetails *bmov1alpha1.HardwareDetails) ([]any, error) {
 	data := []any{}
 
 	// Bond links
@@ -1293,7 +1301,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 		}
 		// MAC address is optional - if provided, include it for interface matching
 		if link.MACAddress != nil {
-			macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
+			macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh, hardwareDetails)
 			if err != nil {
 				return nil, err
 			}
@@ -1332,7 +1340,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 		}
 		// MAC address is optional - if provided, include it for interface matching/renaming
 		if link.MACAddress != nil {
-			macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
+			macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh, hardwareDetails)
 			if err != nil {
 				return nil, err
 			}
@@ -1360,7 +1368,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 		}
 		// MAC address is optional for VLANs
 		if link.MACAddress != nil {
-			macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
+			macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh, hardwareDetails)
 			if err != nil {
 				return nil, err
 			}
@@ -1665,7 +1673,8 @@ func translateMask(maskInt *int32, ipv4 bool) any {
 
 // getLinkMacAddress returns the mac address.
 func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac,
-	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) (
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost,
+	hardwareDetails *bmov1alpha1.HardwareDetails) (
 	string, error,
 ) {
 	if mac == nil {
@@ -1682,7 +1691,7 @@ func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac,
 		macaddress, err = mac.String, nil
 	} else if mac.FromHostInterface != "" {
 		// if a host interface is given
-		macaddress, err = getBMHMacByName(mac.FromHostInterface, bmh)
+		macaddress, err = getBMHMacByName(mac.FromHostInterface, hardwareDetails)
 	} else if mac.FromAnnotation != (infrav1.NetworkLinkEthernetMacFromAnnotation{}) {
 		// if an annotation reference is given
 		macaddress, err = getValueFromAnnotation(mac.FromAnnotation.Object,
@@ -1707,7 +1716,7 @@ func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac,
 // renderMetaData renders the MetaData items.
 func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost,
-	poolAddresses map[string]AddressFromPool,
+	hardwareDetails *bmov1alpha1.HardwareDetails, poolAddresses map[string]AddressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.MetaData == nil {
 		return nil, nil
@@ -1727,7 +1736,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 			}
 			value = bmh.Spec.BootMACAddress
 		} else {
-			value, err = getBMHMacByName(entry.Interface, bmh)
+			value, err = getBMHMacByName(entry.Interface, hardwareDetails)
 			if err != nil {
 				return nil, err
 			}
@@ -1826,12 +1835,13 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 	return yaml.Marshal(metadata)
 }
 
-// getBMHMacByName returns the mac address of the interface matching the name.
-func getBMHMacByName(name string, bmh *bmov1alpha1.BareMetalHost) (string, error) {
-	if bmh == nil || bmh.Status.HardwareDetails == nil || bmh.Status.HardwareDetails.NIC == nil {
+// getBMHMacByName returns the mac address of the interface matching the name
+// in the hardware details of a BMH.
+func getBMHMacByName(name string, hardwareDetails *bmov1alpha1.HardwareDetails) (string, error) {
+	if hardwareDetails == nil || hardwareDetails.NIC == nil {
 		return "", errors.New("NICs list not populated")
 	}
-	for _, nics := range bmh.Status.HardwareDetails.NIC {
+	for _, nics := range hardwareDetails.NIC {
 		if nics.Name == name {
 			return nics.MAC, nil
 		}

@@ -199,6 +199,7 @@ func main() {
 			Cache: &client.CacheOptions{
 				DisableFor: []client.Object{
 					&bmov1alpha1.BareMetalHost{},
+					&bmov1alpha1.HardwareData{},
 					&corev1.ConfigMap{},
 					&corev1.Secret{},
 				},

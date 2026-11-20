@@ -3947,6 +3947,158 @@ var _ = Describe("Metal3Machine manager", func() {
 				SecretGetError:         errors.New("simulated get failure"),
 				ExpectedErrorSubstring: "failed to get metaData secret " + namespaceName + "/test-metadata-error",
 			}),
+			Entry("HardwareData takes precedence over the BareMetalHost status", testCaseNodeAddress{
+				TestObjects: []runtime.Object{&bmov1alpha1.HardwareData{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      baremetalhostName,
+						Namespace: namespaceName,
+					},
+					Spec: bmov1alpha1.HardwareDataSpec{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC:      []bmov1alpha1.NIC{nic1},
+							Hostname: "mygreathost",
+						},
+					},
+				}},
+				Host: &bmov1alpha1.BareMetalHost{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      baremetalhostName,
+						Namespace: namespaceName,
+					},
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC:      []bmov1alpha1.NIC{nic2},
+							Hostname: "outdatedhost",
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1, addr3, addr4},
+			}),
+		)
+	})
+
+	Describe("Test getHardwareDetails", func() {
+		statusDetails := &bmov1alpha1.HardwareDetails{
+			NIC:      []bmov1alpha1.NIC{{Name: "eth0", IP: "192.168.1.1"}},
+			Hostname: "statushost",
+		}
+
+		hardwareDataDetails := &bmov1alpha1.HardwareDetails{
+			NIC:      []bmov1alpha1.NIC{{Name: "eth0", IP: "172.0.20.2"}},
+			Hostname: "hardwaredatahost",
+		}
+
+		hostObjectMeta := metav1.ObjectMeta{
+			Name:      baremetalhostName,
+			Namespace: namespaceName,
+		}
+
+		type testCaseGetHardwareDetails struct {
+			Host         *bmov1alpha1.BareMetalHost
+			HardwareData *bmov1alpha1.HardwareData
+			// GetError, when set, is returned for every HardwareData read.
+			GetError                error
+			ExpectedHardwareDetails *bmov1alpha1.HardwareDetails
+			ExpectedErrorSubstring  string
+		}
+
+		DescribeTable("Test getHardwareDetails",
+			func(tc testCaseGetHardwareDetails) {
+				clientBuilder := fake.NewClientBuilder().WithScheme(setupSchemeMm())
+				if tc.HardwareData != nil {
+					clientBuilder = clientBuilder.WithObjects(tc.HardwareData)
+				}
+				if tc.GetError != nil {
+					clientBuilder = clientBuilder.WithInterceptorFuncs(interceptor.Funcs{
+						Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+							if _, ok := obj.(*bmov1alpha1.HardwareData); ok {
+								return tc.GetError
+							}
+							return client.Get(ctx, key, obj, opts...)
+						},
+					})
+				}
+
+				hardwareDetails, err := getHardwareDetails(context.Background(), clientBuilder.Build(), tc.Host)
+				if tc.ExpectedErrorSubstring != "" {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(tc.ExpectedErrorSubstring))
+					Expect(hardwareDetails).To(BeNil())
+					return
+				}
+				Expect(err).NotTo(HaveOccurred())
+				Expect(hardwareDetails).To(Equal(tc.ExpectedHardwareDetails))
+			},
+			Entry("No host", testCaseGetHardwareDetails{
+				Host:                    nil,
+				ExpectedHardwareDetails: nil,
+			}),
+			Entry("HardwareData takes precedence over the BareMetalHost status", testCaseGetHardwareDetails{
+				Host: &bmov1alpha1.BareMetalHost{
+					ObjectMeta: hostObjectMeta,
+					Status:     bmov1alpha1.BareMetalHostStatus{HardwareDetails: statusDetails},
+				},
+				HardwareData: &bmov1alpha1.HardwareData{
+					ObjectMeta: hostObjectMeta,
+					Spec:       bmov1alpha1.HardwareDataSpec{HardwareDetails: hardwareDataDetails},
+				},
+				ExpectedHardwareDetails: hardwareDataDetails,
+			}),
+			Entry("HardwareData without BareMetalHost status", testCaseGetHardwareDetails{
+				Host: &bmov1alpha1.BareMetalHost{
+					ObjectMeta: hostObjectMeta,
+				},
+				HardwareData: &bmov1alpha1.HardwareData{
+					ObjectMeta: hostObjectMeta,
+					Spec:       bmov1alpha1.HardwareDataSpec{HardwareDetails: hardwareDataDetails},
+				},
+				ExpectedHardwareDetails: hardwareDataDetails,
+			}),
+			Entry("HardwareData of another host is ignored", testCaseGetHardwareDetails{
+				Host: &bmov1alpha1.BareMetalHost{
+					ObjectMeta: hostObjectMeta,
+					Status:     bmov1alpha1.BareMetalHostStatus{HardwareDetails: statusDetails},
+				},
+				HardwareData: &bmov1alpha1.HardwareData{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "other-host",
+						Namespace: namespaceName,
+					},
+					Spec: bmov1alpha1.HardwareDataSpec{HardwareDetails: hardwareDataDetails},
+				},
+				ExpectedHardwareDetails: statusDetails,
+			}),
+			Entry("Missing HardwareData falls back to the BareMetalHost status", testCaseGetHardwareDetails{
+				Host: &bmov1alpha1.BareMetalHost{
+					ObjectMeta: hostObjectMeta,
+					Status:     bmov1alpha1.BareMetalHostStatus{HardwareDetails: statusDetails},
+				},
+				ExpectedHardwareDetails: statusDetails,
+			}),
+			Entry("HardwareData without hardware details falls back to the BareMetalHost status", testCaseGetHardwareDetails{
+				Host: &bmov1alpha1.BareMetalHost{
+					ObjectMeta: hostObjectMeta,
+					Status:     bmov1alpha1.BareMetalHostStatus{HardwareDetails: statusDetails},
+				},
+				HardwareData: &bmov1alpha1.HardwareData{
+					ObjectMeta: hostObjectMeta,
+				},
+				ExpectedHardwareDetails: statusDetails,
+			}),
+			Entry("No hardware details at all", testCaseGetHardwareDetails{
+				Host: &bmov1alpha1.BareMetalHost{
+					ObjectMeta: hostObjectMeta,
+				},
+				ExpectedHardwareDetails: nil,
+			}),
+			Entry("HardwareData that cannot be read returns an error", testCaseGetHardwareDetails{
+				Host: &bmov1alpha1.BareMetalHost{
+					ObjectMeta: hostObjectMeta,
+					Status:     bmov1alpha1.BareMetalHostStatus{HardwareDetails: statusDetails},
+				},
+				GetError:               errors.New("simulated get failure"),
+				ExpectedErrorSubstring: "failed to get HardwareData " + namespaceName + "/" + baremetalhostName,
+			}),
 		)
 	})
 

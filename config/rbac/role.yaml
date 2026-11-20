@@ -215,6 +215,12 @@ rules:
   - patch
   - update
 - apiGroups:
+  - metal3.io
+  resources:
+  - hardwaredata
+  verbs:
+  - get
+- apiGroups:
   - storage.k8s.io
   resources:
   - volumeattachments
