@@ -170,6 +170,9 @@ order:
 However, in case we need to run them in the bootstrap cluster pivoting and
 re-pivoting should be ignored.
 
+See [Pivoting based e2e tests](e2e-pivoting-based-tests.md) for the sequence
+of events in each of these tests.
+
 ### Remediation based feature tests
 
 Independent from the previous tests and can run independently includes:
