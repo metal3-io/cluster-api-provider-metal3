@@ -244,7 +244,7 @@ func DumpSpecResourcesAndCleanup(ctx context.Context,
 // environment variable) and Kubernetes version is available locally, downloading
 // and converting it if needed. The source URL to download the qcow2 image from is
 // read from the e2e config variable "NODE_IMAGE_URL_<OS>_<k8sVersion>", e.g.
-// "NODE_IMAGE_URL_UBUNTU_v1.37.0".
+// "NODE_IMAGE_URL_UBUNTU_v1.37.2".
 func EnsureImage(e2eConfig *clusterctl.E2EConfig, k8sVersion string) (imageURL string, imageChecksum string) {
 	osType := strings.ToLower(os.Getenv("OS"))
 	Expect(osType).To(BeElementOf([]string{osTypeUbuntu, osTypeCentos, osTypeLeap}))

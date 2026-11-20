@@ -127,13 +127,13 @@ The e2e tests use the following Kubernetes version variables:
 
 | Variable | Purpose | Example | Used In |
 |----------|---------|---------|---------|
-| `KUBERNETES_VERSION` | Latest/target Kubernetes version | v1.37.0 | All tests |
+| `KUBERNETES_VERSION` | Latest/target Kubernetes version | v1.37.2 | All tests |
 | `KUBERNETES_VERSION_UPGRADE_FROM` | Starting version for minor upgrades | v1.35.6 | k8s-upgrade, ip-reuse, scalability |
 | `KUBERNETES_VERSION_PATCH_TO` | Target version for patch upgrades | v1.35.6 | node-reuse (patch upgrade tests) |
 | `KUBERNETES_N0_VERSION` | Starting version for N+3 upgrade | v1.34.9 | k8s-upgrade-n3 |
 | `KUBERNETES_N1_VERSION` | N+1 version for N+3 upgrade | v1.35.6 | k8s-upgrade-n3 |
 | `KUBERNETES_N2_VERSION` | N+2 version for N+3 upgrade | v1.36.2 | k8s-upgrade-n3 |
-| `KUBERNETES_N3_VERSION` | N+3 target version for N+3 upgrade | v1.37.0 | k8s-upgrade-n3 |
+| `KUBERNETES_N3_VERSION` | N+3 target version for N+3 upgrade | v1.37.2 | k8s-upgrade-n3 |
 
 **Note:** KUBERNETES_VERSION_PATCH_TO is
 used only in node reuse test, we do this upgrade to make rollout happen to test
@@ -256,7 +256,7 @@ planes:
 <!-- markdownlint-disable MD013 -->
 | KUBERNETES_N0_VERSION | KUBERNETES_N1_VERSION | KUBERNETES_N2_VERSION | KUBERNETES_N3_VERSION |
 | --------------------- | --------------------- | --------------------- | --------------------- |
-|        1.34.9         |        1.35.6         |       1.36.2          |        v1.37.0        |
+|        1.34.9         |        1.35.6         |       1.36.2          |        v1.37.2        |
 <!-- markdownlint-enable MD013 -->
 
 ### K8s conformance tests
@@ -409,7 +409,7 @@ clusters:
 
 | tests               | bootstrap cluster | metal3 cluster init | metal3 cluster final |
 | ------------------- | ----------------- | --------------------| -------------------- |
-| integration         | v1.37.0           | v1.37.0             | x                    |
-| remediation         | v1.37.0           | v1.37.0             | x                    |
-| pivot based feature | v1.37.0           | v1.37.0             | v1.37.0              |
-| upgrade             | v1.37.0           | v1.37.0             | v1.37.0              |
+| integration         | v1.37.2           | v1.37.2             | x                    |
+| remediation         | v1.37.2           | v1.37.2             | x                    |
+| pivot based feature | v1.37.2           | v1.37.2             | v1.37.2              |
+| upgrade             | v1.37.2           | v1.37.2             | v1.37.2              |

@@ -53,11 +53,11 @@ spec:
       path: /etc/netplan/52-ironicendpoint.yaml
       permissions: "0644"
     - content: |
-        [registries.search]
-        registries = ['docker.io']
+        unqualified-search-registries = ["docker.io"]
 
-        [registries.insecure]
-        registries = ['${REGISTRY}']
+        [[registry]]
+        location = "${REGISTRY}"
+        insecure = true
       path: /etc/containers/registries.conf
     joinConfiguration:
       controlPlane: {}
@@ -125,11 +125,11 @@ spec:
         path: /etc/netplan/52-ironicendpoint.yaml
         permissions: "0644"
       - content: |
-          [registries.search]
-          registries = ['docker.io']
+          unqualified-search-registries = ["docker.io"]
 
-          [registries.insecure]
-          registries = ['${REGISTRY}']
+          [[registry]]
+          location = "${REGISTRY}"
+          insecure = true
         path: /etc/containers/registries.conf
       preKubeadmCommands:
       - sed -i "s/MACAddressPolicy=persistent/MACAddressPolicy=none/g" /usr/lib/systemd/network/99-default.link

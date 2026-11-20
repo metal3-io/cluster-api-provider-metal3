@@ -33,7 +33,7 @@ export BOOTSTRAP_CLUSTER="kind"
 # Empty list by default; the scalability scenario overrides it below.
 export IRONIC_EXTRA_CONFIG="${IRONIC_EXTRA_CONFIG:-[]}"
 
-export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.37.0"}
+export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.37.2"}
 export KUBERNETES_VERSION_UPGRADE_FROM=${KUBERNETES_VERSION_UPGRADE_FROM:-"v1.36.2"}
 
 # Can be overriden from jjbs
@@ -71,7 +71,7 @@ case "${GINKGO_FOCUS:-}" in
     export KUBERNETES_N0_VERSION=${KUBERNETES_N0_VERSION:-"v1.34.9"}
     export KUBERNETES_N1_VERSION=${KUBERNETES_N1_VERSION:-"v1.35.6"}
     export KUBERNETES_N2_VERSION=${KUBERNETES_N2_VERSION:-"v1.36.2"}
-    export KUBERNETES_N3_VERSION=${KUBERNETES_N3_VERSION:-"v1.37.0"}
+    export KUBERNETES_N3_VERSION=${KUBERNETES_N3_VERSION:-"v1.37.2"}
   ;;
 
   # Scalability test environment vars and config
