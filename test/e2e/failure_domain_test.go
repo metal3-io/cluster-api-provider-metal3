@@ -23,6 +23,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -31,12 +32,16 @@ import (
 // Metal3DataTemplates) don't collide with the other features specs that share
 // the namespace.
 const failureDomainClusterName = "test-fd"
-const failureDomainControlPlaneCount = 3
 
-// This spec runs in the shared "features" bucket. The fallback assertion needs
-// exactly three selectable hosts; LabelBmhsForFailureDomain guarantees that by
-// marking every spare host unhealthy, so the spec stays deterministic even under
-// the larger features node profile. The "failure-domain" label lets it be
+// This spec runs in the shared "features" bucket with the default
+// --enable-failure-domain-fallback=true. It needs exactly three selectable
+// hosts: two labeled with the declared failure domains and one unlabeled.
+// LabelBmhsForFailureDomain guarantees that by marking every spare host
+// unhealthy, so the spec stays deterministic even under the larger features
+// node profile. The third control plane machine is assigned a declared failure
+// domain that has no free host; because its dataTemplate comes from
+// failureDomainDataTemplates it must not fall back to the unlabeled host but
+// wait until that host is labeled. The "failure-domain" label lets the spec be
 // singled out within a features run via GINKGO_FOCUS/GINKGO_SKIP.
 var _ = Describe("When testing failure domains", Label("failure-domain", "features"), func() {
 	// Test is written for v1beta2 and will fail on v1beta1.
@@ -77,6 +82,11 @@ var _ = Describe("When testing failure domains", Label("failure-domain", "featur
 				ClusterctlConfigPath:  clusterctlConfigPath,
 				OSType:                osType + "-failure-domain" + flavorSuffix(),
 				Namespace:             namespace,
+				ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
+					WaitForControlPlaneMachinesReady: WaitForFailureDomainControlPlane(
+						bootstrapClusterProxy.GetClient(), failureDomainClusterName, namespace,
+						e2eConfig.GetIntervals(specName, "wait-control-plane")),
+				},
 			}
 		})
 
