@@ -4463,6 +4463,72 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectError: true,
 		}),
+		Entry("DNSServersFromPool single and multiple", testCaseRenderMetaData{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("data-abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
+					Index: ptr.To(int32(2)),
+				},
+			},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName+"-abc", "", ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						DNSServersFromPool: []infrav1.FromPool{
+							{
+								Key:  "dns-single",
+								Name: "abcd",
+							},
+							{
+								Key:  "dns-multiple",
+								Name: "bcde",
+							},
+						},
+					},
+				},
+			},
+			m3m: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, ""),
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
+			},
+			poolAddresses: map[string]AddressFromPool{
+				"abcd": {
+					dnsServers: []ipamv1.IPAddressStr{"192.168.178.1"},
+				},
+				"bcde": {
+					dnsServers: []ipamv1.IPAddressStr{"8.8.8.8", "8.8.4.4"},
+				},
+			},
+			expectedMetaData: map[string]string{
+				"dns-single":   "192.168.178.1",
+				"dns-multiple": "8.8.8.8,8.8.4.4",
+				"providerid":   fmt.Sprintf("%s/%s/%s", namespaceName, baremetalhostName, metal3machineName),
+			},
+		}),
+		Entry("DNSServersFromPool missing", testCaseRenderMetaData{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("data-abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
+					Index: ptr.To(int32(2)),
+				},
+			},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName+"-abc", "", ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						DNSServersFromPool: []infrav1.FromPool{
+							{
+								Key:  "dns",
+								Name: "abc",
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		}),
 		Entry("Wrong object in name", testCaseRenderMetaData{
 			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta(metal3DataTemplateName+"-abc", "", ""),
