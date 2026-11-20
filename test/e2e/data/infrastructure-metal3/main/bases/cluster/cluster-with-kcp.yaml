@@ -50,6 +50,8 @@ spec:
     - name: ${IMAGE_USERNAME}
       sshAuthorizedKeys:
       - ${SSH_PUB_KEY_CONTENT}
+      # Temporary key of the in-place upgrade test-extension.
+      - ${IN_PLACE_UPGRADE_SSH_PUB_KEY}
       sudo: ALL=(ALL) NOPASSWD:ALL
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   rollout:

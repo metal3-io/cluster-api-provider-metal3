@@ -147,6 +147,9 @@ if [[ ! -f "${HOME}/.ssh/id_rsa" ]]; then
 fi
 SSH_PUB_KEY_CONTENT=$(cat "${HOME}/.ssh/id_rsa.pub")
 export SSH_PUB_KEY_CONTENT
+# Second authorized key in the KCP of the main templates. The in-place upgrade
+# test sets it to a temporary key for its test-extension.
+export IN_PLACE_UPGRADE_SSH_PUB_KEY="${IN_PLACE_UPGRADE_SSH_PUB_KEY:-${SSH_PUB_KEY_CONTENT}}"
 # The host that serves provisioning images and the local e2e registry, in
 # URL-host format (e.g. IPv6 surrounded by brackets).
 export PROVISIONING_URL_HOST="172.22.0.1"
