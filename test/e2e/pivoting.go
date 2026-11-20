@@ -62,13 +62,13 @@ func Pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	ListNodes(ctx, input.TargetCluster.GetClient())
 
 	By("Fetch logs from target cluster before pivot")
-	err := FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, input.TargetCluster.GetName(), "beforePivot"))
+	err := FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, "pivoting", "beforePivot"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
 
 	By("Fetch manifest for bootstrap cluster before pivot")
-	err = FetchManifests(input.BootstrapClusterProxy, "/tmp/manifests/")
+	err = FetchManifests(input.BootstrapClusterProxy, filepath.Join(input.ArtifactFolder, "pivoting", "beforePivot"))
 	if err != nil {
 		Logf("Error fetching manifests for bootstrap cluster before pivot: %v", err)
 	}
@@ -312,25 +312,25 @@ func RePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
 
 	By("Fetch logs from target cluster after pivot")
-	err := FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, "afterPivot"))
+	err := FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, "pivoting", "afterPivot"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
 
 	By("Fetch manifest for workload cluster after pivot")
-	err = FetchManifests(input.TargetCluster, filepath.Join(input.ArtifactFolder, "afterPivot"))
+	err = FetchManifests(input.TargetCluster, filepath.Join(input.ArtifactFolder, "pivoting", "afterPivot"))
 	if err != nil {
 		Logf("Error fetching manifests for workload cluster after pivot: %v", err)
 	}
 
 	By("Fetch logs from bootstrap cluster after pivot")
-	err = FetchClusterLogs(input.BootstrapClusterProxy, filepath.Join(input.ArtifactFolder, "afterPivot"))
+	err = FetchClusterLogs(input.BootstrapClusterProxy, filepath.Join(input.ArtifactFolder, "pivoting", "afterPivot"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
 
 	By("Fetch manifest for bootstrap cluster after pivot")
-	err = FetchManifests(input.BootstrapClusterProxy, filepath.Join(input.ArtifactFolder, "afterPivot"))
+	err = FetchManifests(input.BootstrapClusterProxy, filepath.Join(input.ArtifactFolder, "pivoting", "afterPivot"))
 	if err != nil {
 		Logf("Error fetching manifests for bootstrap cluster after pivot: %v", err)
 	}
@@ -446,9 +446,9 @@ func RePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	})
 
 	By("Fetch manifest for bootstrap cluster after re-pivot")
-	err = FetchManifests(input.BootstrapClusterProxy, "/tmp/manifests/")
+	err = FetchManifests(input.BootstrapClusterProxy, filepath.Join(input.ArtifactFolder, "pivoting", "afterRePivot"))
 	if err != nil {
-		Logf("Error fetching manifests for bootstrap cluster before pivot: %v", err)
+		Logf("Error fetching manifests for bootstrap cluster after re-pivot: %v", err)
 	}
 
 	By("RE-PIVOTING TEST PASSED!")
