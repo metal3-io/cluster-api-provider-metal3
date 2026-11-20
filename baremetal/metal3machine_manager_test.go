@@ -33,6 +33,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clientfake "k8s.io/client-go/kubernetes/fake"
+	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/utils/ptr"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -3968,6 +3970,74 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectedError        bool
 			ExpectedProviderID   string
 		}
+	})
+
+	Describe("Test SetProviderIDFromNodeLabel errors", func() {
+		host := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      baremetalhostName,
+				Namespace: namespaceName,
+				UID:       defaultBMHUID,
+			},
+		}
+		nodeWithLabel := func(name, providerID string) *corev1.Node {
+			return &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   name,
+					Labels: map[string]string{ProviderLabelPrefix: string(defaultBMHUID)},
+				},
+				Spec: corev1.NodeSpec{ProviderID: providerID},
+			}
+		}
+
+		type testCaseSetProviderIDFromNodeLabelError struct {
+			Nodes                 []runtime.Object
+			ExpectedErrorMessages []string
+		}
+
+		DescribeTable("Test SetProviderIDFromNodeLabel error messages",
+			func(tc testCaseSetProviderIDFromNodeLabelError) {
+				fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(host).Build()
+				corev1Client := clientfake.NewSimpleClientset(tc.Nodes...).CoreV1()
+				clientGetter := func(_ context.Context, _ client.Client, _ *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error) {
+					return corev1Client, nil
+				}
+				m3m := newMetal3Machine(metal3machineName, nil, nil, m3mObjectMetaWithValidAnnotations())
+				machineMgr, err := NewMachineManager(fakeClient, nil, nil, &clusterv1.Machine{}, m3m, logr.Discard())
+				Expect(err).NotTo(HaveOccurred())
+
+				success, err := machineMgr.SetProviderIDFromNodeLabel(context.TODO(), clientGetter)
+				Expect(success).To(BeFalse())
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).NotTo(ContainSubstring("%!"))
+				for _, msg := range tc.ExpectedErrorMessages {
+					Expect(err.Error()).To(ContainSubstring(msg))
+				}
+				Expect(m3m.Spec.ProviderID).To(BeEmpty())
+			},
+			Entry("Should report the Node and ProviderIDs when the Node uses an unsupported ProviderID format",
+				testCaseSetProviderIDFromNodeLabelError{
+					Nodes: []runtime.Object{nodeWithLabel("node-0", "unsupported://node-0")},
+					ExpectedErrorMessages: []string{
+						"node-0",
+						"unsupported://node-0",
+						ProviderID,
+					},
+				},
+			),
+			Entry("Should report the Nodes when multiple Nodes have the same label",
+				testCaseSetProviderIDFromNodeLabelError{
+					Nodes: []runtime.Object{
+						nodeWithLabel("node-0", ""),
+						nodeWithLabel("node-1", ""),
+					},
+					ExpectedErrorMessages: []string{
+						"node-0",
+						"node-1",
+					},
+				},
+			),
+		)
 	})
 
 	type testCaseGetUserDataSecretName struct {
