@@ -1,0 +1,17 @@
+# Table of contents used by hack/gen-api-docs.sh to generate
+# docs/api-reference.md with crdoc. Only the group versions and kinds listed
+# here are documented, so new CRDs have to be added to this file. The
+# deprecated v1beta1 API version is intentionally left out.
+groups:
+- group: infrastructure.cluster.x-k8s.io
+  version: v1beta2
+  kinds:
+  - name: Metal3Cluster
+  - name: Metal3ClusterTemplate
+  - name: Metal3Machine
+  - name: Metal3MachineTemplate
+  - name: Metal3DataTemplate
+  - name: Metal3DataClaim
+  - name: Metal3Data
+  - name: Metal3Remediation
+  - name: Metal3RemediationTemplate

@@ -25,7 +25,7 @@ Run these locally before submitting PRs:
 | Command | Purpose |
 |---------|---------|
 | `make test` | Full verification (generate + lint + unit) |
-| `make generate` | Regenerate code (DeepCopy, CRDs, RBAC, mocks) |
+| `make generate` | Regenerate code (DeepCopy, CRDs, RBAC, mocks, API reference docs) |
 | `make unit` | Unit tests (requires envtest - do not use `go test` directly) |
 | `make lint` | Go linting via golangci-lint (all modules) |
 | `make verify-boilerplate` | Check license headers |
@@ -105,5 +105,6 @@ Focus on: `controllers/`, `baremetal/`, `api/`, `internal/webhooks/`.
 ## Related Documentation
 
 - [API Documentation](docs/api.md)
+- [API Reference](docs/api-reference.md)
 - [Release Process](docs/releasing.md)
 - [Metal3 Book](https://book.metal3.io)
