@@ -3,11 +3,9 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
@@ -18,7 +16,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
-	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	framework "sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -103,20 +100,7 @@ func Pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	RemoveProvisioningNetwork(ctx, input.E2EConfig.ManagementClusterName, provisioningInterface)
 
 	By("Initialize Provider component in target cluster")
-	capiRelease := os.Getenv("CAPIRELEASE")
-	if capiRelease == "" {
-		// Resolve the latest stable CAPI release for the minor version from CAPI_RELEASE_PREFIX.
-		// e.g. CAPI_RELEASE_PREFIX="v1.13." -> minorVersion="1.13" -> capiRelease="v1.13.2"
-		releasePrefix := os.Getenv("CAPI_RELEASE_PREFIX")
-		Expect(releasePrefix).ToNot(BeEmpty(), "CAPI_RELEASE_PREFIX must be set when CAPIRELEASE is not")
-		minorVersion := strings.TrimSuffix(strings.TrimPrefix(releasePrefix, "v"), ".")
-		capiRelease, err = capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
-		Expect(err).ToNot(HaveOccurred(), "Failed to get stable CAPI release for minor version %s", minorVersion)
-		if !strings.HasPrefix(capiRelease, "v") {
-			capiRelease = "v" + capiRelease
-		}
-		log.Printf("Resolved CAPIRELEASE from goproxy: %s", capiRelease)
-	}
+	capiRelease := getCAPIRelease(ctx)
 	clusterctl.Init(ctx, clusterctl.InitInput{
 		KubeconfigPath:          input.TargetCluster.GetKubeconfigPath(),
 		ClusterctlConfigPath:    input.ClusterctlConfigPath,
