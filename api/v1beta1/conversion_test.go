@@ -230,6 +230,12 @@ func hubMetal3MachineSpec(in *infrav1.Metal3MachineSpec, c randfill.Continue) {
 	if in.DataTemplate != nil && in.DataTemplate.Name == "" && in.DataTemplate.Namespace == "" {
 		in.DataTemplate = nil
 	}
+
+	// Normalize empty Checksum to nil: an empty Image (e.g. with CustomDeploy set)
+	// is skipped during conversion, so &"" and nil are indistinguishable.
+	if in.Image.Checksum != nil && *in.Image.Checksum == "" {
+		in.Image.Checksum = nil
+	}
 }
 
 // hubMetal3MachineTemplateSpec normalizes v1beta2 Metal3MachineTemplateSpec for hub objects.
