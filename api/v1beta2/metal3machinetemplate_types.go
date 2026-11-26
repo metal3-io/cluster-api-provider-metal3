@@ -33,6 +33,40 @@ type Metal3MachineTemplateSpec struct {
 	// +kubebuilder:default=false
 	// +optional
 	NodeReuse *bool `json:"nodeReuse,omitempty"`
+
+	// failureDomainDataTemplates maps failure domain names to Metal3DataTemplate
+	// references. The mapping is keyed by the failure domain assigned to a
+	// Metal3Machine cloned from this template (spec.failureDomain, mirrored
+	// from Machine.spec.failureDomain). When the assigned failure domain is
+	// present in this list, the machine's dataTemplate is overridden with the
+	// referenced Metal3DataTemplate before its metadata is rendered. Machines
+	// without an assigned failure domain, or whose failure domain is not in
+	// this list, keep the default template.spec.dataTemplate.
+	// +optional
+	// +listType=map
+	// +listMapKey=failureDomain
+	// +kubebuilder:validation:MaxItems=32
+	FailureDomainDataTemplates []FailureDomainDataTemplate `json:"failureDomainDataTemplates,omitempty"`
+}
+
+// FailureDomainDataTemplate maps a failure domain name to a Metal3DataTemplate
+// reference.
+type FailureDomainDataTemplate struct {
+	// failureDomain is the name of the failure domain, as declared in the
+	// Metal3Cluster spec.failureDomains and assigned to the Machine by Cluster
+	// API. The same value is used as the
+	// infrastructure.cluster.x-k8s.io/failure-domain label on BareMetalHosts
+	// for host selection, so it is bounded by the label value length limit.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	FailureDomain string `json:"failureDomain,omitempty"`
+
+	// dataTemplate is a reference to the Metal3DataTemplate to use for
+	// Metal3Machines assigned to this failure domain.
+	// +required
+	// +kubebuilder:validation:XValidation:rule="has(self.name)",message="dataTemplate name is required"
+	DataTemplate *Metal3ObjectRef `json:"dataTemplate,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
