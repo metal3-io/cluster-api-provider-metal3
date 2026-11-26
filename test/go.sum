@@ -274,10 +274,10 @@ github.com/mattn/go-runewidth v0.0.19 h1:v++JhqYnZuu5jSKrk9RbgF5v4CGUjqRfBm05byF
 github.com/mattn/go-runewidth v0.0.19/go.mod h1:XBkDxAl56ILZc9knddidhrOlY5R/pDhgLpndooCuJAs=
 github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o4kU=
 github.com/mattn/go-sqlite3 v1.14.22/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
-github.com/metal3-io/baremetal-operator/apis v0.14.2 h1:aN+/UaJAuzcgUAV5IaLn/VSRN1lQMBAf7xXEujpreoU=
-github.com/metal3-io/baremetal-operator/apis v0.14.2/go.mod h1:ECy5tCjIvrpoi7LlPNrExaopE7QQHNmyTFmNV9xOHcU=
-github.com/metal3-io/ip-address-manager/api v1.14.0-rc.0 h1:+YJYBRLC4jBjz3IqSzBeSVY3JzTfc9vLydO4Fmeorx0=
-github.com/metal3-io/ip-address-manager/api v1.14.0-rc.0/go.mod h1:w2orGATNQecqvAm1mMDVjfQMMh2ZlCKqC5pQbKAz/2M=
+github.com/metal3-io/baremetal-operator/apis v0.15.0-beta.0 h1:t5yYuzcLQ8Q34Qj0nMTXNpXoModQVQcbj8UjDIEj69g=
+github.com/metal3-io/baremetal-operator/apis v0.15.0-beta.0/go.mod h1:b0JikZfqAejTwmjQnX6KeiSsoUpyYpEQSmThIRp+Jok=
+github.com/metal3-io/ip-address-manager/api v1.15.0-beta.0 h1:RaO8y89up/ItRjuPM4H0wuczrIFA4JY3yiUZRFXsE7Q=
+github.com/metal3-io/ip-address-manager/api v1.15.0-beta.0/go.mod h1:nsiNNRzzsPzhlzWddmryMmn/TlxsyDtsEx0AB4nyfH8=
 github.com/metal3-io/ironic-standalone-operator/api v0.11.0 h1:Qyd12pjVs0IrTfQHzNvl+6ygwxdC969w8tIM6i6NI4o=
 github.com/metal3-io/ironic-standalone-operator/api v0.11.0/go.mod h1:7MJ9f1HJZFcBDJdXSr3BwOBFidhRMtIwnQ7k53GNfwE=
 github.com/mfridman/tparse v0.18.0 h1:wh6dzOKaIwkUGyKgOntDW4liXSo37qg5AXbIhkMV3vE=

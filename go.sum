@@ -133,10 +133,10 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/maruel/natural v1.1.1 h1:Hja7XhhmvEFhcByqDoHz9QZbkWey+COd9xWfCfn1ioo=
 github.com/maruel/natural v1.1.1/go.mod h1:v+Rfd79xlw1AgVBjbO0BEQmptqb5HvL/k9GRHB7ZKEg=
-github.com/metal3-io/baremetal-operator/apis v0.14.2 h1:aN+/UaJAuzcgUAV5IaLn/VSRN1lQMBAf7xXEujpreoU=
-github.com/metal3-io/baremetal-operator/apis v0.14.2/go.mod h1:ECy5tCjIvrpoi7LlPNrExaopE7QQHNmyTFmNV9xOHcU=
-github.com/metal3-io/ip-address-manager/api v1.14.0-rc.0 h1:+YJYBRLC4jBjz3IqSzBeSVY3JzTfc9vLydO4Fmeorx0=
-github.com/metal3-io/ip-address-manager/api v1.14.0-rc.0/go.mod h1:w2orGATNQecqvAm1mMDVjfQMMh2ZlCKqC5pQbKAz/2M=
+github.com/metal3-io/baremetal-operator/apis v0.15.0-beta.0 h1:t5yYuzcLQ8Q34Qj0nMTXNpXoModQVQcbj8UjDIEj69g=
+github.com/metal3-io/baremetal-operator/apis v0.15.0-beta.0/go.mod h1:b0JikZfqAejTwmjQnX6KeiSsoUpyYpEQSmThIRp+Jok=
+github.com/metal3-io/ip-address-manager/api v1.15.0-beta.0 h1:RaO8y89up/ItRjuPM4H0wuczrIFA4JY3yiUZRFXsE7Q=
+github.com/metal3-io/ip-address-manager/api v1.15.0-beta.0/go.mod h1:nsiNNRzzsPzhlzWddmryMmn/TlxsyDtsEx0AB4nyfH8=
 github.com/mfridman/tparse v0.18.0 h1:wh6dzOKaIwkUGyKgOntDW4liXSo37qg5AXbIhkMV3vE=
 github.com/mfridman/tparse v0.18.0/go.mod h1:gEvqZTuCgEhPbYk/2lS3Kcxg1GmTxxU7kTC8DvP0i/A=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
