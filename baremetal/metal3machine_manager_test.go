@@ -687,6 +687,19 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 		}
+		hostWithDeletionTimestamp := bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "hostWithDeletionTimestamp",
+				Namespace:         namespaceName,
+				Finalizers:        []string{"test.finalizer"},
+				DeletionTimestamp: ptr.To(metav1.Now()),
+			},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateAvailable,
+				},
+			},
+		}
 
 		m3mconfig, infrastructureRef := newConfig("", map[string]string{},
 			[]infrav1.HostSelectorRequirement{}, "",
@@ -726,6 +739,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			Hosts            *bmov1alpha1.BareMetalHostList
 			M3Machine        *infrav1.Metal3Machine
 			ExpectedHostName string
+			ExpectedReason   string
+			ExpectError      bool
+			ExpectRequeue    bool
 		}
 
 		DescribeTable("Test ChooseHost",
@@ -748,16 +764,26 @@ var _ = Describe("Metal3Machine manager", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				result, _, _, err := machineMgr.chooseHost(context.TODO())
+				result, reason, err := machineMgr.chooseHost(context.TODO())
+				if tc.ExpectError {
+					Expect(err).To(HaveOccurred())
+					if tc.ExpectRequeue {
+						Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
+					}
+					Expect(result).To(BeNil())
+					Expect(reason).To(Equal(tc.ExpectedReason))
+					return
+				}
 
 				if tc.ExpectedHostName == "" {
+					Expect(err).NotTo(HaveOccurred())
 					Expect(result).To(BeNil())
+					Expect(reason).To(Equal(tc.ExpectedReason))
 					return
 				}
 				Expect(err).NotTo(HaveOccurred())
-				if tc.ExpectedHostName != "" {
-					Expect(result.Name).To(Equal(tc.ExpectedHostName))
-				}
+				Expect(result.Name).To(Equal(tc.ExpectedHostName))
+				Expect(reason).To(Equal(tc.ExpectedReason))
 			},
 			Entry("Pick hostWithNodeReuseLabelSetToCP, which has a matching nodeReuseLabelName", testCaseChooseHost{
 				Machine: &clusterv1.Machine{
@@ -783,8 +809,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, *availableHost, hostWithNodeReuseLabelSetToCP}},
 				M3Machine:        m3mconfig,
 				ExpectedHostName: hostWithNodeReuseLabelSetToCP.Name,
+				ExpectedReason:   infrav1.AssociateBareMetalHostViaNodeReuseSuccessReason,
 			}),
-			Entry("Requeu hostWithNodeReuseLabelStateNone, which has a matching nodeReuseLabelName", testCaseChooseHost{
+			Entry("Requeue hostWithNodeReuseLabelStateNone, which has a matching nodeReuseLabelName", testCaseChooseHost{
 				Machine: &clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      machineName,
@@ -808,12 +835,16 @@ var _ = Describe("Metal3Machine manager", func() {
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, *availableHost, hostWithNodeReuseLabelStateNone}},
 				M3Machine:        m3mconfig,
 				ExpectedHostName: "",
+				ExpectedReason:   "",
+				ExpectError:      true,
+				ExpectRequeue:    true,
 			}),
 			Entry("Pick availableHost which lacks ConsumerRef", testCaseChooseHost{
 				Machine:          newMachine(machineName, infrastructureRef),
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, *availableHost}},
 				M3Machine:        m3mconfig,
 				ExpectedHostName: availableHost.Name,
+				ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 			}),
 			Entry("Ignore discoveredHost and pick availableHost, which lacks a ConsumerRef",
 				testCaseChooseHost{
@@ -821,6 +852,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{discoveredHost, hostWithOtherConsRef, *availableHost}},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: availableHost.Name,
+					ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 				},
 			),
 			Entry("Ignore hostWithUnhealthyAnnotation and pick availableHost, which lacks a ConsumerRef",
@@ -829,6 +861,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithUnhealthyAnnotation, hostWithOtherConsRef, *availableHost}},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: availableHost.Name,
+					ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 				},
 			),
 			Entry("Ignore hostWithUnhealthyAnnotationDeprecated and pick availableHost, which lacks a ConsumerRef",
@@ -837,6 +870,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithUnhealthyAnnotationDeprecated, hostWithOtherConsRef, *availableHost}},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: availableHost.Name,
+					ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 				},
 			),
 			Entry("Ignore hostWithPausedAnnotation and pick availableHost, which lacks a ConsumerRef",
@@ -845,6 +879,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithPausedAnnotation, hostWithOtherConsRef, *availableHost}},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: availableHost.Name,
+					ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 				},
 			),
 			Entry("Pick hostWithConRef, which has a matching ConsumerRef", testCaseChooseHost{
@@ -852,6 +887,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, *availableHost, hostWithConRef}},
 				M3Machine:        newMetal3Machine(metal3machineName, nil, m3mSecretStatus(), nil),
 				ExpectedHostName: hostWithConRef.Name,
+				ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 			}),
 
 			Entry("Two hosts already taken, third is in another namespace",
@@ -860,6 +896,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, hostWithConRef, hostInOtherNS}},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: "",
+					ExpectedReason:   "",
 				}),
 
 			Entry("Choose hosts with a label, even without a label selector",
@@ -868,6 +905,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithLabel}},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: hostWithLabel.Name,
+					ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 				},
 			),
 			Entry("Choose hosts with a nodeReuseLabelName set to CP, even without a label selector",
@@ -895,6 +933,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithNodeReuseLabelSetToCP}},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: hostWithNodeReuseLabelSetToCP.Name,
+					ExpectedReason:   infrav1.AssociateBareMetalHostViaNodeReuseSuccessReason,
 				},
 			),
 			Entry("Choose the host with the right label", testCaseChooseHost{
@@ -902,18 +941,21 @@ var _ = Describe("Metal3Machine manager", func() {
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithLabel, *availableHost}},
 				M3Machine:        m3mconfig2,
 				ExpectedHostName: hostWithLabel.Name,
+				ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 			}),
 			Entry("No host that matches required label", testCaseChooseHost{
 				Machine:          newMachine(machineName, infrastructureRef3),
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel}},
 				M3Machine:        m3mconfig3,
 				ExpectedHostName: "",
+				ExpectedReason:   "",
 			}),
 			Entry("Host that matches a matchExpression", testCaseChooseHost{
 				Machine:          newMachine(machineName, infrastructureRef4),
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel}},
 				M3Machine:        m3mconfig4,
 				ExpectedHostName: hostWithLabel.Name,
+				ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 			}),
 			Entry("No Host available that matches a matchExpression",
 				testCaseChooseHost{
@@ -921,6 +963,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost}},
 					M3Machine:        m3mconfig4,
 					ExpectedHostName: "",
+					ExpectedReason:   "",
 				},
 			),
 			Entry("No host chosen, invalid match expression", testCaseChooseHost{
@@ -928,18 +971,29 @@ var _ = Describe("Metal3Machine manager", func() {
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithOtherConsRef}},
 				M3Machine:        m3mconfig5,
 				ExpectedHostName: "",
+				ExpectedReason:   "",
+				ExpectError:      true,
+			}),
+			Entry("Skip host with deletion timestamp and pick available host", testCaseChooseHost{
+				Machine:          newMachine(machineName, infrastructureRef),
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithDeletionTimestamp, *availableHost}},
+				M3Machine:        m3mconfig,
+				ExpectedHostName: availableHost.Name,
+				ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 			}),
 			Entry("Choose a host in Failure Domain", testCaseChooseHost{
 				Machine:          newMachine(machineName, infrastructureRef6),
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithOtherConsRef, hostWithFailureDomainLabel}},
 				M3Machine:        m3mconfig6,
 				ExpectedHostName: hostWithFailureDomainLabel.Name,
+				ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 			}),
 			Entry("Choose available host, when hosts in FailureDomain not available", testCaseChooseHost{
 				Machine:          newMachine(machineName, infrastructureRef6),
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithOtherConsRef, hostWithNodeReuseLabelSetToCP}},
 				M3Machine:        m3mconfig6,
 				ExpectedHostName: availableHost.Name,
+				ExpectedReason:   infrav1.AssociateBareMetalHostSuccessReason,
 			}),
 			Entry("Choose a host in Failure Domain, when NodeReuse is set", testCaseChooseHost{
 				Machine: &clusterv1.Machine{
@@ -965,6 +1019,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithFailureDomainLabel, hostWithNodeReuseLabelSetToCPinFailureDomain}},
 				M3Machine:        m3mconfig6,
 				ExpectedHostName: hostWithNodeReuseLabelSetToCPinFailureDomain.Name,
+				ExpectedReason:   infrav1.AssociateBareMetalHostViaNodeReuseSuccessReason,
 			}),
 			Entry("Choose host is not in Failure Domain, when NodeReuse is set", testCaseChooseHost{
 				Machine: &clusterv1.Machine{
@@ -990,6 +1045,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithFailureDomainLabel, hostWithNodeReuseLabelSetToCP}},
 				M3Machine:        m3mconfig6,
 				ExpectedHostName: hostWithNodeReuseLabelSetToCP.Name,
+				ExpectedReason:   infrav1.AssociateBareMetalHostViaNodeReuseSuccessReason,
 			}),
 		)
 	})
