@@ -43,6 +43,17 @@ var _ = Describe("When testing integration", Label("integration"), func() {
 				Namespace:             namespace,
 			}
 		})
+
+		By("Verify pod-to-pod network connectivity in the workload cluster with Goldpinger")
+		GoldpingerCheck(ctx, func() GoldpingerInput {
+			return GoldpingerInput{
+				E2EConfig:     e2eConfig,
+				TargetCluster: targetCluster,
+				SpecName:      specName,
+				SkipCleanup:   skipCleanup,
+			}
+		})
+
 		By("Pivot objects to target cluster")
 		Pivoting(ctx, func() PivotingInput {
 			return PivotingInput{
