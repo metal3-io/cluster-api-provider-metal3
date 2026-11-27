@@ -944,11 +944,14 @@ ways. The following types of objects are available and accept lists:
      [Cluster-API IPAM provider specification](https://cluster-api.sigs.k8s.io/reference/providers.html#ip-address-management-ipam)
    - an _IPPool_ object as defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
-- **dnsServersFromIPPool**: either:
+- **dnsServersFromIPPool**: renders the DNS servers from either:
    - a pool implementing the
      [Cluster-API IPAM provider specification](https://cluster-api.sigs.k8s.io/reference/providers.html#ip-address-management-ipam)
    - an _IPPool_ object as defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
+
+  When a pool provides several DNS servers, they are rendered as a single comma
+  separated string.
 - **fromHostInterfaces**: renders the MAC address of the BareMetalHost that
   matches the name given as value.
 - **fromLabels**: renders the content of a label on an object or an empty string

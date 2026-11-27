@@ -1762,6 +1762,21 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 		metadata[entry.Key] = string(poolAddress.Gateway)
 	}
 
+	// DNS servers
+	// A pool may provide several DNS servers, so they are rendered as a single
+	// comma separated string. With a single server this is just the address.
+	for _, entry := range m3dt.Spec.MetaData.DNSServersFromPool {
+		poolAddress, ok := poolAddresses[entry.Name]
+		if !ok {
+			return nil, errors.New("pool not found in cache")
+		}
+		dnsServers := make([]string, len(poolAddress.dnsServers))
+		for i, dnsServer := range poolAddress.dnsServers {
+			dnsServers[i] = string(dnsServer)
+		}
+		metadata[entry.Key] = strings.Join(dnsServers, ",")
+	}
+
 	// Indexes
 	for _, entry := range m3dt.Spec.MetaData.Indexes {
 		if entry.Step == 0 {
