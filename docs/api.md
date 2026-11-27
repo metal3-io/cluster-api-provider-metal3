@@ -346,6 +346,10 @@ the generated Metal3Data object and the secrets generated for this machine.
 The addresses in `Machine.status.addresses` are normally derived from the
 hardware details that Ironic discovered on the BareMetalHost during inspection:
 one `InternalIP` per NIC, plus `Hostname` and `InternalDNS` from the hostname.
+The hardware details are read from the `HardwareData` object that the
+baremetal-operator creates with the same name and namespace as the
+BareMetalHost. The deprecated BareMetalHost `status.hardware` field is used
+instead when the `HardwareData` does not exist or holds no hardware details.
 
 The IP addresses can be overridden through the `metaData` secret referenced in
 `Metal3Machine.status.metaData`. The following optional keys are recognized in
