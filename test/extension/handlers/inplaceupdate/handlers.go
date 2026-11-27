@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
+	"github.com/metal3-io/cluster-api-provider-metal3/test/metal3util"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/pkg/errors"
 	"gomodules.xyz/jsonpatch/v2"
@@ -38,6 +39,7 @@ import (
 // +kubebuilder:rbac:groups=ipam.metal3.io,resources=ipclaims/status,verbs=get
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datas,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datas/status,verbs=get
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3dataclaims,verbs=get;list;watch
 
 const (
 	trueString                      = "true"
@@ -425,14 +427,14 @@ func (h *ExtensionHandlers) getMachineIP(ctx context.Context, machine *clusterv1
 	}
 
 	var m3Data *infrav1.Metal3Data
-	for i, m3d := range m3DataList.Items {
-		for _, owner := range m3d.OwnerReferences {
-			if owner.Name == metal3Machine.Name {
-				m3Data = &m3DataList.Items[i]
-				break
-			}
+	for _, m3d := range m3DataList.Items {
+		machineName, resolveErr := metal3util.Metal3DataToMachineName(ctx, h.client, m3d)
+		if resolveErr != nil {
+			// This Metal3Data has no resolvable owning Metal3Machine; skip it.
+			continue
 		}
-		if m3Data != nil {
+		if machineName == metal3Machine.Name {
+			m3Data = &m3d
 			break
 		}
 	}
