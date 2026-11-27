@@ -31,7 +31,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -5954,11 +5956,164 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectError: false,
 		}),
 	)
+
+	// getMetal3MachineTemplate must never read a Metal3MachineTemplate from a
+	// namespace other than the Machine's own, even when the control plane object
+	// asks it to via spec.machineTemplate.spec.infrastructureRef.namespace.
+	//
+	// The control plane object has to be seeded as unstructured under a GVK that
+	// is not registered as a typed Go type: the typed
+	// KubeadmControlPlaneMachineTemplateSpec.InfrastructureRef is a
+	// ContractVersionedObjectReference and has no namespace field at all, so a
+	// typed object (or an unstructured one whose GVK maps to a typed struct)
+	// would silently drop the namespace and the test would pass vacuously.
+	type testCaseControlPlaneTemplateNamespace struct {
+		refNamespace              string
+		templateInMachineNS       bool
+		templateInForeignNS       bool
+		expectTemplate            bool
+		expectedTemplateNamespace string
+		expectedNodeReuse         bool
+	}
+
+	const (
+		foreignNamespace    = "attacker-ns"
+		sharedTemplateName  = "shared-template-name"
+		fakeControlPlaneAPI = "controlplane.cluster.x-k8s.io/v1beta2"
+		fakeControlPlaneKnd = "FooControlPlane"
+		fakeControlPlaneNom = "foo-control-plane"
+	)
+
+	DescribeTable("Test getMetal3MachineTemplate control plane namespace clamping",
+		func(tc testCaseControlPlaneTemplateNamespace) {
+			machine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      machineName,
+					Namespace: namespaceName,
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabel: "",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: fakeControlPlaneAPI,
+							Kind:       fakeControlPlaneKnd,
+							Name:       fakeControlPlaneNom,
+						},
+					},
+				},
+			}
+
+			infraRef := map[string]interface{}{
+				"name": sharedTemplateName,
+			}
+			if tc.refNamespace != "" {
+				infraRef["namespace"] = tc.refNamespace
+			}
+			cpObj := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": fakeControlPlaneAPI,
+					"kind":       fakeControlPlaneKnd,
+					"metadata": map[string]interface{}{
+						"name":      fakeControlPlaneNom,
+						"namespace": namespaceName,
+					},
+					"spec": map[string]interface{}{
+						"machineTemplate": map[string]interface{}{
+							"spec": map[string]interface{}{
+								"infrastructureRef": infraRef,
+							},
+						},
+					},
+				},
+			}
+
+			objects := []client.Object{cpObj}
+			// Both templates share a name and differ only by namespace and by
+			// NodeReuse, so the assertions can tell which one was fetched.
+			if tc.templateInMachineNS {
+				objects = append(objects, newM3MachineTemplateWithNodeReuse(sharedTemplateName, namespaceName, true))
+			}
+			if tc.templateInForeignNS {
+				objects = append(objects, newM3MachineTemplateWithNodeReuse(sharedTemplateName, foreignNamespace, false))
+			}
+
+			scheme := setupSchemeMm()
+			cpGVK := schema.FromAPIVersionAndKind(fakeControlPlaneAPI, fakeControlPlaneKnd)
+			scheme.AddKnownTypeWithName(cpGVK, &unstructured.Unstructured{})
+			scheme.AddKnownTypeWithName(cpGVK.GroupVersion().WithKind(fakeControlPlaneKnd+"List"), &unstructured.UnstructuredList{})
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+			machineMgr, err := NewMachineManager(fakeClient, nil, nil, machine,
+				newMetal3Machine(metal3machineName, nil, nil, nil), logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			m3mt, err := machineMgr.getMetal3MachineTemplate(context.TODO())
+			Expect(err).NotTo(HaveOccurred())
+
+			if !tc.expectTemplate {
+				Expect(m3mt).To(BeNil())
+				return
+			}
+			Expect(m3mt).NotTo(BeNil())
+			Expect(m3mt.Namespace).To(Equal(tc.expectedTemplateNamespace))
+			Expect(ptr.Deref(m3mt.Spec.NodeReuse, false)).To(Equal(tc.expectedNodeReuse))
+		},
+		Entry("No namespace in the ref defaults to the Machine namespace", testCaseControlPlaneTemplateNamespace{
+			refNamespace:              "",
+			templateInMachineNS:       true,
+			templateInForeignNS:       true,
+			expectTemplate:            true,
+			expectedTemplateNamespace: namespaceName,
+			expectedNodeReuse:         true,
+		}),
+		Entry("Ref namespace matching the Machine namespace is honoured", testCaseControlPlaneTemplateNamespace{
+			refNamespace:              namespaceName,
+			templateInMachineNS:       true,
+			templateInForeignNS:       true,
+			expectTemplate:            true,
+			expectedTemplateNamespace: namespaceName,
+			expectedNodeReuse:         true,
+		}),
+		Entry("Foreign ref namespace is ignored when a template exists in the Machine namespace", testCaseControlPlaneTemplateNamespace{
+			refNamespace:              foreignNamespace,
+			templateInMachineNS:       true,
+			templateInForeignNS:       true,
+			expectTemplate:            true,
+			expectedTemplateNamespace: namespaceName,
+			expectedNodeReuse:         true,
+		}),
+		Entry("Foreign ref namespace is never read when only the foreign template exists", testCaseControlPlaneTemplateNamespace{
+			refNamespace:        foreignNamespace,
+			templateInMachineNS: false,
+			templateInForeignNS: true,
+			expectTemplate:      false,
+		}),
+	)
 })
 
 /*-----------------------------------
 ---------Helper functions------------
 ------------------------------------*/
+
+// newM3MachineTemplateWithNodeReuse builds a Metal3MachineTemplate whose only
+// distinguishing payload is NodeReuse, so tests can tell two templates sharing a
+// name in different namespaces apart.
+func newM3MachineTemplateWithNodeReuse(name, namespace string, nodeReuse bool) *infrav1.Metal3MachineTemplate {
+	return &infrav1.Metal3MachineTemplate{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       "Metal3MachineTemplate",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: infrav1.Metal3MachineTemplateSpec{
+			NodeReuse: ptr.To(nodeReuse),
+		},
+	}
+}
 
 func setupSchemeMm() *runtime.Scheme {
 	s := runtime.NewScheme()
