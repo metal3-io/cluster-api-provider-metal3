@@ -403,6 +403,98 @@ var _ = Describe("Metal3Remediation controller", func() {
 			}),
 	)
 
+	// An orphaned Metal3Remediation can never make progress: without the owner
+	// Machine there is no path to the Metal3Machine, the BareMetalHost or the
+	// workload cluster. If it is also being deleted, returning an error would
+	// leave the finalizer in place and the object wedged in Terminating forever.
+	// This happens in practice whenever the owner Machine is deleted
+	// mid-remediation and garbage collection cascades to the remediation.
+	//
+	// Note GetOwnerMachine reports a *NotFound error* when the reference exists
+	// but the Machine is gone, and returns nil only when no Machine owner
+	// reference is present at all. Both have to be released.
+	DescribeTable("Orphaned Metal3Remediation being deleted is released",
+		func(ownerRef metav1.OwnerReference) {
+			delTimestamp := metav1.Now()
+			m3Remediation := &infrav1.Metal3Remediation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              metal3RemediationName,
+					Namespace:         namespaceName,
+					DeletionTimestamp: &delTimestamp,
+					Finalizers:        []string{infrav1.RemediationFinalizer},
+					OwnerReferences:   []metav1.OwnerReference{ownerRef},
+				},
+			}
+
+			fakeClient = fake.NewClientBuilder().WithScheme(setupScheme()).
+				WithObjects(defaultCluster, m3Remediation).Build()
+			testReconciler = &Metal3RemediationReconciler{
+				Client:         fakeClient,
+				ManagerFactory: baremetal.NewManagerFactory(fakeClient),
+				Log:            logr.Discard(),
+			}
+
+			_, err := testReconciler.Reconcile(context.TODO(), defaultTestRequest)
+			Expect(err).NotTo(HaveOccurred(),
+				"reconciling an orphaned, deleting Metal3Remediation must not error forever")
+
+			saved := &infrav1.Metal3Remediation{}
+			err = fakeClient.Get(context.TODO(), defaultTestRequest.NamespacedName, saved)
+			if err == nil {
+				Expect(saved.Finalizers).NotTo(ContainElement(infrav1.RemediationFinalizer),
+					"finalizer must be released so the object can be garbage collected")
+			} else {
+				Expect(apierrors.IsNotFound(err)).To(BeTrue(),
+					"object should be gone once the finalizer was removed")
+			}
+		},
+		Entry("owner Machine was deleted", metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Machine",
+			Name:       "already-deleted-machine",
+		}),
+		Entry("no Machine owner reference at all", metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "wrongKind",
+			Name:       machineName,
+		}),
+	)
+
+	// Orphans that are not being deleted are misconfigurations and must still be
+	// surfaced as errors rather than silently released.
+	DescribeTable("Orphaned Metal3Remediation not being deleted still errors",
+		func(ownerRef metav1.OwnerReference, expectedMsg *string) {
+			m3Remediation := &infrav1.Metal3Remediation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            metal3RemediationName,
+					Namespace:       namespaceName,
+					OwnerReferences: []metav1.OwnerReference{ownerRef},
+				},
+			}
+
+			fakeClient = fake.NewClientBuilder().WithScheme(setupScheme()).
+				WithObjects(defaultCluster, m3Remediation).Build()
+			testReconciler = &Metal3RemediationReconciler{
+				Client:         fakeClient,
+				ManagerFactory: baremetal.NewManagerFactory(fakeClient),
+				Log:            logr.Discard(),
+			}
+
+			_, err := testReconciler.Reconcile(context.TODO(), defaultTestRequest)
+			evaluateTestError(expectedMsg, err)
+		},
+		Entry("owner Machine was deleted", metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Machine",
+			Name:       "already-deleted-machine",
+		}, &ownerMachineErrorMsg),
+		Entry("no Machine owner reference at all", metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "wrongKind",
+			Name:       machineName,
+		}, &ownerMachineNotSetMsg),
+	)
+
 	DescribeTable("ReconcileNormal tests", func(tc reconcileNormalRemediationTestCase) {
 		fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 		testReconciler = &Metal3RemediationReconciler{

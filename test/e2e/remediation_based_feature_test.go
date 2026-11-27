@@ -116,6 +116,23 @@ var _ = Describe("Testing nodes remediation", Label("remediation", "features"), 
 				ClusterctlConfigPath:  clusterctlConfigPath,
 			}
 		})
+
+		// Runs last: it deletes a worker Machine and, on an unfixed build, can
+		// leave a BareMetalHost held powered off, which would cascade into any
+		// spec sharing this cluster.
+		By("Running orphaned power off annotation remediation test")
+		OrphanedPowerOffRemediation(ctx, func() OrphanedPowerOffRemediationInput {
+			return OrphanedPowerOffRemediationInput{
+				E2EConfig:             e2eConfig,
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				TargetCluster:         targetCluster,
+				SpecName:              specName,
+				ClusterName:           clusterName,
+				Namespace:             namespace,
+				NumberOfWorkers:       numberOfWorkers,
+				NumberOfControlplane:  numberOfControlplane,
+			}
+		})
 	})
 
 	AfterEach(func() {

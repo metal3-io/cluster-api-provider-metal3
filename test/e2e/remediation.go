@@ -423,7 +423,7 @@ func assertNodeStatus(ctx context.Context, client client.Client, name client.Obj
 	return fmt.Errorf("node %s missing condition \"Ready\"", name.Name)
 }
 
-func waitForNodeStatus(ctx context.Context, client client.Client, name client.ObjectKey, status corev1.ConditionStatus, _ string, interval ...any) {
+func waitForNodeStatus(ctx context.Context, client client.Client, name client.ObjectKey, status corev1.ConditionStatus, _ string, interval ...any) { //nolint:unparam
 	Byf("Waiting for Node '%s' to have ready=%s status", name, status)
 	Eventually(
 		func() error { return assertNodeStatus(ctx, client, name, status) },
