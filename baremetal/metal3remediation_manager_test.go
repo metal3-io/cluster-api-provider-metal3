@@ -837,6 +837,14 @@ var _ = Describe("Metal3Remediation manager", func() {
 				Name:      "myhost",
 				Namespace: namespaceName,
 			},
+			Spec: bmov1alpha1.BareMetalHostSpec{
+				ConsumerRef: &corev1.ObjectReference{
+					Name:       "mym3machine",
+					Namespace:  namespaceName,
+					Kind:       metal3MachineKind,
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
 		}
 
 		m3machine := &infrav1.Metal3Machine{
@@ -893,6 +901,52 @@ var _ = Describe("Metal3Remediation manager", func() {
 			By("Removing annotation")
 			Expect(remediationMgr.RemovePowerOffAnnotation(context.TODO())).To(Succeed(), "RemovePowerOffAnnotation should succeed")
 			ensureNotExists()
+		})
+
+		It("should not set the power off annotation on a host released by the Metal3Machine", func() {
+			releasedHost := bmhost.DeepCopy()
+			releasedHost.ResourceVersion = ""
+			releasedHost.Spec.ConsumerRef = nil
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(releasedHost, m3machine, remediation).Build()
+
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, remediation, m3machine, nil,
+				logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(remediationMgr.SetPowerOffAnnotation(context.TODO())).NotTo(Succeed(),
+				"SetPowerOffAnnotation should refuse a host that is no longer consumed by the Metal3Machine")
+			host := &bmov1alpha1.BareMetalHost{}
+			Expect(fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(bmhost), host)).To(Succeed())
+			Expect(host.Annotations).ToNot(HaveKey(remediationMgr.getPowerOffAnnotationKey()))
+		})
+
+		It("should not set the power off annotation from a read taken before the host was released", func() {
+			initialHost := bmhost.DeepCopy()
+			initialHost.ResourceVersion = ""
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(initialHost, m3machine, remediation).Build()
+
+			// staleReader serves the BareMetalHost as it was before release
+			// while the write goes to the real, already updated object.
+			stale := &bmov1alpha1.BareMetalHost{}
+			Expect(fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(bmhost), stale)).To(Succeed())
+
+			By("Releasing the host as MachineManager.Delete() does")
+			released := stale.DeepCopy()
+			released.Spec.ConsumerRef = nil
+			Expect(fakeClient.Update(context.TODO(), released)).To(Succeed())
+
+			staleClient := staleHostClient{Client: fakeClient, host: stale}
+			remediationMgr, err := NewRemediationManager(staleClient, nil, nil, remediation, m3machine, nil,
+				logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = remediationMgr.SetPowerOffAnnotation(context.TODO())
+			Expect(apierrors.IsConflict(err)).To(BeTrue(), "SetPowerOffAnnotation should fail with a conflict, got %v", err)
+			host := &bmov1alpha1.BareMetalHost{}
+			Expect(fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(bmhost), host)).To(Succeed())
+			Expect(host.Annotations).ToNot(HaveKey(remediationMgr.getPowerOffAnnotationKey()))
 		})
 	})
 
@@ -1288,3 +1342,18 @@ var _ = Describe("Metal3Remediation manager", func() {
 		)
 	})
 })
+
+// staleHostClient returns a fixed, possibly outdated copy of a BareMetalHost
+// on Get, the way a lagging cache would, and passes everything else through.
+type staleHostClient struct {
+	client.Client
+	host *bmov1alpha1.BareMetalHost
+}
+
+func (c staleHostClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	if bmh, ok := obj.(*bmov1alpha1.BareMetalHost); ok && key == client.ObjectKeyFromObject(c.host) {
+		c.host.DeepCopyInto(bmh)
+		return nil
+	}
+	return c.Client.Get(ctx, key, obj, opts...)
+}

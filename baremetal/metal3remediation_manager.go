@@ -178,15 +178,27 @@ func (r *RemediationManager) TimeToRemediate(timeoutSeconds int32) (bool, time.D
 }
 
 // SetPowerOffAnnotation sets poweroff annotation on unhealthy host.
+//
+// The host is resolved through the possibly stale Metal3Machine, so the write
+// is guarded twice against racing with MachineManager.Delete(), which releases
+// the host and strips power off annotations in a single patch:
+//   - the host must still be consumed by this Metal3Machine, and
+//   - the patch carries the resourceVersion that was read, so a read taken
+//     before the host was released fails with a conflict instead of
+//     recreating an annotation that nothing would remove anymore.
 func (r *RemediationManager) SetPowerOffAnnotation(ctx context.Context) error {
 	r.Log.V(VerbosityLevelTrace).Info("Setting PowerOff annotation",
 		LogFieldMetal3Remediation, r.Metal3Remediation.Name)
-	host, helper, err := r.GetUnhealthyHost(ctx)
+	host, _, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
 		return err
 	}
 	if host == nil {
 		return errors.New("unable to set a PowerOff Annotation, Host not found")
+	}
+	if !consumerRefMatches(host.Spec.ConsumerRef, r.Metal3Machine) {
+		return fmt.Errorf("unable to set a PowerOff Annotation, Host %s/%s is not consumed by Metal3Machine %s",
+			host.Namespace, host.Name, r.Metal3Machine.Name)
 	}
 
 	r.Log.Info("Adding PowerOff annotation to BareMetalHost",
@@ -200,11 +212,12 @@ func (r *RemediationManager) SetPowerOffAnnotation(ctx context.Context) error {
 		return err
 	}
 
+	original := host.DeepCopy()
 	if host.Annotations == nil {
 		host.Annotations = make(map[string]string)
 	}
 	host.Annotations[r.getPowerOffAnnotationKey()] = string(marshalledMode)
-	return helper.Patch(ctx, host)
+	return r.Client.Patch(ctx, host, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{}))
 }
 
 // RemovePowerOffAnnotation removes poweroff annotation from unhealthy host.

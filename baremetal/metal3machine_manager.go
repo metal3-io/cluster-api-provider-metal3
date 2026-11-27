@@ -843,7 +843,15 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		// Update the BMH object, if the errors are NotFound, do not return the
 		// errors.
-		if err := patchIfFound(ctx, helper, host); err != nil {
+		//
+		// This is a resourceVersion-conditional update, not a merge patch:
+		// releasing the host and stripping the power off annotations must be
+		// based on the latest host. Otherwise an annotation the remediation
+		// controller added after the host was read here would survive a patch
+		// that clears ConsumerRef, and nothing would ever remove it. On conflict
+		// updateObject returns a transient error so the release is retried
+		// from a fresh read.
+		if err := updateObject(ctx, m.client, host); err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
 	}

@@ -3469,6 +3469,69 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 	)
 
+	// Regression guard for the reverse ordering of the remediation race: Delete()
+	// reads the host, then the remediation controller adds its power off
+	// annotation, then Delete() releases the host. A write that is not
+	// conditional on the resourceVersion would clear ConsumerRef while keeping
+	// the unseen annotation, leaving a released host held powered off.
+	It("should not release the host from a read taken before a power off annotation was added", func() {
+		originalFastTrack := Capm3FastTrack
+		Capm3FastTrack = "false"
+		DeferCleanup(func() { Capm3FastTrack = originalFastTrack })
+		scheme := setupSchemeMm()
+		host := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      baremetalhostName,
+				Namespace: namespaceName,
+			},
+			Spec: *bmhSpecBMC(),
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateNone,
+				},
+			},
+		}
+		m3m := newMetal3Machine(metal3machineName, m3mSpecAll(), m3mSecretStatus(), m3mObjectMetaWithValidAnnotations())
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).
+			WithObjects(host, m3m, newBMCSecret("mycredentials", false)).Build()
+		hostKey := client.ObjectKeyFromObject(host)
+		powerOffKey := PowerOffAnnotationPrefix + testRemediationUID
+
+		By("Taking the read Delete() will act on")
+		stale := &bmov1alpha1.BareMetalHost{}
+		Expect(fakeClient.Get(context.TODO(), hostKey, stale)).To(Succeed())
+
+		By("Adding the power off annotation as the remediation controller does")
+		current := stale.DeepCopy()
+		current.Annotations = map[string]string{powerOffKey: `{"mode":"hard"}`}
+		Expect(fakeClient.Update(context.TODO(), current)).To(Succeed())
+
+		By("Running Delete() with the stale read")
+		staleMgr, err := NewMachineManager(staleHostClient{Client: fakeClient, host: stale}, nil, nil,
+			newMachine(machineName, nil), m3m.DeepCopy(), logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+		err = staleMgr.Delete(context.TODO())
+		Expect(err).To(HaveOccurred(), "Delete() must not release the host from a stale read")
+		var reconcileErr ReconcileError
+		Expect(errors.As(err, &reconcileErr)).To(BeTrue())
+		Expect(reconcileErr.IsTransient()).To(BeTrue(), "a conflict should be retried")
+
+		got := &bmov1alpha1.BareMetalHost{}
+		Expect(fakeClient.Get(context.TODO(), hostKey, got)).To(Succeed())
+		Expect(got.Spec.ConsumerRef).NotTo(BeNil(), "host must stay consumed until the release is based on the latest read")
+		Expect(got.Annotations).To(HaveKey(powerOffKey))
+
+		By("Retrying Delete() with a fresh read")
+		freshMgr, err := NewMachineManager(fakeClient, nil, nil,
+			newMachine(machineName, nil), m3m.DeepCopy(), logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(freshMgr.Delete(context.TODO())).To(Succeed())
+
+		Expect(fakeClient.Get(context.TODO(), hostKey, got)).To(Succeed())
+		Expect(got.Spec.ConsumerRef).To(BeNil(), "host should be released")
+		Expect(got.Annotations).NotTo(HaveKey(powerOffKey), "power off annotation should be removed with the release")
+	})
+
 	Describe("Test UpdateMachineStatus", func() {
 		nic1 := bmov1alpha1.NIC{
 			IP: "192.168.1.1",
