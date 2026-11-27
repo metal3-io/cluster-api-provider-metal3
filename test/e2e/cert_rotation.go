@@ -52,8 +52,12 @@ func CertRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	}
 	Logf("Pre-rotation: tls-secret-version=%q, deployment.revision=%q", preTLSVersion, preRevision)
 
-	By("Fetch logs from target cluster after pivot")
-	err := FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, input.ClusterProxy.GetName(), "before-cert-rotation"))
+	By("Fetch cluster logs and manifests before cert rotation [cert_rotation]")
+	err := FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "cert_rotation", "beforeRotation"))
+	if err != nil {
+		Logf("Error: %v", err)
+	}
+	err = FetchManifests(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "cert_rotation", "beforeRotation"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
@@ -95,8 +99,12 @@ func CertRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	Expect(postTLSVersion).ToNot(Equal(preTLSVersion), "tls-secret-version should change after cert rotation. before=%s after=%s", preTLSVersion, postTLSVersion)
 	Expect(postRevision).To(Equal(preRevision+1), "deployment revision should increase after cert rotation. before=%s after=%s", preRevision, postRevision)
 
-	By("Fetch logs from target cluster after pivot")
-	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, input.ClusterProxy.GetName(), "after-cert-rotation"))
+	By("Fetch cluster logs and manifests after cert rotation [cert_rotation]")
+	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "cert_rotation", "afterRotation"))
+	if err != nil {
+		Logf("Error: %v", err)
+	}
+	err = FetchManifests(input.ClusterProxy, filepath.Join(input.ArtifactFolder, "cert_rotation", "afterRotation"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}

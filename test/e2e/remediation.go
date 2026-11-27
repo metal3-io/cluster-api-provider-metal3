@@ -34,6 +34,7 @@ type RemediationInput struct {
 	ClusterName           string
 	Namespace             string
 	ClusterctlConfigPath  string
+	ArtifactFolder        string
 }
 
 /*
@@ -131,6 +132,9 @@ func Remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	ListMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
 	ListMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
 	ListNodes(ctx, targetClient)
+
+	// The next steps scale down the control plane and delete a worker.
+	CollectPhaseArtifacts(input.ArtifactFolder, "remediation", "postPowerCycle", input.BootstrapClusterProxy, input.TargetCluster)
 
 	By("Testing unhealthy and inspection annotations")
 	By("Scaling down KCP to 1 replica")
@@ -235,6 +239,9 @@ func Remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	ListMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
 	ListMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
 	ListNodes(ctx, targetClient)
+
+	// The next steps replace the workers with a new Metal3DataTemplate.
+	CollectPhaseArtifacts(input.ArtifactFolder, "remediation", "postUnhealthyAnnotation", input.BootstrapClusterProxy, input.TargetCluster)
 
 	By("Scaling machine deployment down to 1")
 	ScaleMachineDeployment(ctx, bootstrapClient, input.ClusterName, input.Namespace, 1)
