@@ -786,6 +786,8 @@ spec:
     fromHostInterfaces:
     - key: mac
       interface: "eth0"
+    - key: boot_mac
+      fromBootMAC: true
     fromLabels:
     - key: label-1
       object: machine
@@ -806,6 +808,8 @@ spec:
             annotation: primary-mac
       - type: "phy"
         id: "enp2s0"
+        # cloud-init renames the interface with this MAC address to "data0"
+        name: "data0"
         mtu: 1500
         macAddress:
           fromHostInterface: "eth1"
@@ -815,9 +819,14 @@ spec:
         macAddress:
           string: "XX:XX:XX:XX:XX:XX"
         bondMode: "802.3ad"
+        bondXmitHashPolicy: "layer3+4"
         bondLinks:
         - enp1s0
         - enp2s0
+        # v1beta1 takes a map of parameters, see the links specifications
+        parameters:
+          miimon: 100
+          lacp_rate: "fast"
       vlans:
       - id: "vlan1"
         mtu: 1500
@@ -949,8 +958,13 @@ ways. The following types of objects are available and accept lists:
      [Cluster-API IPAM provider specification](https://cluster-api.sigs.k8s.io/reference/providers.html#ip-address-management-ipam)
    - an _IPPool_ object as defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
-- **fromHostInterfaces**: renders the MAC address of the BareMetalHost that
-  matches the name given as value.
+- **fromHostInterfaces**: renders a MAC address of the BareMetalHost. It takes
+  exactly one of the following attributes:
+   - `interface`: the name of the interface in the BareMetalHost hardware
+     details whose MAC address is rendered.
+   - `fromBootMAC`: when set to `true`, renders the MAC address from the
+     BareMetalHost `spec.bootMACAddress` field. Rendering fails if that field
+     is empty.
 - **fromLabels**: renders the content of a label on an object or an empty string
   if the label is absent. It takes an `object` attribute to specify the type of
   the object where to fetch the label, and a `label` attribute that contains the
@@ -982,6 +996,10 @@ The **links/ethernets** objects contain the following:
 
 - **type**: Type of the ethernet interface
 - **id**: Interface name
+- **name**: (optional) the name cloud-init gives to the interface. Cloud-init
+  renames the interface matching the `macAddress` to this name. It must start
+  with a letter, followed by letters, digits, `.`, `_` or `-`, and be at most 15
+  characters long.
 - **mtu**: Interface MTU
 - **macAddress**: an object to render the MAC Address
 
@@ -1009,10 +1027,18 @@ The **links/ethernets/macAddress** object can be one of:
 The **links/bonds** object contains the following:
 
 - **id**: Interface name
+- **name**: (optional) the name cloud-init gives to the bond interface, with
+  the same rules as for the ethernet links. Only cloud-init 26.1 and newer
+  honors it, older versions ignore it and name the bonds `bond0`, `bond1` and
+  so on, as they do when it is not set.
 - **mtu**: Interface MTU
 - **macAddress**: an object to render the MAC Address
 - **bondMode**: The bond mode
+- **bondXmitHashPolicy**: (optional) the transmit hash policy used to select
+  the port in the `balance-xor` and `802.3ad` bond modes
 - **bondLinks** : a list of links to use for the bond
+- **parameters**: (optional) additional bond parameters, passed to cloud-init
+  without validation
 
 The **links/bonds/bondMode** can be one of :
 
@@ -1024,9 +1050,38 @@ The **links/bonds/bondMode** can be one of :
 - balance-tlb
 - balance-alb
 
+The **links/bonds/bondXmitHashPolicy** can be one of :
+
+- layer2
+- layer2+3
+- layer3+4
+
+The **links/bonds/parameters** field holds bond options that have no dedicated
+field, such as `miimon` or `lacp_rate`. Each parameter is rendered in the
+network data with its name prefixed by `bond_`, and its value is copied
+unchanged, for example as a string, a number or a boolean. In `v1beta1` the
+parameters are a map from the parameter name to its value. In `v1beta2` they
+are a list of objects with a `name` and a `value` attribute:
+
+```yaml
+parameters:
+- name: miimon
+  value: 100
+- name: lacp_rate
+  value: "fast"
+```
+
+The `mode`, `xmit_hash_policy` and `links` parameters are rejected when the
+network data is rendered, because they would overwrite the `bondMode`,
+`bondXmitHashPolicy` and `bondLinks` fields.
+
 The **links/vlans** object contains the following:
 
 - **id**: Interface name
+- **name**: (optional) an interface name, with the same rules as for the
+  ethernet links. It is rendered in the network data, but cloud-init names VLAN
+  interfaces after their link and VLAN ID, for example `bond0.1`, and does not
+  use it.
 - **mtu**: Interface MTU
 - **macAddress**: an object to render the MAC Address
 - **vlanID**: The vlan ID
